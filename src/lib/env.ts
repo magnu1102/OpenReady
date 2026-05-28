@@ -1,3 +1,3 @@
 export const APP_NAME = "OpenReady";
 export const APP_VERSION = "0.1.0";
-export const APP_PHASE = "Phase 3 — deterministic checks";
+export const APP_PHASE = "Phase 6 - repository detail view";

@@ -2,9 +2,9 @@
 
 Public GitHub REST API client. Handles fetching user repositories, README files, rate limits and optional token authentication later.
 
-**Phase:** public repository listing implemented in Phase 2; README fetching added in Phase 3.
+**Phase:** public repository listing implemented in Phase 2, README fetching in Phase 3, and repository tree fetching in Phase 4 for the Phase 6 detail view.
 
-**Public surface:** `fetchUserRepositories(username)`, `fetchRepositoryReadme(owner, repo)`.
+**Public surface:** `fetchUserRepositories(username)`, `fetchRepositoryReadme(owner, repo)`, `fetchRepositoryTree(owner, repo, defaultBranch)`.
 
 Current behavior:
 

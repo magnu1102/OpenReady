@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 3 — basic deterministic checks. Enter a GitHub username to fetch public repositories, run local metadata and README checks, and review plain-language health labels. Numeric scoring arrives later.
+> **Status:** Phase 6 - repository detail view. Enter a GitHub username to fetch public repositories, run deterministic metadata, README and file-tree checks, then review transparent scores and per-repository recommendations.
 
 ## Screenshots
 
@@ -38,10 +38,10 @@ This opens OpenReady in your browser without compiling the Rust shell.
 
 1. Enter a public GitHub user account on the Welcome screen.
 2. OpenReady calls GitHub's public REST API without authentication.
-3. The Dashboard shows public repository metadata, basic health labels, pass/missing counts and key missing signals.
-4. Open a repository to review metadata, activity, status and README checks.
+3. The Dashboard shows public repository metadata, health labels, scores and key missing signals.
+4. Open a repository to review score breakdowns, detected stack, documentation checks, build/test checks, presentation signals and prioritized recommendations.
 
-Phase 3 keeps fetched data in memory only, requests no GitHub token, checks README content for the first 30 fetched repositories, and does not produce numeric scores yet.
+Phase 6 keeps fetched data in memory only, requests no GitHub token, and checks README content plus file-tree paths for the first 30 fetched repositories.
 
 ### Useful scripts
 
@@ -58,12 +58,12 @@ pnpm format      # Prettier write
 - Repository description, topics, homepage/demo URL and license metadata
 - Recent activity, archived status and fork status
 - Setup, usage, screenshots/demo, tech stack, testing and roadmap README sections
-- Setup, build and dependency manifests (planned)
-- CI workflows and test detection (planned)
-- Docker / deployment signals (planned)
+- Setup, build and dependency manifests
+- CI workflows and test detection
+- Docker / deployment signals
 - Screenshots, demo links and presentation quality
 - Repository metadata (description, topics, homepage, activity)
-- Project type classification
+- Prioritized per-repository recommendations
 
 ## What OpenReady does **not** do
 
