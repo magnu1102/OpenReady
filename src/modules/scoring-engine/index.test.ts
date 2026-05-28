@@ -93,6 +93,22 @@ describe("scoring-engine", () => {
     expect(result.categories.every((c) => c.score === null)).toBe(true);
   });
 
+  it("applies per-category weights to the total", () => {
+    const checks = [
+      check("readme", "documentation", "passed"),
+      check("homepage", "metadata", "failed"),
+      check("readme-screenshots-demo", "documentation", "failed"),
+    ];
+
+    const uniform = scoreChecks(checks);
+    const weighted = scoreChecks(checks, { presentation: 2 });
+
+    expect(uniform.total).toBe(33);
+    expect(weighted.total).toBe(25);
+    expect(weighted.categories.find((c) => c.category === "presentation")?.weight).toBe(2);
+    expect(weighted.categories.find((c) => c.category === "documentation")?.weight).toBe(1);
+  });
+
   it("averages applicable category scores into the total", () => {
     const result = scoreChecks([
       check("description", "metadata", "passed"),

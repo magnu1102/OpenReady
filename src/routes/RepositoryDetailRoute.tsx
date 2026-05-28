@@ -27,11 +27,15 @@ import { useRepositoryStore } from "@/store/repositoryStore";
 import type { TreeFetchStatus } from "@/store/repositoryStore";
 import { collectTechSignals } from "@/modules/analyzer-core";
 import type { TechSignal } from "@/modules/analyzer-core";
+import { PROJECT_TYPE_LABELS, SELECTABLE_PROJECT_TYPES } from "@/modules/project-classifier";
 import type {
   AnalysisResult,
   CheckCategory,
   CheckStatus,
+  ClassificationResult,
+  Confidence,
   HealthLabel,
+  ProjectType,
   Recommendation,
   RecommendationPriority,
   RepositoryTreeState,
@@ -88,10 +92,17 @@ export function RepositoryDetailRoute() {
   const analyses = useRepositoryStore((s) => s.analyses);
   const trees = useRepositoryStore((s) => s.trees);
   const treeStatus = useRepositoryStore((s) => s.treeStatus);
+  const overrideClassification = useRepositoryStore((s) => s.overrideClassification);
   const repository = repositories.find((candidate) => candidate.id === id);
   const analysis = analyses.find((candidate) => candidate.repository.id === id);
   const treeState = trees[id];
   const techSignals = collectTechSignals(treeState);
+
+  function handleOverride(next: string) {
+    if (!repository) return;
+    const value: ProjectType | null = next === "auto" ? null : (next as ProjectType);
+    void overrideClassification(repository.id, value);
+  }
 
   if (!repository) {
     return (
@@ -135,6 +146,7 @@ export function RepositoryDetailRoute() {
             {analysis ? (
               <Badge tone={healthLabelTone(analysis.healthLabel)}>{analysis.healthLabel}</Badge>
             ) : null}
+            {analysis ? <ClassificationBadge classification={analysis.classification} /> : null}
             {repository.language ? <Badge>{repository.language}</Badge> : null}
             <Badge>
               <Star className="h-3 w-3" /> {repository.stars}
@@ -149,6 +161,12 @@ export function RepositoryDetailRoute() {
               </Badge>
             ) : null}
           </div>
+          {analysis ? (
+            <ClassificationOverride
+              classification={analysis.classification}
+              onChange={handleOverride}
+            />
+          ) : null}
         </div>
         <Card className="flex w-full max-w-[260px] flex-col items-center gap-2 p-5">
           <ScoreRing value={analysis?.score.total ?? null} label="Score" />
@@ -485,7 +503,14 @@ function AnalysisSummary({ analysis }: { analysis?: AnalysisResult }) {
         {score.categories.map((category) => (
           <li key={category.category} className="flex flex-col gap-1">
             <div className="flex items-baseline justify-between gap-2 text-xs">
-              <span className="text-text-primary">{category.label}</span>
+              <span className="flex items-center gap-1.5 text-text-primary">
+                {category.label}
+                {category.weight !== 1 ? (
+                  <span className="rounded-sm bg-subtle px-1 font-mono text-[10px] text-text-muted">
+                    ×{category.weight}
+                  </span>
+                ) : null}
+              </span>
               <span className="tabular-nums text-text-muted">
                 {category.score === null
                   ? "N/A"
@@ -498,6 +523,59 @@ function AnalysisSummary({ analysis }: { analysis?: AnalysisResult }) {
       </ul>
     </Card>
   );
+}
+
+function ClassificationBadge({ classification }: { classification: ClassificationResult }) {
+  const label = PROJECT_TYPE_LABELS[classification.type];
+  const tone = confidenceTone(classification.confidence);
+  const suffix = classification.overridden
+    ? "overridden"
+    : `${classification.confidence} confidence`;
+  return (
+    <Badge tone={tone} title={classification.reasons.join(" · ")}>
+      {label} · {suffix}
+    </Badge>
+  );
+}
+
+function ClassificationOverride({
+  classification,
+  onChange,
+}: {
+  classification: ClassificationResult;
+  onChange: (next: string) => void;
+}) {
+  const value = classification.overridden ? classification.type : "auto";
+  return (
+    <label className="flex items-center gap-2 text-xs text-text-muted">
+      <span>Project type</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-md border border-border-subtle bg-surface px-2 py-1 text-xs text-text-primary"
+      >
+        <option value="auto">
+          Auto-detect ({PROJECT_TYPE_LABELS[classification.detectedType]})
+        </option>
+        {SELECTABLE_PROJECT_TYPES.map((type) => (
+          <option key={type} value={type}>
+            {PROJECT_TYPE_LABELS[type]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function confidenceTone(confidence: Confidence) {
+  switch (confidence) {
+    case "high":
+      return "success";
+    case "medium":
+      return "neutral";
+    case "low":
+      return "warn";
+  }
 }
 
 function ScoreBar({ score }: { score: number | null }) {
