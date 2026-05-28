@@ -23,7 +23,15 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/Button";
 import { useRepositoryStore } from "@/store/repositoryStore";
-import type { AnalysisResult, CheckCategory, CheckStatus, HealthLabel } from "@/types";
+import { collectTechSignals } from "@/modules/analyzer-core";
+import type { TechSignal } from "@/modules/analyzer-core";
+import type {
+  AnalysisResult,
+  CheckCategory,
+  CheckStatus,
+  HealthLabel,
+  RepositoryTreeState,
+} from "@/types";
 
 const tabs = [
   {
@@ -45,7 +53,7 @@ const tabs = [
     label: "Build & Tests",
     icon: Hammer,
     title: "Build and tests",
-    body: "Package manifests, lockfiles, Docker, CI workflows, test directories and coverage hints. Coming in Phase 4.",
+    body: "Package manifests, lockfiles, Docker, CI workflows, test directories and infrastructure-as-code signals from the repository file tree.",
   },
   {
     value: "presentation",
@@ -67,8 +75,11 @@ export function RepositoryDetailRoute() {
   const { id = "example" } = useParams<{ id: string }>();
   const repositories = useRepositoryStore((s) => s.repositories);
   const analyses = useRepositoryStore((s) => s.analyses);
+  const trees = useRepositoryStore((s) => s.trees);
   const repository = repositories.find((candidate) => candidate.id === id);
   const analysis = analyses.find((candidate) => candidate.repository.id === id);
+  const treeState = trees[id];
+  const techSignals = collectTechSignals(treeState);
 
   if (!repository) {
     return (
@@ -153,12 +164,15 @@ export function RepositoryDetailRoute() {
         </TabsList>
         <TabsContent value="overview">
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            <CheckPanel
-              title="Repository signals"
-              description="Metadata, activity and repository status checks from Phase 3."
-              analysis={analysis}
-              categories={["metadata", "activity", "status"]}
-            />
+            <div className="flex flex-col gap-6">
+              <CheckPanel
+                title="Repository signals"
+                description="Metadata, activity and repository status checks from Phase 3."
+                analysis={analysis}
+                categories={["metadata", "activity", "status"]}
+              />
+              <TechStackPanel signals={techSignals} treeState={treeState} />
+            </div>
             <AnalysisSummary analysis={analysis} />
           </div>
         </TabsContent>
@@ -174,11 +188,15 @@ export function RepositoryDetailRoute() {
           </div>
         </TabsContent>
         <TabsContent value="build">
-          <PlaceholderPanel
-            icon={Hammer}
-            title="Build and tests"
-            description="Package manifests, test folders and CI workflows are planned for Phase 4."
-          />
+          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+            <CheckPanel
+              title="Build, CI and infrastructure"
+              description="Detected from the recursive repository file tree. Package manifests, lockfiles, Docker, GitHub Actions, tests, docs and infrastructure-as-code."
+              analysis={analysis}
+              categories={["buildability", "ci", "tests", "containerization", "infrastructure"]}
+            />
+            <AnalysisSummary analysis={analysis} />
+          </div>
         </TabsContent>
         <TabsContent value="presentation">
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
@@ -251,6 +269,80 @@ function CheckPanel({
           </div>
         ))}
       </div>
+    </Card>
+  );
+}
+
+function TechStackPanel({
+  signals,
+  treeState,
+}: {
+  signals: TechSignal[];
+  treeState: RepositoryTreeState | undefined;
+}) {
+  const description =
+    treeState?.status === "truncated"
+      ? "Detected from a partial file tree — GitHub truncated the response for this large repository."
+      : "Detected from filenames in the recursive Git tree.";
+
+  if (!treeState) {
+    return (
+      <Card className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-md font-semibold text-text-primary">Detected stack</h2>
+          <p className="text-sm text-text-secondary">
+            Fetching the repository file tree. Detection appears here once it completes.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-5 w-16 rounded-full" />
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  if (treeState.status === "unknown") {
+    return (
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-md font-semibold text-text-primary">Detected stack</h2>
+        <p className="text-sm text-text-secondary">{treeState.message}</p>
+      </Card>
+    );
+  }
+
+  if (treeState.status === "empty") {
+    return (
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-md font-semibold text-text-primary">Detected stack</h2>
+        <p className="text-sm text-text-secondary">Repository is empty — nothing to detect.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-md font-semibold text-text-primary">Detected stack</h2>
+        <p className="text-sm text-text-secondary">{description}</p>
+      </div>
+      {signals.length === 0 ? (
+        <p className="text-sm text-text-secondary">
+          No recognised manifests, CI, container, infra or test signals were found in this tree.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {signals.map((signal) => (
+            <li key={signal.id} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Badge tone="success">{signal.label}</Badge>
+              </div>
+              <div className="text-xs text-text-muted">{signal.evidence.join(" · ")}</div>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { analyzeRepository, analyzeRepositories } from "./index";
-import type { Repository, RepositoryReadmeState } from "@/types";
+import type {
+  Repository,
+  RepositoryReadmeState,
+  RepositoryTree,
+  RepositoryTreeState,
+} from "@/types";
 
 const now = new Date("2026-05-28T12:00:00Z");
 
@@ -30,6 +35,18 @@ function repository(overrides: Partial<Repository> = {}): Repository {
     pushedAt: "2026-05-28T09:00:00Z",
     ...overrides,
   };
+}
+
+function tree(paths: string[], truncated = false): RepositoryTree {
+  return {
+    repositoryFullName: "octocat/openready",
+    truncated,
+    entries: paths.map((path) => ({ path, type: "blob" as const })),
+  };
+}
+
+function foundTree(paths: string[]): RepositoryTreeState {
+  return { status: "found", tree: tree(paths) };
 }
 
 function foundReadme(content: string): RepositoryReadmeState {
@@ -75,7 +92,7 @@ Scoring and exports come later.
 
 describe("analyzer-core", () => {
   it("returns Strong start for a repository with metadata and README sections", () => {
-    const result = analyzeRepository(repository(), foundReadme(strongReadme), now);
+    const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
 
     expect(result.healthLabel).toBe("Strong start");
     expect(result.failedCount).toBe(0);
@@ -83,7 +100,7 @@ describe("analyzer-core", () => {
   });
 
   it("returns Needs README when README is missing", () => {
-    const result = analyzeRepository(repository(), { status: "missing" }, now);
+    const result = analyzeRepository(repository(), { status: "missing" }, undefined, now);
 
     expect(result.healthLabel).toBe("Needs README");
     expect(result.checks.find((check) => check.id === "readme")).toMatchObject({
@@ -99,6 +116,7 @@ describe("analyzer-core", () => {
         pushedAt: "2024-01-01T10:00:00Z",
       }),
       foundReadme(strongReadme),
+      undefined,
       now,
     );
 
@@ -108,10 +126,12 @@ describe("analyzer-core", () => {
 
   it("prioritizes Archived and Fork labels", () => {
     expect(
-      analyzeRepository(repository({ archived: true }), foundReadme(strongReadme), now).healthLabel,
+      analyzeRepository(repository({ archived: true }), foundReadme(strongReadme), undefined, now)
+        .healthLabel,
     ).toBe("Archived");
     expect(
-      analyzeRepository(repository({ fork: true }), foundReadme(strongReadme), now).healthLabel,
+      analyzeRepository(repository({ fork: true }), foundReadme(strongReadme), undefined, now)
+        .healthLabel,
     ).toBe("Fork");
   });
 
@@ -124,6 +144,7 @@ describe("analyzer-core", () => {
         license: null,
       }),
       foundReadme(strongReadme),
+      undefined,
       now,
     );
 
@@ -157,6 +178,7 @@ Run pnpm test.
 ## Roadmap
 Add scoring.
 `),
+      undefined,
       now,
     );
 
@@ -168,6 +190,7 @@ Add scoring.
     const result = analyzeRepository(
       repository(),
       { status: "unknown", message: "GitHub rate limit reached." },
+      undefined,
       now,
     );
 
@@ -186,9 +209,156 @@ Add scoring.
         "1": foundReadme(strongReadme),
         "2": { status: "missing" },
       },
+      {},
       now,
     );
 
     expect(results.map((result) => result.healthLabel)).toEqual(["Strong start", "Needs README"]);
+  });
+
+  describe("buildability and CI checks", () => {
+    it("marks buildability/ci checks unknown when no tree state is provided", () => {
+      const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
+
+      for (const id of ["build-manifest", "lockfile", "dockerfile", "github-actions"]) {
+        expect(result.checks.find((check) => check.id === id)).toMatchObject({ status: "unknown" });
+      }
+    });
+
+    it("passes build, lockfile, docker and CI checks when matching files are present", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "pnpm-lock.yaml", "Dockerfile", ".github/workflows/ci.yml"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "build-manifest")?.status).toBe("passed");
+      expect(result.checks.find((c) => c.id === "lockfile")).toMatchObject({
+        status: "passed",
+        evidence: "pnpm-lock.yaml",
+      });
+      expect(result.checks.find((c) => c.id === "dockerfile")?.status).toBe("passed");
+      expect(result.checks.find((c) => c.id === "github-actions")?.status).toBe("passed");
+    });
+
+    it("fails build, lockfile, docker and CI checks when nothing is detected", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["README.md", "src/index.ts"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "build-manifest")?.status).toBe("failed");
+      expect(result.checks.find((c) => c.id === "lockfile")?.status).toBe("failed");
+      expect(result.checks.find((c) => c.id === "dockerfile")?.status).toBe("failed");
+      expect(result.checks.find((c) => c.id === "github-actions")?.status).toBe("failed");
+    });
+
+    it("treats an empty repository tree as not-applicable", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        { status: "empty" },
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "build-manifest")?.status).toBe("not-applicable");
+      expect(result.checks.find((c) => c.id === "dockerfile")?.status).toBe("not-applicable");
+    });
+
+    it("keeps positive evidence on truncated trees but marks misses unknown", () => {
+      const truncated: RepositoryTreeState = {
+        status: "truncated",
+        tree: { ...tree(["Dockerfile"]), truncated: true },
+      };
+      const result = analyzeRepository(repository(), foundReadme(strongReadme), truncated, now);
+
+      expect(result.checks.find((c) => c.id === "dockerfile")?.status).toBe("passed");
+      expect(result.checks.find((c) => c.id === "build-manifest")?.status).toBe("unknown");
+    });
+  });
+
+  describe("tests, infrastructure and docs-folder checks", () => {
+    it("passes the tests check when a test directory is present", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        {
+          status: "found",
+          tree: {
+            repositoryFullName: "octocat/openready",
+            truncated: false,
+            entries: [
+              { path: "tests", type: "tree" },
+              { path: "tests/test_app.py", type: "blob" },
+            ],
+          },
+        },
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "tests-present")?.status).toBe("passed");
+    });
+
+    it("fails the tests check when no test files or directories are found", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "src/index.ts"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "tests-present")?.status).toBe("failed");
+    });
+
+    it("marks infrastructure-as-code passed when Terraform or Kubernetes manifests are detected", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["infra/main.tf", "k8s/deployment.yaml"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "infrastructure-as-code")).toMatchObject({
+        status: "passed",
+      });
+    });
+
+    it("marks infrastructure-as-code not-applicable for repositories without IaC", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "src/index.ts"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "infrastructure-as-code")?.status).toBe(
+        "not-applicable",
+      );
+    });
+
+    it("passes the docs-folder check when docs/ entries exist", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["docs/intro.md", "docs/usage.md"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "docs-folder")?.status).toBe("passed");
+    });
+
+    it("fails the docs-folder check when nothing is found", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["README.md"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "docs-folder")?.status).toBe("failed");
+    });
   });
 });

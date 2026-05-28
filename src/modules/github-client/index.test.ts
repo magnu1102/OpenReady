@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { GitHubClientError } from "./index";
-import { fetchRepositoryReadme, fetchUserRepositories, isValidGitHubUsername } from "./index";
+import {
+  fetchRepositoryReadme,
+  fetchRepositoryTree,
+  fetchUserRepositories,
+  isValidGitHubUsername,
+} from "./index";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -207,5 +212,103 @@ describe("github-client", () => {
     await expect(fetchRepositoryReadme("octocat", "hello-world")).rejects.toMatchObject({
       code: "invalid-response",
     } satisfies Partial<GitHubClientError>);
+  });
+
+  it("fetches a repository file tree recursively", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        sha: "abc",
+        tree: [
+          { path: "README.md", type: "blob" },
+          { path: "src", type: "tree" },
+          { path: "src/index.ts", type: "blob" },
+          { path: "package.json", type: "blob" },
+          { path: "ignored", type: "commit" },
+        ],
+        truncated: false,
+      }),
+    );
+
+    const tree = await fetchRepositoryTree("octocat", "hello-world", "main");
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      "https://api.github.com/repos/octocat/hello-world/git/trees/main?recursive=1",
+    );
+    expect(tree).toEqual({
+      repositoryFullName: "octocat/hello-world",
+      truncated: false,
+      entries: [
+        { path: "README.md", type: "blob" },
+        { path: "src", type: "tree" },
+        { path: "src/index.ts", type: "blob" },
+        { path: "package.json", type: "blob" },
+      ],
+    });
+  });
+
+  it("flags truncated trees while still returning entries", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        tree: [{ path: "README.md", type: "blob" }],
+        truncated: true,
+      }),
+    );
+
+    const tree = await fetchRepositoryTree("octocat", "huge", "main");
+
+    expect(tree?.truncated).toBe(true);
+    expect(tree?.entries).toHaveLength(1);
+  });
+
+  it("returns null when the repository has no tree (404 or 409)", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "Not Found" }, { status: 404 }));
+    await expect(fetchRepositoryTree("octocat", "empty", "main")).resolves.toBeNull();
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ message: "Git Repository is empty." }, { status: 409 }),
+    );
+    await expect(fetchRepositoryTree("octocat", "empty", "main")).resolves.toBeNull();
+  });
+
+  it("throws network when tree fetch rejects", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    await expect(fetchRepositoryTree("octocat", "hello-world", "main")).rejects.toMatchObject({
+      code: "network",
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("throws rate-limit when tree fetch is rate limited", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { message: "API rate limit exceeded" },
+        { status: 403, headers: { "x-ratelimit-remaining": "0" } },
+      ),
+    );
+
+    await expect(fetchRepositoryTree("octocat", "hello-world", "main")).rejects.toMatchObject({
+      code: "rate-limit",
+      status: 403,
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("throws invalid-response for malformed tree responses", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "ok" }));
+
+    await expect(fetchRepositoryTree("octocat", "hello-world", "main")).rejects.toMatchObject({
+      code: "invalid-response",
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("rejects invalid tree arguments before calling GitHub", async () => {
+    await expect(fetchRepositoryTree("oct/cat", "repo", "main")).rejects.toMatchObject({
+      code: "invalid-username",
+    } satisfies Partial<GitHubClientError>);
+    await expect(fetchRepositoryTree("octocat", "repo", "")).rejects.toMatchObject({
+      code: "invalid-username",
+    } satisfies Partial<GitHubClientError>);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

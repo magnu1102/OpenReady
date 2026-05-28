@@ -1,4 +1,4 @@
-import type { Repository, RepositoryReadme } from "@/types";
+import type { Repository, RepositoryReadme, RepositoryTree, RepositoryTreeEntry } from "@/types";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const USERNAME_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
@@ -52,6 +52,11 @@ interface GitHubReadmeResponse {
   html_url: string;
   content: string;
   encoding: string;
+}
+
+interface GitHubTreeResponse {
+  tree: Array<{ path?: unknown; type?: unknown }>;
+  truncated: boolean;
 }
 
 export function normalizeGitHubUsername(username: string): string {
@@ -162,6 +167,80 @@ export async function fetchRepositoryReadme(
   };
 }
 
+export async function fetchRepositoryTree(
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<RepositoryTree | null> {
+  const normalizedOwner = owner.trim();
+  const normalizedRepo = repo.trim();
+  const normalizedBranch = branch.trim();
+  if (
+    !normalizedOwner ||
+    !normalizedRepo ||
+    !normalizedBranch ||
+    normalizedOwner.includes("/") ||
+    normalizedRepo.includes("/")
+  ) {
+    throw new GitHubClientError(
+      "invalid-username",
+      "Enter a valid repository owner, name, and branch.",
+    );
+  }
+
+  const url = new URL(
+    `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
+      normalizedRepo,
+    )}/git/trees/${encodeURIComponent(normalizedBranch)}`,
+    GITHUB_API_BASE_URL,
+  );
+  url.searchParams.set("recursive", "1");
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+  } catch {
+    throw new GitHubClientError(
+      "network",
+      "Could not reach GitHub while checking the repository file tree.",
+    );
+  }
+
+  if (response.status === 404 || response.status === 409) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw await toGitHubClientError(response);
+  }
+
+  const data: unknown = await response.json();
+  if (!isGitHubTreeResponse(data)) {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned an unexpected repository tree response.",
+    );
+  }
+
+  const entries: RepositoryTreeEntry[] = [];
+  for (const entry of data.tree) {
+    if (typeof entry.path === "string" && (entry.type === "blob" || entry.type === "tree")) {
+      entries.push({ path: entry.path, type: entry.type });
+    }
+  }
+
+  return {
+    repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
+    entries,
+    truncated: data.truncated,
+  };
+}
+
 async function toGitHubClientError(response: Response): Promise<GitHubClientError> {
   const message = await readGitHubErrorMessage(response);
   if (response.status === 404) {
@@ -238,6 +317,17 @@ function mapRepository(repo: GitHubRepositoryResponse): Repository {
     updatedAt: repo.updated_at,
     pushedAt: repo.pushed_at,
   };
+}
+
+function isGitHubTreeResponse(value: unknown): value is GitHubTreeResponse {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "tree" in value &&
+    Array.isArray((value as { tree: unknown }).tree) &&
+    "truncated" in value &&
+    typeof (value as { truncated: unknown }).truncated === "boolean"
+  );
 }
 
 function isGitHubReadmeResponse(value: unknown): value is GitHubReadmeResponse {

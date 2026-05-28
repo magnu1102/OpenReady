@@ -37,9 +37,35 @@ export type RepositoryReadmeState =
   | { status: "missing" }
   | { status: "unknown"; message: string };
 
+export interface RepositoryTreeEntry {
+  path: string;
+  type: "blob" | "tree";
+}
+
+export interface RepositoryTree {
+  repositoryFullName: string;
+  entries: RepositoryTreeEntry[];
+  truncated: boolean;
+}
+
+export type RepositoryTreeState =
+  | { status: "found"; tree: RepositoryTree }
+  | { status: "empty" }
+  | { status: "truncated"; tree: RepositoryTree }
+  | { status: "unknown"; message: string };
+
 export type CheckStatus = "passed" | "failed" | "not-applicable" | "unknown";
 
-export type CheckCategory = "metadata" | "activity" | "status" | "documentation";
+export type CheckCategory =
+  | "metadata"
+  | "activity"
+  | "status"
+  | "documentation"
+  | "buildability"
+  | "ci"
+  | "tests"
+  | "containerization"
+  | "infrastructure";
 
 export interface CheckResult {
   id: string;
