@@ -38,14 +38,14 @@ const tabs = [
     label: "Documentation",
     icon: FileText,
     title: "Documentation checks",
-    body: "README sections, license, contributing, changelog and docs folder detection. Section-level rules land with Phase 3.",
+    body: "README presence and section checks. Contributing, changelog and docs folder detection arrive later.",
   },
   {
     value: "build",
     label: "Build & Tests",
     icon: Hammer,
     title: "Build and tests",
-    body: "Package manifests, lockfiles, Docker, CI workflows, test directories and coverage hints. Coming in Phase 3–4.",
+    body: "Package manifests, lockfiles, Docker, CI workflows, test directories and coverage hints. Coming in Phase 4.",
   },
   {
     value: "presentation",

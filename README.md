@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 2 — public repository fetch. Enter a GitHub username to fetch and view the first 100 public repositories. Deterministic checks and scoring arrive in later phases.
+> **Status:** Phase 3 — basic deterministic checks. Enter a GitHub username to fetch public repositories, run local metadata and README checks, and review plain-language health labels. Numeric scoring arrives later.
 
 ## Screenshots
 
@@ -38,9 +38,10 @@ This opens OpenReady in your browser without compiling the Rust shell.
 
 1. Enter a public GitHub user account on the Welcome screen.
 2. OpenReady calls GitHub's public REST API without authentication.
-3. The Dashboard shows public repository metadata such as name, description, language, stars, forks, updated date, fork status and archive status.
+3. The Dashboard shows public repository metadata, basic health labels, pass/missing counts and key missing signals.
+4. Open a repository to review metadata, activity, status and README checks.
 
-Phase 2 does not store fetched repository data, request a GitHub token, fetch repository contents, run deterministic checks or produce scores yet.
+Phase 3 keeps fetched data in memory only, requests no GitHub token, checks README content for the first 30 fetched repositories, and does not produce numeric scores yet.
 
 ### Useful scripts
 
@@ -51,13 +52,15 @@ pnpm test        # Vitest
 pnpm format      # Prettier write
 ```
 
-## What OpenReady checks (planned)
+## What OpenReady checks
 
 - README presence and section coverage
-- License, contributing and security policy
-- Setup, build and dependency manifests
-- CI workflows and test detection
-- Docker / deployment signals
+- Repository description, topics, homepage/demo URL and license metadata
+- Recent activity, archived status and fork status
+- Setup, usage, screenshots/demo, tech stack, testing and roadmap README sections
+- Setup, build and dependency manifests (planned)
+- CI workflows and test detection (planned)
+- Docker / deployment signals (planned)
 - Screenshots, demo links and presentation quality
 - Repository metadata (description, topics, homepage, activity)
 - Project type classification

@@ -85,7 +85,7 @@ export function DashboardRoute() {
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Dashboard</h1>
         <p className="text-sm text-text-secondary">
           {username
-            ? `Public repositories for ${username}. Deterministic checks arrive next.`
+            ? `Public repositories for ${username}. Phase 3 checks run locally.`
             : "Enter a GitHub username to fetch public repositories."}
         </p>
       </header>

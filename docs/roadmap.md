@@ -4,8 +4,8 @@ A condensed phase outline. The master plan (`openready_master_plan.md` §13) is 
 
 - **Phase 0 — Foundation.** Master plan, principles, contribution policy. ✅
 - **Phase 1 — Desktop app skeleton.** Tauri + React + TS shell, navigation, four placeholder screens, design system, docs skeleton. ✅
-- **Phase 2 — GitHub public repository fetch.** Username input wired up, GitHub client, public repo list, loading/error/rate-limit states. ← _current_
-- **Phase 3 — Basic deterministic checks.** README, license, description, topics, homepage, recent activity, archived/fork status.
+- **Phase 2 — GitHub public repository fetch.** Username input wired up, GitHub client, public repo list, loading/error/rate-limit states. ✅
+- **Phase 3 — Basic deterministic checks.** README, license, description, topics, homepage, recent activity, archived/fork status. ← _current_
 - **Phase 4 — File and tech-stack detection.** Package manifests, Docker, CI workflows, mobile/Gradle, IaC, docs, tests.
 - **Phase 5 — Scoring engine v1.** Category scores, total score, evidence list, labels.
 - **Phase 6 — Repository detail view.** Full per-repo breakdowns and recommendations.
