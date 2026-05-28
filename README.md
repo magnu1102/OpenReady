@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 8 - local cache and settings. Enter a GitHub username to fetch public repositories, run deterministic metadata, README and file-tree checks, restore recent local analyses, refresh intentionally, and export transparent reports, JSON summaries and homepage project cards.
+> **Status:** Phase 11 — CLI version. The desktop app classifies repositories by project type, applies type-weighted scoring, ships a guided onboarding tour and command palette (⌘K / ⌘/), and now exposes the same deterministic analyzer through a Node CLI (`openready analyze <username>` with table, JSON or Markdown output).
 
 ## Screenshots
 
@@ -43,6 +43,32 @@ This opens OpenReady in your browser without compiling the Rust shell.
 5. Reopen a recent local analysis, refresh it on demand, or export it as Markdown, JSON or homepage-card Markdown from the Dashboard.
 
 Phase 8 caches recent public analysis snapshots locally, stores optional GitHub tokens in the operating system credential store, and saves export files only to locations selected through the desktop save dialog.
+
+### Run the CLI
+
+OpenReady ships a Node CLI that runs the same deterministic analyzer outside the desktop shell — useful in scripts, CI, or a quick terminal check.
+
+```bash
+# Dev runs via tsx
+pnpm cli -- analyze octocat --limit 5 --no-readme --no-tree
+
+# Build a self-contained ESM bundle
+pnpm build:cli
+node dist-cli/openready.mjs analyze octocat --format json --out octocat.json
+```
+
+Common flags:
+
+| Flag                             | Purpose                                    |
+| -------------------------------- | ------------------------------------------ |
+| `--format table\|json\|markdown` | Output format (default `table`)            |
+| `--limit <n>`                    | Max repositories analysed (default 30)     |
+| `--repo <name>`                  | Focus a single repository                  |
+| `--out <path>`                   | Write output to a file instead of stdout   |
+| `--token <value>`                | GitHub PAT for higher rate limits          |
+| `--no-readme` / `--no-tree`      | Skip README or file-tree fetches for speed |
+
+Token resolution order: `--token`, then `OPENREADY_GITHUB_TOKEN`, then `GITHUB_TOKEN`. Without a token GitHub limits unauthenticated requests to ~60/hour. Output respects [`NO_COLOR`](https://no-color.org/) and falls back to plain text when stdout isn't a TTY.
 
 ### Useful scripts
 
@@ -85,6 +111,10 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 - [Product principles](docs/product-principles.md)
 - [Architecture](docs/architecture.md)
 - [Scoring model](docs/scoring-model.md)
+- [Project classification](docs/classification.md)
+- [Tech-stack detection](docs/tech-stack-detection.md)
+- [CLI](docs/cli.md)
+- [Onboarding and keyboard](docs/onboarding-and-keyboard.md)
 - [Privacy model](docs/privacy.md)
 - [AI expansion](docs/ai-expansion.md)
 - [Roadmap](docs/roadmap.md)

@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "noEmit": true
+  },
+  "include": [
+    "src/cli/**/*",
+    "src/modules/analyzer-core/**/*",
+    "src/modules/scoring-engine/**/*",
+    "src/modules/project-classifier/**/*",
+    "src/modules/recommendation-engine/**/*",
+    "src/modules/export-engine/**/*",
+    "src/modules/github-client/**/*",
+    "src/types/**/*"
+  ]
+}
