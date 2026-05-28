@@ -1,8 +1,7 @@
-#!/usr/bin/env node
 /**
- * OpenReady CLI entry. Subsequent commits add argument parsing, the analyzer
- * pipeline, and the rendering layer. For now `--help` and `--version` work,
- * everything else prints help and exits 1 so wiring can land incrementally.
+ * OpenReady CLI entry. The shebang is injected by the esbuild banner in
+ * scripts/build-cli.mjs, so the bundled artifact at dist-cli/openready.mjs
+ * is directly executable. In dev we run via `tsx`, which doesn't need it.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
