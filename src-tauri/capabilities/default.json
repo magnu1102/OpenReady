@@ -10,6 +10,7 @@
       "identifier": "fs:allow-write-text-file",
       "allow": [{ "path": "$HOME/**" }]
     },
-    "opener:default"
+    "opener:default",
+    "store:default"
   ]
 }
