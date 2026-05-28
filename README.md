@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 7 - export system. Enter a GitHub username to fetch public repositories, run deterministic metadata, README and file-tree checks, then export transparent reports, JSON summaries and homepage project cards.
+> **Status:** Phase 8 - local cache and settings. Enter a GitHub username to fetch public repositories, run deterministic metadata, README and file-tree checks, restore recent local analyses, refresh intentionally, and export transparent reports, JSON summaries and homepage project cards.
 
 ## Screenshots
 
@@ -37,12 +37,12 @@ This opens OpenReady in your browser without compiling the Rust shell.
 ### Current app flow
 
 1. Enter a public GitHub user account on the Welcome screen.
-2. OpenReady calls GitHub's public REST API without authentication.
+2. OpenReady calls GitHub's public REST API, optionally using a locally stored token for higher rate limits.
 3. The Dashboard shows public repository metadata, health labels, scores and key missing signals.
 4. Open a repository to review score breakdowns, detected stack, documentation checks, build/test checks, presentation signals and prioritized recommendations.
-5. Export the current analysis as Markdown, JSON or homepage-card Markdown from the Dashboard.
+5. Reopen a recent local analysis, refresh it on demand, or export it as Markdown, JSON or homepage-card Markdown from the Dashboard.
 
-Phase 7 keeps fetched analysis data in memory only, requests no GitHub token, and saves export files only to locations selected through the desktop save dialog.
+Phase 8 caches recent public analysis snapshots locally, stores optional GitHub tokens in the operating system credential store, and saves export files only to locations selected through the desktop save dialog.
 
 ### Useful scripts
 
@@ -66,6 +66,7 @@ pnpm format      # Prettier write
 - Repository metadata (description, topics, homepage, activity)
 - Prioritized per-repository recommendations
 - Markdown, JSON and homepage-card exports
+- Local cache restore and explicit refresh
 
 ## What OpenReady does **not** do
 
@@ -73,6 +74,7 @@ pnpm format      # Prettier write
 - Require a GitHub account or login
 - Require AI keys for core functionality
 - Persist anything to a remote database
+- Store GitHub tokens in browser local storage
 
 ## Roadmap
 
