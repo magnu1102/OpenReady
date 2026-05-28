@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ShieldCheck, UserX, BookOpen, Sparkles } from "lucide-react";
+import { BookOpen, Clock3, Database, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -17,9 +17,9 @@ const principles = [
     body: "Analysis runs on your machine. Repository contents stay where they belong.",
   },
   {
-    icon: UserX,
-    title: "No account needed",
-    body: "Public GitHub data only. Optional token support comes later for higher rate limits.",
+    icon: Database,
+    title: "Local cache",
+    body: "Recent analyses can reopen instantly and stay on your machine.",
   },
   {
     icon: BookOpen,
@@ -33,8 +33,16 @@ export function WelcomeRoute() {
   const [validationError, setValidationError] = useState("");
   const navigate = useNavigate();
   const status = useRepositoryStore((s) => s.status);
+  const cachedAnalyses = useRepositoryStore((s) => s.cachedAnalyses);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
+  const loadCachedAnalyses = useRepositoryStore((s) => s.loadCachedAnalyses);
+  const restoreCachedAnalysis = useRepositoryStore((s) => s.restoreCachedAnalysis);
   const isLoading = status === "loading";
+  const recentAnalysis = cachedAnalyses[0];
+
+  useEffect(() => {
+    void loadCachedAnalyses();
+  }, [loadCachedAnalyses]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,6 +63,23 @@ export function WelcomeRoute() {
     }
   }
 
+  async function openCachedAnalysis() {
+    if (!recentAnalysis) return;
+    const restored = await restoreCachedAnalysis(recentAnalysis.username);
+    if (restored) navigate("/dashboard");
+  }
+
+  async function refreshCachedAnalysis() {
+    if (!recentAnalysis) return;
+    try {
+      await fetchRepositories(recentAnalysis.username, { forceRefresh: true });
+    } catch {
+      // The dashboard renders the actionable error state from the repository store.
+    } finally {
+      navigate("/dashboard");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-12">
       <motion.section
@@ -64,7 +89,7 @@ export function WelcomeRoute() {
         className="flex flex-col gap-4"
       >
         <Badge tone="accent" className="self-start">
-          <Sparkles className="h-3 w-3" /> Phase 7 - export system
+          <Sparkles className="h-3 w-3" /> Phase 8 - local cache and settings
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
           Understand and improve your GitHub repositories.
@@ -115,11 +140,44 @@ export function WelcomeRoute() {
             </p>
           ) : null}
           <p className="text-xs text-text-muted">
-            This phase uses unauthenticated public GitHub API access. Optional token support is
-            planned for the local cache and settings phase.
+            Optional token support can raise GitHub API limits from Settings.
           </p>
         </form>
       </Card>
+
+      {recentAnalysis ? (
+        <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={recentAnalysis.isStale ? "warn" : "success"}>
+                <Clock3 className="h-3 w-3" />
+                {recentAnalysis.isStale ? "Refresh suggested" : "Recent cache"}
+              </Badge>
+              <span className="text-sm font-semibold text-text-primary">
+                {recentAnalysis.username}
+              </span>
+            </div>
+            <p className="text-sm text-text-secondary">
+              {recentAnalysis.repositoryCount} repositories saved locally. Last fetched{" "}
+              {formatDate(recentAnalysis.fetchedAt)}.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={openCachedAnalysis}>
+              <Database className="h-3.5 w-3.5" /> Open cached
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isLoading}
+              onClick={refreshCachedAnalysis}
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       <section className="grid gap-4 sm:grid-cols-3">
         {principles.map(({ icon: Icon, title, body }) => (
@@ -136,4 +194,15 @@ export function WelcomeRoute() {
       </section>
     </div>
   );
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "recently";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }

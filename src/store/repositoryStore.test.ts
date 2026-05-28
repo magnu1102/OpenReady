@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
+import { clearAnalysisCache, getCachedAnalysis } from "@/lib/analysisCache";
 import {
   GitHubClientError,
   fetchRepositoryReadme,
@@ -48,7 +49,8 @@ const repository: Repository = {
   pushedAt: "2026-05-28T09:00:00Z",
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await clearAnalysisCache();
   useRepositoryStore.getState().reset();
   fetchUserRepositoriesMock.mockReset();
   fetchRepositoryReadmeMock.mockReset();
@@ -167,6 +169,60 @@ describe("repositoryStore", () => {
     const analysis = useRepositoryStore.getState().analyses[0];
     expect(analysis.checks.find((check) => check.id === "dockerfile")?.status).toBe("passed");
     expect(analysis.checks.find((check) => check.id === "github-actions")?.status).toBe("passed");
+  });
+
+  it("caches completed analysis snapshots after README and tree checks finish", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().activeCache).toMatchObject({
+        username: "octocat",
+        repositoryCount: 1,
+      });
+    });
+    await expect(getCachedAnalysis("octocat")).resolves.toMatchObject({
+      username: "octocat",
+      repositories: [repository],
+    });
+  });
+
+  it("loads and restores cached analyses without calling GitHub", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().activeCache).not.toBeNull();
+    });
+
+    useRepositoryStore.getState().reset();
+    fetchUserRepositoriesMock.mockClear();
+
+    await useRepositoryStore.getState().loadCachedAnalyses();
+    const restored = await useRepositoryStore.getState().restoreCachedAnalysis("octocat");
+
+    expect(restored).toBe(true);
+    expect(fetchUserRepositoriesMock).not.toHaveBeenCalled();
+    expect(useRepositoryStore.getState()).toMatchObject({
+      username: "octocat",
+      repositories: [repository],
+      status: "success",
+      readmeStatus: "complete",
+      treeStatus: "complete",
+    });
+  });
+
+  it("clears local analysis cache", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().cachedAnalyses).toHaveLength(1);
+    });
+
+    await useRepositoryStore.getState().clearRepositoryCache();
+
+    expect(useRepositoryStore.getState().cachedAnalyses).toEqual([]);
+    await expect(getCachedAnalysis("octocat")).resolves.toBeNull();
   });
 
   it("marks tree failures unknown without failing repository fetch", async () => {

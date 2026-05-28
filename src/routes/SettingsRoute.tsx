@@ -1,12 +1,89 @@
-import { Github, Database, Cpu, Palette } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, Cpu, Database, Github, Palette, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Separator } from "@/components/ui/Separator";
 import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  deleteGitHubToken,
+  getGitHubTokenStatus,
+  validateAndStoreGitHubToken,
+  type GitHubTokenStatus,
+} from "@/lib/githubAuth";
+import { useRepositoryStore } from "@/store/repositoryStore";
 
 export function SettingsRoute() {
+  const [token, setToken] = useState("");
+  const [tokenStatus, setTokenStatus] = useState<GitHubTokenStatus>({
+    configured: false,
+    available: false,
+  });
+  const [tokenMessage, setTokenMessage] = useState("");
+  const [tokenBusy, setTokenBusy] = useState(false);
+  const cachedAnalyses = useRepositoryStore((s) => s.cachedAnalyses);
+  const clearRepositoryCache = useRepositoryStore((s) => s.clearRepositoryCache);
+  const loadCachedAnalyses = useRepositoryStore((s) => s.loadCachedAnalyses);
+  const cacheCount = cachedAnalyses.length;
+
+  async function refreshTokenStatus() {
+    try {
+      const status = await getGitHubTokenStatus();
+      setTokenStatus(status);
+      setTokenMessage(
+        status.available
+          ? status.configured
+            ? "A token is configured in the operating system credential store."
+            : "No token is configured."
+          : "Token storage is available in the desktop app.",
+      );
+    } catch (error) {
+      setTokenStatus({ configured: false, available: false });
+      setTokenMessage(errorMessage(error));
+    }
+  }
+
+  useEffect(() => {
+    void loadCachedAnalyses();
+    const timer = window.setTimeout(() => {
+      void refreshTokenStatus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadCachedAnalyses]);
+
+  async function saveToken() {
+    setTokenBusy(true);
+    setTokenMessage("Validating token with GitHub...");
+    try {
+      const status = await validateAndStoreGitHubToken(token);
+      setToken("");
+      setTokenStatus(status);
+      setTokenMessage("GitHub token saved.");
+    } catch (error) {
+      setTokenMessage(errorMessage(error));
+    } finally {
+      setTokenBusy(false);
+    }
+  }
+
+  async function removeToken() {
+    setTokenBusy(true);
+    try {
+      const status = await deleteGitHubToken();
+      setTokenStatus(status);
+      setTokenMessage("GitHub token removed.");
+    } catch (error) {
+      setTokenMessage(errorMessage(error));
+    } finally {
+      setTokenBusy(false);
+    }
+  }
+
+  async function clearCache() {
+    await clearRepositoryCache();
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-1">
@@ -27,14 +104,44 @@ export function SettingsRoute() {
       <Section
         icon={<Github className="h-4 w-4" />}
         title="GitHub"
-        status="Phase 8"
-        statusTone="warn"
+        status={tokenStatus.configured ? "Configured" : "Optional"}
+        statusTone={tokenStatus.configured ? "success" : "neutral"}
       >
         <Row
           label="Personal access token"
-          hint="Optional token raises GitHub API rate limits. Never required, never sent anywhere else."
+          hint="Optional token raises GitHub API rate limits. It is stored in the operating system credential store, not browser local storage."
         >
-          <Input type="password" placeholder="ghp_… (stored locally only)" disabled aria-disabled />
+          <div className="flex w-full flex-col gap-2 sm:w-[360px]">
+            <Input
+              type="password"
+              value={token}
+              onChange={(event) => setToken(event.currentTarget.value)}
+              placeholder="ghp_... or github_pat_..."
+              disabled={!tokenStatus.available || tokenBusy}
+              aria-disabled={!tokenStatus.available || tokenBusy}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={!tokenStatus.available || tokenBusy || token.trim().length === 0}
+                onClick={saveToken}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Save token
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={!tokenStatus.available || tokenBusy || !tokenStatus.configured}
+                onClick={removeToken}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </Button>
+            </div>
+            {tokenMessage ? <p className="text-xs text-text-muted">{tokenMessage}</p> : null}
+          </div>
         </Row>
       </Section>
 
@@ -43,14 +150,22 @@ export function SettingsRoute() {
       <Section
         icon={<Database className="h-4 w-4" />}
         title="Cache"
-        status="Phase 8"
-        statusTone="warn"
+        status={cacheCount > 0 ? `${cacheCount} saved` : "Empty"}
+        statusTone={cacheCount > 0 ? "success" : "neutral"}
       >
         <Row
           label="Local analysis cache"
-          hint="Analyses are cached locally to avoid re-fetching repositories on every open."
+          hint="Recent analysis snapshots are cached locally to avoid re-fetching repositories on every open."
         >
-          <Button variant="secondary" size="sm" disabled aria-disabled>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={cacheCount === 0}
+            aria-disabled={cacheCount === 0}
+            onClick={clearCache}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
             Clear cache
           </Button>
         </Row>
@@ -75,6 +190,12 @@ export function SettingsRoute() {
       </Section>
     </div>
   );
+}
+
+function errorMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  return "OpenReady could not update GitHub token settings.";
 }
 
 function Section({
