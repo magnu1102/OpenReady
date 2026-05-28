@@ -40,6 +40,7 @@ export function DashboardRoute() {
   const analyses = useRepositoryStore((s) => s.analyses);
   const trees = useRepositoryStore((s) => s.trees);
   const status = useRepositoryStore((s) => s.status);
+  const activeCache = useRepositoryStore((s) => s.activeCache);
   const error = useRepositoryStore((s) => s.error);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
   const [exportState, setExportState] = useState<{
@@ -95,7 +96,7 @@ export function DashboardRoute() {
   async function retry() {
     if (!username) return;
     try {
-      await fetchRepositories(username);
+      await fetchRepositories(username, { forceRefresh: true });
     } catch {
       // The repository store keeps the structured error for this screen.
     }
@@ -131,13 +132,26 @@ export function DashboardRoute() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Dashboard</h1>
-        <p className="text-sm text-text-secondary">
-          {username
-            ? `Public repositories for ${username}. Deterministic checks and scoring run locally.`
-            : "Enter a GitHub username to fetch public repositories."}
-        </p>
+      <header className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Dashboard</h1>
+          <p className="text-sm text-text-secondary">
+            {username
+              ? `Public repositories for ${username}. Deterministic checks and scoring run locally.`
+              : "Enter a GitHub username to fetch public repositories."}
+          </p>
+          {activeCache ? (
+            <p className="text-xs text-text-muted">
+              {activeCache.isStale ? "Cached snapshot is older than 24 hours." : "Loaded locally."}{" "}
+              Last fetched {formatDate(activeCache.fetchedAt)}.
+            </p>
+          ) : null}
+        </div>
+        {username ? (
+          <Button type="button" variant="secondary" size="sm" disabled={isLoading} onClick={retry}>
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+        ) : null}
       </header>
 
       <motion.div
@@ -325,9 +339,7 @@ function ExportPanel({
       {message ? (
         <p
           className={
-            messageTone === "error"
-              ? "text-xs font-medium text-danger"
-              : "text-xs text-text-muted"
+            messageTone === "error" ? "text-xs font-medium text-danger" : "text-xs text-text-muted"
           }
         >
           {message}
