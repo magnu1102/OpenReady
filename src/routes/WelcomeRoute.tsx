@@ -129,7 +129,13 @@ export function WelcomeRoute() {
                 className="pl-9"
               />
             </div>
-            <Button type="submit" variant="primary" size="md" disabled={isLoading}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={isLoading}
+              data-tour-anchor="welcome-cta"
+            >
               {isLoading ? <Spinner className="text-white" /> : null}
               {isLoading ? "Fetching" : "Analyze"}
             </Button>

@@ -5,6 +5,7 @@ interface TourState {
   seen: boolean;
   activeStep: number | null;
   start: () => void;
+  startAt: (index: number) => void;
   next: () => void;
   prev: () => void;
   skip: () => void;
@@ -22,6 +23,11 @@ export const useTourStore = create<TourState>()(
       start: () => {
         if (get().activeStep !== null) return;
         set({ activeStep: 0 });
+      },
+      startAt: (index) => {
+        if (get().activeStep !== null) return;
+        if (index < 0 || index >= TOUR_STEP_COUNT) return;
+        set({ activeStep: index });
       },
       next: () => {
         const current = get().activeStep;
