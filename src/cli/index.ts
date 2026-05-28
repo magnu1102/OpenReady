@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { parseCliArgs } from "./args";
 
 const HELP = `openready — deterministic GitHub repository analysis
 
@@ -54,17 +55,23 @@ function readVersion(): string {
 }
 
 async function main(argv: string[]): Promise<number> {
-  const args = argv.slice(2);
-  if (args.includes("--help") || args.includes("-h") || args.length === 0) {
-    process.stdout.write(HELP);
-    return args.length === 0 ? 1 : 0;
+  const command = parseCliArgs(argv.slice(2));
+  switch (command.kind) {
+    case "help":
+      process.stdout.write(HELP);
+      return 0;
+    case "version":
+      process.stdout.write(`openready ${readVersion()}\n`);
+      return 0;
+    case "error":
+      process.stderr.write(`openready: ${command.message}\n`);
+      return 2;
+    case "analyze":
+      process.stderr.write(
+        `openready: analyze pipeline lands in the next commit (received user: ${command.username}).\n`,
+      );
+      return 1;
   }
-  if (args.includes("--version") || args.includes("-v")) {
-    process.stdout.write(`openready ${readVersion()}\n`);
-    return 0;
-  }
-  process.stderr.write(`openready: unknown invocation. Try \`openready --help\`.\n`);
-  return 1;
 }
 
 main(process.argv).then(
