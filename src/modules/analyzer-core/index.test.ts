@@ -361,4 +361,54 @@ Add scoring.
       expect(result.checks.find((c) => c.id === "docs-folder")?.status).toBe("failed");
     });
   });
+
+  describe("security-hygiene checks", () => {
+    it("passes when SECURITY.md and an example env file are committed", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["SECURITY.md", ".env.example"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "security-md")).toMatchObject({
+        status: "passed",
+        evidence: "SECURITY.md",
+      });
+      expect(result.checks.find((c) => c.id === "env-example")).toMatchObject({
+        status: "passed",
+        evidence: ".env.example",
+      });
+    });
+
+    it("recognises common variants of the example env filename", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree([".env.sample"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "env-example")?.status).toBe("passed");
+    });
+
+    it("fails security checks when neither file is present", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "src/index.ts"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "security-md")?.status).toBe("failed");
+      expect(result.checks.find((c) => c.id === "env-example")?.status).toBe("failed");
+    });
+
+    it("marks security checks unknown when the tree is unavailable", () => {
+      const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
+
+      expect(result.checks.find((c) => c.id === "security-md")?.status).toBe("unknown");
+      expect(result.checks.find((c) => c.id === "env-example")?.status).toBe("unknown");
+    });
+  });
 });
