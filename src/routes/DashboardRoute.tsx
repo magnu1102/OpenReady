@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
   Archive,
+  Download,
   ExternalLink,
+  FileJson,
+  FileText,
   GitFork,
   Github,
   Inbox,
@@ -20,6 +24,14 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import { collectTechSignals } from "@/modules/analyzer-core";
+import {
+  exportHomepageCards,
+  exportJsonSummary,
+  exportMarkdownReport,
+  suggestedExportFilename,
+  type ExportFormat,
+} from "@/modules/export-engine";
+import { saveExportFile } from "@/lib/exportFiles";
 import type { AnalysisResult, HealthLabel, Repository, RepositoryTreeState } from "@/types";
 
 export function DashboardRoute() {
@@ -30,6 +42,10 @@ export function DashboardRoute() {
   const status = useRepositoryStore((s) => s.status);
   const error = useRepositoryStore((s) => s.error);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
+  const [exportState, setExportState] = useState<{
+    status: "idle" | "saving" | "saved" | "error";
+    message: string;
+  }>({ status: "idle", message: "" });
 
   const isLoading = status === "loading";
   const hasRepositories = repositories.length > 0;
@@ -82,6 +98,34 @@ export function DashboardRoute() {
       await fetchRepositories(username);
     } catch {
       // The repository store keeps the structured error for this screen.
+    }
+  }
+
+  async function exportProfile(format: ExportFormat) {
+    const generatedAt = new Date().toISOString();
+    const content = buildExportContent(format, {
+      username,
+      analyses,
+      generatedAt,
+    });
+
+    setExportState({ status: "saving", message: "Preparing export..." });
+    try {
+      const result = await saveExportFile({
+        format,
+        content,
+        defaultPath: suggestedExportFilename(format, username),
+      });
+      if (result.status === "cancelled") {
+        setExportState({ status: "idle", message: "" });
+        return;
+      }
+      setExportState({ status: "saved", message: "Export saved." });
+    } catch {
+      setExportState({
+        status: "error",
+        message: "OpenReady could not save the export. Choose a writable location and try again.",
+      });
     }
   }
 
@@ -187,6 +231,15 @@ export function DashboardRoute() {
         ) : null}
       </section>
 
+      {analyses.length > 0 ? (
+        <ExportPanel
+          isSaving={exportState.status === "saving"}
+          message={exportState.message}
+          messageTone={exportState.status === "error" ? "error" : "neutral"}
+          onExport={exportProfile}
+        />
+      ) : null}
+
       {status === "idle" ? (
         <EmptyState
           icon={Github}
@@ -200,6 +253,87 @@ export function DashboardRoute() {
         />
       ) : null}
     </div>
+  );
+}
+
+interface ExportInput {
+  username: string;
+  analyses: AnalysisResult[];
+  generatedAt: string;
+}
+
+function buildExportContent(format: ExportFormat, input: ExportInput): string {
+  switch (format) {
+    case "markdown":
+      return exportMarkdownReport(input);
+    case "json":
+      return exportJsonSummary(input);
+    case "homepage-cards":
+      return exportHomepageCards(input);
+  }
+}
+
+function ExportPanel({
+  isSaving,
+  message,
+  messageTone,
+  onExport,
+}: {
+  isSaving: boolean;
+  message: string;
+  messageTone: "neutral" | "error";
+  onExport: (format: ExportFormat) => void;
+}) {
+  return (
+    <section className="flex flex-col gap-3 border-t border-border-subtle pt-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold text-text-primary">Exports</h2>
+        <p className="text-sm text-text-secondary">
+          Save the current in-memory analysis as a report, machine-readable summary or homepage
+          project cards.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={isSaving}
+          onClick={() => onExport("markdown")}
+        >
+          <FileText className="h-3.5 w-3.5" /> Markdown
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={isSaving}
+          onClick={() => onExport("json")}
+        >
+          <FileJson className="h-3.5 w-3.5" /> JSON
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={isSaving}
+          onClick={() => onExport("homepage-cards")}
+        >
+          <Download className="h-3.5 w-3.5" /> Homepage cards
+        </Button>
+      </div>
+      {message ? (
+        <p
+          className={
+            messageTone === "error"
+              ? "text-xs font-medium text-danger"
+              : "text-xs text-text-muted"
+          }
+        >
+          {message}
+        </p>
+      ) : null}
+    </section>
   );
 }
 
