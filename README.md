@@ -44,6 +44,32 @@ This opens OpenReady in your browser without compiling the Rust shell.
 
 Phase 8 caches recent public analysis snapshots locally, stores optional GitHub tokens in the operating system credential store, and saves export files only to locations selected through the desktop save dialog.
 
+### Run the CLI
+
+OpenReady ships a Node CLI that runs the same deterministic analyzer outside the desktop shell — useful in scripts, CI, or a quick terminal check.
+
+```bash
+# Dev runs via tsx
+pnpm cli -- analyze octocat --limit 5 --no-readme --no-tree
+
+# Build a self-contained ESM bundle
+pnpm build:cli
+node dist-cli/openready.mjs analyze octocat --format json --out octocat.json
+```
+
+Common flags:
+
+| Flag                             | Purpose                                    |
+| -------------------------------- | ------------------------------------------ |
+| `--format table\|json\|markdown` | Output format (default `table`)            |
+| `--limit <n>`                    | Max repositories analysed (default 30)     |
+| `--repo <name>`                  | Focus a single repository                  |
+| `--out <path>`                   | Write output to a file instead of stdout   |
+| `--token <value>`                | GitHub PAT for higher rate limits          |
+| `--no-readme` / `--no-tree`      | Skip README or file-tree fetches for speed |
+
+Token resolution order: `--token`, then `OPENREADY_GITHUB_TOKEN`, then `GITHUB_TOKEN`. Without a token GitHub limits unauthenticated requests to ~60/hour. Output respects [`NO_COLOR`](https://no-color.org/) and falls back to plain text when stdout isn't a TTY.
+
 ### Useful scripts
 
 ```bash
