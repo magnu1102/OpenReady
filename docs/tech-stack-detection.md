@@ -61,10 +61,10 @@ Phase 4 adds one extra request per repository to the existing two (user repo lis
 - up to 30 README requests
 - up to 30 tree requests
 
-GitHub's unauthenticated quota is 60 requests per hour per IP. A first analysis of a profile with at least 30 repositories will use the full quota and may surface a rate-limit error on retry. Token mode (planned for Phase 8) lifts this to 5,000 requests per hour.
+GitHub's unauthenticated quota is 60 requests per hour per IP. A first analysis of a profile with at least 30 repositories will use the full quota and may surface a rate-limit error on retry. Token mode (shipped in Phase 8 for the desktop app, and in Phase 11 for the CLI) lifts this to 5,000 requests per hour.
 
 ## What Phase 4 does not do
 
 - It does not read manifest _contents_ — dependency lists, framework names and project names are not extracted. This is a Phase 5+ enhancement.
-- It does not classify the repository as frontend, backend, full-stack, etc. Project classification is Phase 9.
-- It does not weight signals into a score. Scoring is Phase 5.
+- It does not classify the repository as frontend, backend, full-stack, etc. Project classification arrived in Phase 9 — see [`classification.md`](classification.md), which consumes the same file-tree paths and tech signals defined here.
+- It does not weight signals into a score. Scoring is Phase 5; Phase 9 added per-type category weights on top.

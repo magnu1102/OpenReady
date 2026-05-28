@@ -244,16 +244,30 @@ async function githubGet(
     url.searchParams.set(key, value);
   }
 
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  if (cliAuthToken) {
+    headers.Authorization = `Bearer ${cliAuthToken}`;
+  }
+
   try {
-    return await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
+    return await fetch(url, { headers });
   } catch {
     throw new GitHubClientError("network", networkMessage);
   }
+}
+
+let cliAuthToken: string | null = null;
+
+/**
+ * Attach a GitHub personal access token to the plain `fetch` path used
+ * outside the Tauri runtime (notably the CLI). Pass `null` to clear it.
+ * Has no effect on the Tauri proxy path, which manages auth in Rust.
+ */
+export function setGitHubAuthToken(token: string | null): void {
+  cliAuthToken = token && token.trim().length > 0 ? token.trim() : null;
 }
 
 function toProxyHttpResponse(response: GitHubProxyResponse): GitHubHttpResponse {
