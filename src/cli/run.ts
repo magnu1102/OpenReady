@@ -6,13 +6,14 @@ import {
   GitHubClientError,
 } from "@/modules/github-client";
 import { analyzeRepositories } from "@/modules/analyzer-core";
+import { exportJsonSummary, exportMarkdownReport } from "@/modules/export-engine";
 import type {
   AnalysisResult,
   Repository,
   RepositoryReadmeState,
   RepositoryTreeState,
 } from "@/types";
-import type { AnalyzeArgs } from "./args";
+import type { AnalyzeArgs, OutputFormat } from "./args";
 import { applyGitHubAuth } from "./auth";
 import { renderTable } from "./renderers/table";
 
@@ -75,7 +76,7 @@ export async function runAnalyze(args: AnalyzeArgs): Promise<RunResult> {
   }
 
   const analyses = analyzeRepositories(limited, readmes, trees);
-  const rendered = renderTable(analyses, {
+  const rendered = render(args.format, analyses, {
     username: args.username,
     tokenInUse: Boolean(token),
     totalFetched: repositories.length,
@@ -84,6 +85,31 @@ export async function runAnalyze(args: AnalyzeArgs): Promise<RunResult> {
 
   await emit(rendered, args.out);
   return { exitCode: 0 };
+}
+
+interface RenderOptions {
+  username: string;
+  tokenInUse: boolean;
+  totalFetched: number;
+  analyzedCount: number;
+}
+
+function render(format: OutputFormat, analyses: AnalysisResult[], options: RenderOptions): string {
+  if (format === "json") {
+    return exportJsonSummary({
+      username: options.username,
+      analyses,
+      generatedAt: new Date().toISOString(),
+    });
+  }
+  if (format === "markdown") {
+    return exportMarkdownReport({
+      username: options.username,
+      analyses,
+      generatedAt: new Date().toISOString(),
+    });
+  }
+  return renderTable(analyses, options);
 }
 
 async function emit(content: string, out: string | null): Promise<void> {
