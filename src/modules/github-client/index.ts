@@ -30,10 +30,19 @@ interface GitHubRepositoryResponse {
   html_url: string;
   homepage: string | null;
   language: string | null;
+  topics?: string[];
+  license: {
+    key: string;
+    name: string;
+    spdx_id: string | null;
+    url: string | null;
+  } | null;
+  default_branch: string;
   stargazers_count: number;
   forks_count: number;
   archived: boolean;
   fork: boolean;
+  created_at: string;
   updated_at: string;
   pushed_at: string | null;
 }
@@ -148,10 +157,21 @@ function mapRepository(repo: GitHubRepositoryResponse): Repository {
     url: repo.html_url,
     homepageUrl: repo.homepage || null,
     language: repo.language,
+    topics: repo.topics ?? [],
+    license: repo.license
+      ? {
+          key: repo.license.key,
+          name: repo.license.name,
+          spdxId: repo.license.spdx_id,
+          url: repo.license.url,
+        }
+      : null,
+    defaultBranch: repo.default_branch,
     stars: repo.stargazers_count,
     forks: repo.forks_count,
     archived: repo.archived,
     fork: repo.fork,
+    createdAt: repo.created_at,
     updatedAt: repo.updated_at,
     pushedAt: repo.pushed_at,
   };
