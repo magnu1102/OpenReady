@@ -1,6 +1,6 @@
 # Privacy model
 
-Today (Phase 6):
+Today (Phase 7):
 
 - The app stores only the theme preference in `localStorage`.
 - The user-entered GitHub username is sent to `api.github.com`.
@@ -8,6 +8,7 @@ Today (Phase 6):
 - OpenReady fetches README content for the first 30 fetched repositories.
 - OpenReady fetches repository file-tree paths for the first 30 fetched repositories.
 - Fetched repository metadata, README content, file-tree paths and analysis results are kept in memory only and are cleared when the app restarts.
+- Exports are generated locally and written only to a file path selected by the user in the desktop save dialog.
 - No GitHub token is requested or stored.
 
 Planned later:
