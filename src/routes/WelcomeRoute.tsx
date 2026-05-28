@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Clock3, Database, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -32,6 +33,8 @@ export function WelcomeRoute() {
   const [username, setUsername] = useState("");
   const [validationError, setValidationError] = useState("");
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const reducedMotion = useReducedMotion();
   const status = useRepositoryStore((s) => s.status);
   const cachedAnalyses = useRepositoryStore((s) => s.cachedAnalyses);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
@@ -43,6 +46,22 @@ export function WelcomeRoute() {
   useEffect(() => {
     void loadCachedAnalyses();
   }, [loadCachedAnalyses]);
+
+  // Press "/" anywhere on the welcome screen to jump to the username input,
+  // matching the GitHub keyboard convention.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "/") return;
+      const active = document.activeElement;
+      const tag = active?.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea" || (active as HTMLElement)?.isContentEditable)
+        return;
+      event.preventDefault();
+      inputRef.current?.focus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,7 +102,7 @@ export function WelcomeRoute() {
   return (
     <div className="flex flex-col gap-12">
       <motion.section
-        initial={{ opacity: 0, y: 8 }}
+        initial={reducedMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
         className="flex flex-col gap-4"
@@ -115,6 +134,7 @@ export function WelcomeRoute() {
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               <Input
+                ref={inputRef}
                 id="username"
                 value={username}
                 onChange={(e) => {
@@ -129,7 +149,13 @@ export function WelcomeRoute() {
                 className="pl-9"
               />
             </div>
-            <Button type="submit" variant="primary" size="md" disabled={isLoading}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={isLoading}
+              data-tour-anchor="welcome-cta"
+            >
               {isLoading ? <Spinner className="text-white" /> : null}
               {isLoading ? "Fetching" : "Analyze"}
             </Button>
@@ -140,7 +166,15 @@ export function WelcomeRoute() {
             </p>
           ) : null}
           <p className="text-xs text-text-muted">
-            Optional token support can raise GitHub API limits from Settings.
+            Optional token support can raise GitHub API limits from Settings. Press{" "}
+            <kbd className="rounded border border-border-subtle bg-subtle px-1 font-mono text-[10px]">
+              /
+            </kbd>{" "}
+            to focus this field or{" "}
+            <kbd className="rounded border border-border-subtle bg-subtle px-1 font-mono text-[10px]">
+              ⌘K
+            </kbd>{" "}
+            to open the command palette.
           </p>
         </form>
       </Card>

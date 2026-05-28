@@ -53,7 +53,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav aria-label="Primary" className="flex-1 overflow-y-auto p-2 scrollbar-thin">
+      <nav aria-label="Primary" className="scrollbar-thin flex-1 overflow-y-auto p-2">
         <ul className="flex flex-col gap-0.5">
           {items.map(({ to, label, icon: Icon, end }) => (
             <li key={to}>
@@ -71,8 +71,8 @@ export function Sidebar() {
                   )
                 }
               >
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                {!sidebarCollapsed && <span>{label}</span>}
+                <Icon aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                {sidebarCollapsed ? <span className="sr-only">{label}</span> : <span>{label}</span>}
               </NavLink>
             </li>
           ))}
