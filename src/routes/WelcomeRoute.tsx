@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Clock3, Database, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -33,6 +34,7 @@ export function WelcomeRoute() {
   const [validationError, setValidationError] = useState("");
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const reducedMotion = useReducedMotion();
   const status = useRepositoryStore((s) => s.status);
   const cachedAnalyses = useRepositoryStore((s) => s.cachedAnalyses);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
@@ -100,7 +102,7 @@ export function WelcomeRoute() {
   return (
     <div className="flex flex-col gap-12">
       <motion.section
-        initial={{ opacity: 0, y: 8 }}
+        initial={reducedMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
         className="flex flex-col gap-4"

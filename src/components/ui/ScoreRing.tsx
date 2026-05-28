@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { useCountUp } from "@/lib/useCountUp";
 
 interface ScoreRingProps {
   value?: number | null;
@@ -15,11 +16,13 @@ export function ScoreRing({
   className,
   label = "Score",
 }: ScoreRingProps) {
+  const animated = useCountUp(value);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const safe = value === null ? 0 : Math.max(0, Math.min(100, value));
+  const liveValue = animated ?? value;
+  const safe = liveValue === null ? 0 : Math.max(0, Math.min(100, liveValue));
   const offset = circumference * (1 - safe / 100);
-  const displayValue = value === null ? "—" : String(Math.round(safe));
+  const displayValue = liveValue === null ? "—" : String(Math.round(safe));
 
   return (
     <div
@@ -51,7 +54,7 @@ export function ScoreRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-semibold text-text-primary tabular-nums">
+        <span className="text-2xl font-semibold tabular-nums text-text-primary">
           {displayValue}
         </span>
         <span className="text-xs text-text-muted">{label}</span>
