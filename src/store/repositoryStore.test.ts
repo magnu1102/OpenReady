@@ -1,17 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GitHubClientError, fetchUserRepositories } from "@/modules/github-client";
-import { useRepositoryStore } from "./repositoryStore";
+import { waitFor } from "@testing-library/react";
+import {
+  GitHubClientError,
+  fetchRepositoryReadme,
+  fetchUserRepositories,
+} from "@/modules/github-client";
+import { README_FETCH_LIMIT, useRepositoryStore } from "./repositoryStore";
 import type { Repository } from "@/types";
 
 vi.mock("@/modules/github-client", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as object),
+    fetchRepositoryReadme: vi.fn(),
     fetchUserRepositories: vi.fn(),
   };
 });
 
 const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
+const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadme);
 
 const repository: Repository = {
   id: "1",
@@ -41,6 +48,8 @@ const repository: Repository = {
 beforeEach(() => {
   useRepositoryStore.getState().reset();
   fetchUserRepositoriesMock.mockReset();
+  fetchRepositoryReadmeMock.mockReset();
+  fetchRepositoryReadmeMock.mockResolvedValue(null);
 });
 
 describe("repositoryStore", () => {
@@ -53,9 +62,53 @@ describe("repositoryStore", () => {
     expect(useRepositoryStore.getState()).toMatchObject({
       username: "octocat",
       repositories: [repository],
+      analyses: [
+        expect.objectContaining({
+          repository,
+          healthLabel: expect.any(String),
+        }),
+      ],
       status: "success",
       error: null,
     });
+  });
+
+  it("fetches README data for the first 30 repositories", async () => {
+    const repositories = Array.from({ length: README_FETCH_LIMIT + 2 }, (_, index) => ({
+      ...repository,
+      id: String(index + 1),
+      name: `repo-${index + 1}`,
+      fullName: `octocat/repo-${index + 1}`,
+    }));
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositories);
+    fetchRepositoryReadmeMock.mockResolvedValue(null);
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().readmeStatus).toBe("complete");
+    });
+    expect(fetchRepositoryReadmeMock).toHaveBeenCalledTimes(README_FETCH_LIMIT);
+    expect(fetchRepositoryReadmeMock).toHaveBeenCalledWith("octocat", "repo-1");
+    expect(fetchRepositoryReadmeMock).not.toHaveBeenCalledWith("octocat", "repo-31");
+  });
+
+  it("marks README failures unknown without failing repository fetch", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchRepositoryReadmeMock.mockRejectedValueOnce(
+      new GitHubClientError("rate-limit", "GitHub rate limit reached.", 403),
+    );
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().readmeStatus).toBe("complete");
+    });
+    expect(useRepositoryStore.getState().readmes[repository.id]).toEqual({
+      status: "unknown",
+      message: "GitHub rate limit reached.",
+    });
+    expect(useRepositoryStore.getState().analyses[0].unknownCount).toBeGreaterThan(0);
   });
 
   it("stores structured errors and rethrows the original failure", async () => {

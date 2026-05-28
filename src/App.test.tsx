@@ -2,7 +2,11 @@ import { beforeEach, describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
-import { fetchUserRepositories, GitHubClientError } from "@/modules/github-client";
+import {
+  fetchRepositoryReadme,
+  fetchUserRepositories,
+  GitHubClientError,
+} from "@/modules/github-client";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import type { Repository } from "@/types";
 
@@ -10,11 +14,13 @@ vi.mock("@/modules/github-client", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as object),
+    fetchRepositoryReadme: vi.fn(),
     fetchUserRepositories: vi.fn(),
   };
 });
 
 const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
+const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadme);
 
 const repository: Repository = {
   id: "1",
@@ -44,6 +50,8 @@ const repository: Repository = {
 beforeEach(() => {
   useRepositoryStore.getState().reset();
   fetchUserRepositoriesMock.mockReset();
+  fetchRepositoryReadmeMock.mockReset();
+  fetchRepositoryReadmeMock.mockResolvedValue(null);
 });
 
 describe("App", () => {
@@ -71,7 +79,7 @@ describe("App", () => {
     expect(await screen.findByRole("link", { name: "openready" })).toBeInTheDocument();
     expect(screen.getByText("octocat/openready")).toBeInTheDocument();
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
-    expect(screen.getByText("Fork")).toBeInTheDocument();
+    expect(screen.getAllByText("Fork").length).toBeGreaterThan(0);
   });
 
   it("shows an empty dashboard state when GitHub returns no public repositories", async () => {
