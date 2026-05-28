@@ -4,11 +4,14 @@ export interface Repository {
   fullName: string;
   description: string | null;
   url: string;
+  homepageUrl: string | null;
   language: string | null;
   stars: number;
   forks: number;
   archived: boolean;
   fork: boolean;
+  updatedAt: string;
+  pushedAt: string | null;
 }
 
 export type CheckStatus = "passed" | "failed" | "not-applicable" | "unknown";
