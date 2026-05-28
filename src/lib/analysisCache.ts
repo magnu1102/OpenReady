@@ -118,13 +118,7 @@ export async function getCachedAnalysis(username: string): Promise<AnalysisCache
 
 export async function listCachedAnalyses(now = new Date()): Promise<AnalysisCacheMetadata[]> {
   const cache = await (await getStorage()).read();
-  return cache.snapshots.map((snapshot) => ({
-    username: snapshot.username,
-    repositoryCount: snapshot.repositories.length,
-    fetchedAt: snapshot.fetchedAt,
-    savedAt: snapshot.savedAt,
-    isStale: isAnalysisSnapshotStale(snapshot, now),
-  }));
+  return cache.snapshots.map((snapshot) => snapshotToMetadata(snapshot, now));
 }
 
 export async function clearAnalysisCache(): Promise<void> {
@@ -138,6 +132,19 @@ export function isAnalysisSnapshotStale(
   const fetchedAt = Date.parse(snapshot.fetchedAt);
   if (Number.isNaN(fetchedAt)) return true;
   return now.getTime() - fetchedAt > ANALYSIS_CACHE_STALE_MS;
+}
+
+export function snapshotToMetadata(
+  snapshot: AnalysisCacheSnapshot,
+  now = new Date(),
+): AnalysisCacheMetadata {
+  return {
+    username: snapshot.username,
+    repositoryCount: snapshot.repositories.length,
+    fetchedAt: snapshot.fetchedAt,
+    savedAt: snapshot.savedAt,
+    isStale: isAnalysisSnapshotStale(snapshot, now),
+  };
 }
 
 function normalizeUsername(username: string): string {
