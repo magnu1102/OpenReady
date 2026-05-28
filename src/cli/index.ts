@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { parseCliArgs } from "./args";
+import { runAnalyze } from "./run";
 
 const HELP = `openready — deterministic GitHub repository analysis
 
@@ -66,11 +67,10 @@ async function main(argv: string[]): Promise<number> {
     case "error":
       process.stderr.write(`openready: ${command.message}\n`);
       return 2;
-    case "analyze":
-      process.stderr.write(
-        `openready: analyze pipeline lands in the next commit (received user: ${command.username}).\n`,
-      );
-      return 1;
+    case "analyze": {
+      const { exitCode } = await runAnalyze(command);
+      return exitCode;
+    }
   }
 }
 
