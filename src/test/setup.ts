@@ -2,9 +2,19 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   testStorage.clear();
+  // Reset in-memory zustand stores so tests don't leak state through each other.
+  // Imports are dynamic so the localStorage mock below is in place before any
+  // zustand persist middleware initializes.
+  const { useTourStore } = await import("@/modules/tour");
+  const { useRepositoryStore } = await import("@/store/repositoryStore");
+  // Default: pretend the tour has been seen so auto-start does not
+  // intercept other route-level integration tests. Tour-specific tests
+  // override this via setState in their own setup.
+  useTourStore.setState({ seen: true, activeStep: null });
+  useRepositoryStore.getState().reset();
 });
 
 const testStorage = new Map<string, string>();

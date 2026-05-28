@@ -234,12 +234,13 @@ export function DashboardRoute() {
 
         {hasRepositories ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {repositories.map((repository) => (
+            {repositories.map((repository, index) => (
               <RepositoryCard
                 key={repository.id}
                 repository={repository}
                 analysis={analysisByRepositoryId.get(repository.id)}
                 treeState={trees[repository.id]}
+                tourAnchor={index === 0 ? "dashboard-first-card" : undefined}
               />
             ))}
           </div>
@@ -300,7 +301,10 @@ function ExportPanel({
   onExport: (format: ExportFormat) => void;
 }) {
   return (
-    <section className="flex flex-col gap-3 border-t border-border-subtle pt-6">
+    <section
+      className="flex flex-col gap-3 border-t border-border-subtle pt-6"
+      data-tour-anchor="export-panel"
+    >
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold text-text-primary">Exports</h2>
         <p className="text-sm text-text-secondary">
@@ -379,14 +383,16 @@ function RepositoryCard({
   repository,
   analysis,
   treeState,
+  tourAnchor,
 }: {
   repository: Repository;
   analysis?: AnalysisResult;
   treeState?: RepositoryTreeState;
+  tourAnchor?: string;
 }) {
   const techSignals = collectTechSignals(treeState).slice(0, 3);
   return (
-    <Card className="flex min-h-[240px] flex-col gap-4">
+    <Card className="flex min-h-[240px] flex-col gap-4" data-tour-anchor={tourAnchor}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link

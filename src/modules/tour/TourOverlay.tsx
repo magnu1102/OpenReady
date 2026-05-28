@@ -64,14 +64,14 @@ export function TourOverlay() {
     }
 
     measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(document.body);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    observer?.observe(document.body);
     window.addEventListener("scroll", measure, true);
     window.addEventListener("resize", measure);
     const retry = window.setTimeout(measure, 80);
 
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       window.removeEventListener("scroll", measure, true);
       window.removeEventListener("resize", measure);
       window.clearTimeout(retry);

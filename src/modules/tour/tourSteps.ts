@@ -6,7 +6,7 @@ export const tourSteps: TourStep[] = [
     route: "/",
     anchorId: "welcome-cta",
     title: "Start with a GitHub username",
-    body: "OpenReady runs deterministic checks on public repositories. Enter any GitHub username here to begin — we'll cache results locally.",
+    body: "OpenReady runs deterministic checks on public repositories. Enter any GitHub username on this screen to begin — results are cached locally.",
     placement: "bottom",
   },
   {
@@ -14,15 +14,15 @@ export const tourSteps: TourStep[] = [
     route: "/dashboard",
     anchorId: "dashboard-first-card",
     title: "Browse your repository portfolio",
-    body: "Each card carries a health label, a project-type classification, and a score. Click in to drill down into evidence.",
+    body: "Each card shows a health label, a project-type classification, and a score. Click in to drill down into the evidence.",
     placement: "bottom",
   },
   {
-    id: "detail-score",
+    id: "export-panel",
     route: "/dashboard",
     anchorId: "export-panel",
     title: "Export your analysis",
-    body: "Save the in-memory analysis as Markdown, JSON or homepage cards. These exports are fully local — nothing leaves your machine.",
+    body: "Save the in-memory analysis as Markdown, JSON, or homepage cards. These exports stay local — nothing leaves your machine.",
     placement: "top",
   },
   {
@@ -30,7 +30,7 @@ export const tourSteps: TourStep[] = [
     route: "/settings",
     anchorId: "settings-replay",
     title: "Replay this tour anytime",
-    body: "Found this useful? You can replay the tour from Settings, manage your cache, and add an optional GitHub token for higher rate limits.",
+    body: "Found this useful? Replay the tour from Settings whenever you want, manage your cache, and add an optional GitHub token for higher rate limits.",
     placement: "bottom",
   },
 ];
