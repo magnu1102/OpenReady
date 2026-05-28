@@ -31,7 +31,26 @@ export async function runAnalyze(args: AnalyzeArgs): Promise<RunResult> {
     return fail(error);
   }
 
-  const limited = repositories.slice(0, args.limit);
+  let selected = repositories;
+  if (args.repo) {
+    const needle = args.repo.toLowerCase();
+    selected = repositories.filter(
+      (repository) =>
+        repository.name.toLowerCase() === needle || repository.fullName.toLowerCase() === needle,
+    );
+    if (selected.length === 0) {
+      process.stderr.write(
+        `openready: no repository matched --repo ${args.repo} for user ${args.username}.\n`,
+      );
+      return { exitCode: 3 };
+    }
+  }
+  const limited = selected.slice(0, args.limit);
+
+  if (limited.length === 0) {
+    process.stderr.write(`openready: ${args.username} has no public repositories to analyze.\n`);
+    return { exitCode: 0 };
+  }
 
   const readmes: Record<string, RepositoryReadmeState> = {};
   if (args.fetchReadme) {
