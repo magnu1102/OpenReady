@@ -17,6 +17,7 @@ export interface CategoryScore {
   passed: number;
   failed: number;
   applicable: number;
+  weight: number;
   contributingCheckIds: string[];
 }
 
@@ -33,7 +34,11 @@ interface CategoryDefinition {
   match: (check: CheckResult) => boolean;
 }
 
-const PRESENTATION_CHECK_IDS = new Set(["homepage", "readme-screenshots-demo"]);
+const PRESENTATION_CHECK_IDS = new Set([
+  "homepage",
+  "readme-screenshots-demo",
+  "release-artifact-link-in-readme",
+]);
 
 const categoryDefinitions: CategoryDefinition[] = [
   {
@@ -78,13 +83,17 @@ const categoryDefinitions: CategoryDefinition[] = [
   },
 ];
 
-export function scoreChecks(checks: CheckResult[]): RepositoryScore {
+export function scoreChecks(
+  checks: CheckResult[],
+  weights: Partial<Record<ScoreCategory, number>> = {},
+): RepositoryScore {
   const categories: CategoryScore[] = categoryDefinitions.map((definition) => {
     const contributing = checks.filter(definition.match);
     const passed = contributing.filter((check) => check.status === "passed").length;
     const failed = contributing.filter((check) => check.status === "failed").length;
     const applicable = passed + failed;
     const score = applicable === 0 ? null : Math.round((passed / applicable) * 100);
+    const weight = weights[definition.id] ?? 1;
 
     return {
       category: definition.id,
@@ -93,6 +102,7 @@ export function scoreChecks(checks: CheckResult[]): RepositoryScore {
       passed,
       failed,
       applicable,
+      weight,
       contributingCheckIds: contributing.map((check) => check.id),
     };
   });
@@ -101,12 +111,15 @@ export function scoreChecks(checks: CheckResult[]): RepositoryScore {
     (category): category is CategoryScore & { score: number } => category.score !== null,
   );
 
+  const weightSum = applicableCategories.reduce((sum, category) => sum + category.weight, 0);
   const total =
-    applicableCategories.length === 0
+    applicableCategories.length === 0 || weightSum === 0
       ? null
       : Math.round(
-          applicableCategories.reduce((sum, category) => sum + category.score, 0) /
-            applicableCategories.length,
+          applicableCategories.reduce(
+            (sum, category) => sum + category.score * category.weight,
+            0,
+          ) / weightSum,
         );
 
   const ranked = [...applicableCategories].sort((a, b) => a.score - b.score);

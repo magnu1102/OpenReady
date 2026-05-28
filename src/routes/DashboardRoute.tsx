@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import { collectTechSignals } from "@/modules/analyzer-core";
+import { PROJECT_TYPE_LABELS } from "@/modules/project-classifier";
 import {
   exportHomepageCards,
   exportJsonSummary,
@@ -406,6 +407,11 @@ function RepositoryCard({
       <div className="flex flex-wrap gap-1.5">
         {analysis ? (
           <Badge tone={healthLabelTone(analysis.healthLabel)}>{analysis.healthLabel}</Badge>
+        ) : null}
+        {analysis && analysis.classification.type !== "unknown" ? (
+          <Badge tone="accent" title={analysis.classification.reasons.join(" · ")}>
+            {PROJECT_TYPE_LABELS[analysis.classification.type]}
+          </Badge>
         ) : null}
         {repository.language ? <Badge>{repository.language}</Badge> : null}
         {repository.fork ? (

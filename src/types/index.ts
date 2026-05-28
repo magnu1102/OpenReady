@@ -1,4 +1,5 @@
 import type { RepositoryScore } from "@/modules/scoring-engine";
+import type { ClassificationResult, ProjectType } from "@/modules/project-classifier/types";
 
 export interface RepositoryLicense {
   key: string;
@@ -109,6 +110,13 @@ export interface AnalysisResult {
   unknownCount: number;
   missingSignals: string[];
   recommendations: Recommendation[];
+  classification: ClassificationResult;
+  classificationOverride?: ProjectType;
 }
 
 export type { CategoryScore, RepositoryScore, ScoreCategory } from "@/modules/scoring-engine";
+export type {
+  ClassificationResult,
+  Confidence,
+  ProjectType,
+} from "@/modules/project-classifier/types";
