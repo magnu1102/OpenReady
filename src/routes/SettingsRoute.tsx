@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Cpu, Database, Github, Palette, Trash2 } from "lucide-react";
+import { CheckCircle2, Compass, Cpu, Database, Github, Palette, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,7 @@ import {
   type GitHubTokenStatus,
 } from "@/lib/githubAuth";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import { useTourStore } from "@/modules/tour";
 
 export function SettingsRoute() {
   const [token, setToken] = useState("");
@@ -26,6 +27,8 @@ export function SettingsRoute() {
   const clearRepositoryCache = useRepositoryStore((s) => s.clearRepositoryCache);
   const loadCachedAnalyses = useRepositoryStore((s) => s.loadCachedAnalyses);
   const cacheCount = cachedAnalyses.length;
+  const restartTour = useTourStore((s) => s.restart);
+  const tourSeen = useTourStore((s) => s.seen);
 
   async function refreshTokenStatus() {
     try {
@@ -96,6 +99,31 @@ export function SettingsRoute() {
       <Section icon={<Palette className="h-4 w-4" />} title="Appearance" status="Available">
         <Row label="Theme" hint="Switch between light, dark, and matching your system.">
           <ThemeToggle />
+        </Row>
+      </Section>
+
+      <Separator />
+
+      <Section
+        icon={<Compass className="h-4 w-4" />}
+        title="Onboarding"
+        status={tourSeen ? "Completed" : "Available"}
+        statusTone={tourSeen ? "success" : "neutral"}
+      >
+        <Row
+          label="Product tour"
+          hint="A four-step walkthrough covering the welcome screen, dashboard, exports, and settings."
+        >
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={restartTour}
+            data-tour-anchor="settings-replay"
+          >
+            <Compass className="h-3.5 w-3.5" />
+            Replay tour
+          </Button>
         </Row>
       </Section>
 

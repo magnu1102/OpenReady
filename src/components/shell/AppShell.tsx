@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 import { useNavigationStore } from "@/store/navigationStore";
+import { TourOverlay } from "@/modules/tour";
 
 export function AppShell() {
   useGlobalShortcuts();
@@ -27,6 +28,7 @@ export function AppShell() {
           </main>
         </div>
       </div>
+      <TourOverlay />
     </TooltipProvider>
   );
 }
