@@ -3,12 +3,11 @@ import { useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TooltipProvider } from "@/components/ui/Tooltip";
-import { useNavigationStore } from "@/store/navigationStore";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import { TourOverlay, tourSteps, useTourStore } from "@/modules/tour";
+import { CommandsRoot } from "@/modules/commands";
 
 export function AppShell() {
-  useGlobalShortcuts();
   useTourAutoStart();
   return (
     <TooltipProvider>
@@ -31,6 +30,7 @@ export function AppShell() {
         </div>
       </div>
       <TourOverlay />
+      <CommandsRoot />
     </TooltipProvider>
   );
 }
@@ -54,18 +54,4 @@ function useTourAutoStart() {
     if (stepIndex < 0) return;
     startAt(stepIndex);
   }, [seen, activeStep, status, repositoryCount, location.pathname, startAt]);
-}
-
-function useGlobalShortcuts() {
-  const toggle = useNavigationStore((s) => s.toggleSidebar);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "b") {
-        e.preventDefault();
-        toggle();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [toggle]);
 }
