@@ -92,7 +92,7 @@ export function RepositoryDetailRoute() {
         <EmptyState
           icon={CircleHelp}
           title="Repository details unavailable"
-          description="Repository details live in memory during Phase 3. Fetch a GitHub username again to reopen this view."
+          description="Repository details live in memory. Fetch a GitHub username again to reopen this view."
           action={
             <Button asChild variant="primary" size="md">
               <Link to="/">Analyze a username</Link>
@@ -139,9 +139,9 @@ export function RepositoryDetailRoute() {
           </div>
         </div>
         <Card className="flex w-full max-w-[260px] flex-col items-center gap-2 p-5">
-          <ScoreRing value={null} label="Health" />
+          <ScoreRing value={analysis?.score.total ?? null} label="Score" />
           <p className="text-xs text-text-muted">
-            Numeric scoring launches in Phase 5. Phase 3 shows deterministic labels and checks.
+            Equal-weighted mean of eight category scores. See the breakdown for evidence.
           </p>
           <Button asChild variant="secondary" size="sm">
             <a href={repository.url} target="_blank" rel="noreferrer">
@@ -167,7 +167,7 @@ export function RepositoryDetailRoute() {
             <div className="flex flex-col gap-6">
               <CheckPanel
                 title="Repository signals"
-                description="Metadata, activity and repository status checks from Phase 3."
+                description="Metadata, activity and repository status checks."
                 analysis={analysis}
                 categories={["metadata", "activity", "status"]}
               />
@@ -202,7 +202,7 @@ export function RepositoryDetailRoute() {
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
             <CheckPanel
               title="Presentation checks"
-              description="README screenshot and demo signals from Phase 3."
+              description="README screenshot and demo signals."
               analysis={analysis}
               checkIds={["homepage", "readme-screenshots-demo"]}
             />
@@ -358,30 +358,60 @@ function AnalysisSummary({ analysis }: { analysis?: AnalysisResult }) {
     );
   }
 
+  const { score } = analysis;
+  const strongest = score.categories.find((c) => c.category === score.strongestCategory);
+  const weakest = score.categories.find((c) => c.category === score.weakestCategory);
+  const sameCategory = strongest && weakest && strongest.category === weakest.category;
+
   return (
-    <Card className="flex flex-col gap-3">
-      <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
-        Phase 3 summary
-      </span>
-      <Badge tone={healthLabelTone(analysis.healthLabel)} className="self-start">
-        {analysis.healthLabel}
-      </Badge>
-      <div className="text-sm text-text-secondary">
-        {analysis.passedCount} passed · {analysis.failedCount} missing
-        {analysis.unknownCount ? ` · ${analysis.unknownCount} unknown` : ""}
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          Score breakdown
+        </span>
+        <Badge tone={healthLabelTone(analysis.healthLabel)}>{analysis.healthLabel}</Badge>
       </div>
-      <div className="flex flex-col gap-1">
-        {analysis.missingSignals.length > 0 ? (
-          analysis.missingSignals.map((signal) => (
-            <span key={signal} className="text-xs text-text-secondary">
-              {signal}
-            </span>
-          ))
-        ) : (
-          <span className="text-xs text-text-secondary">No critical gaps from Phase 3 checks.</span>
-        )}
-      </div>
+      {strongest && weakest ? (
+        <p className="text-xs text-text-secondary">
+          {sameCategory
+            ? `${strongest.label} is the only category with applicable checks (${strongest.score ?? 0}/100).`
+            : `Strongest: ${strongest.label} (${strongest.score ?? 0}). Weakest: ${weakest.label} (${weakest.score ?? 0}).`}
+        </p>
+      ) : (
+        <p className="text-xs text-text-secondary">
+          Analysis is still in progress — scores appear as data resolves.
+        </p>
+      )}
+      <ul className="flex flex-col gap-2">
+        {score.categories.map((category) => (
+          <li key={category.category} className="flex flex-col gap-1">
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="text-text-primary">{category.label}</span>
+              <span className="tabular-nums text-text-muted">
+                {category.score === null
+                  ? "N/A"
+                  : `${category.score} · ${category.passed}/${category.applicable}`}
+              </span>
+            </div>
+            <ScoreBar score={category.score} />
+          </li>
+        ))}
+      </ul>
     </Card>
+  );
+}
+
+function ScoreBar({ score }: { score: number | null }) {
+  if (score === null) {
+    return <div className="h-1.5 w-full rounded-full bg-border-subtle" aria-hidden />;
+  }
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-border-subtle" aria-hidden>
+      <div
+        className="h-full rounded-full bg-accent transition-[width] duration-soft ease-soft"
+        style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
+      />
+    </div>
   );
 }
 
@@ -412,16 +442,18 @@ function StatusIcon({ status }: { status: CheckStatus }) {
 
 function healthLabelTone(label: HealthLabel) {
   switch (label) {
-    case "Strong start":
+    case "Portfolio-ready":
       return "success";
-    case "Needs README":
-    case "Needs metadata":
-    case "Needs presentation":
+    case "Almost ready":
+      return "neutral";
+    case "Needs work":
     case "Stale":
       return "warn";
+    case "Experimental":
     case "Archived":
       return "danger";
     case "Fork":
+    case "Analyzing":
       return "neutral";
   }
 }

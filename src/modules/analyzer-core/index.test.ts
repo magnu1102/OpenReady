@@ -91,18 +91,21 @@ Scoring and exports come later.
 `;
 
 describe("analyzer-core", () => {
-  it("returns Strong start for a repository with metadata and README sections", () => {
+  it("returns Portfolio-ready for a repository with metadata and README sections", () => {
     const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
 
-    expect(result.healthLabel).toBe("Strong start");
+    expect(result.healthLabel).toBe("Portfolio-ready");
     expect(result.failedCount).toBe(0);
     expect(result.passedCount).toBeGreaterThan(8);
+    expect(result.score.total).toBeGreaterThanOrEqual(85);
   });
 
-  it("returns Needs README when README is missing", () => {
+  it("drops the documentation score to zero when README is missing", () => {
     const result = analyzeRepository(repository(), { status: "missing" }, undefined, now);
 
-    expect(result.healthLabel).toBe("Needs README");
+    const doc = result.score.categories.find((c) => c.category === "documentation");
+    expect(doc?.score).toBe(0);
+    expect(result.score.weakestCategory).toBe("documentation");
     expect(result.checks.find((check) => check.id === "readme")).toMatchObject({
       status: "failed",
       evidence: "No README found",
@@ -135,7 +138,7 @@ describe("analyzer-core", () => {
     ).toBe("Fork");
   });
 
-  it("returns Needs metadata when core repository metadata is missing", () => {
+  it("drops the metadata score and weakest category when metadata is missing", () => {
     const result = analyzeRepository(
       repository({
         description: null,
@@ -148,7 +151,9 @@ describe("analyzer-core", () => {
       now,
     );
 
-    expect(result.healthLabel).toBe("Needs metadata");
+    const metadata = result.score.categories.find((c) => c.category === "metadata-discoverability");
+    expect(metadata?.score).toBe(0);
+    expect(result.score.weakestCategory).toBe("metadata-discoverability");
     expect(result.missingSignals).toEqual([
       "No repository description provided",
       "No repository topics configured",
@@ -156,7 +161,7 @@ describe("analyzer-core", () => {
     ]);
   });
 
-  it("returns Needs presentation when README has no screenshots or demo", () => {
+  it("identifies presentation as the weakest category when README has no screenshots or demo", () => {
     const result = analyzeRepository(
       repository(),
       foundReadme(`# OpenReady
@@ -182,7 +187,7 @@ Add scoring.
       now,
     );
 
-    expect(result.healthLabel).toBe("Needs presentation");
+    expect(result.score.weakestCategory).toBe("presentation");
     expect(result.missingSignals).toContain("No screenshots or demo found");
   });
 
@@ -194,7 +199,7 @@ Add scoring.
       now,
     );
 
-    expect(result.healthLabel).toBe("Strong start");
+    expect(result.healthLabel).toBe("Portfolio-ready");
     expect(result.unknownCount).toBeGreaterThan(0);
     expect(result.checks.find((check) => check.id === "readme")).toMatchObject({
       status: "unknown",
@@ -213,7 +218,18 @@ Add scoring.
       now,
     );
 
-    expect(results.map((result) => result.healthLabel)).toEqual(["Strong start", "Needs README"]);
+    expect(results.map((result) => result.healthLabel)).toEqual([
+      "Portfolio-ready",
+      "Almost ready",
+    ]);
+  });
+
+  describe("tier labels", () => {
+    it("maps a high total to Portfolio-ready", () => {
+      const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
+      expect(result.score.total).toBeGreaterThanOrEqual(85);
+      expect(result.healthLabel).toBe("Portfolio-ready");
+    });
   });
 
   describe("buildability and CI checks", () => {
@@ -359,6 +375,56 @@ Add scoring.
       );
 
       expect(result.checks.find((c) => c.id === "docs-folder")?.status).toBe("failed");
+    });
+  });
+
+  describe("security-hygiene checks", () => {
+    it("passes when SECURITY.md and an example env file are committed", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["SECURITY.md", ".env.example"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "security-md")).toMatchObject({
+        status: "passed",
+        evidence: "SECURITY.md",
+      });
+      expect(result.checks.find((c) => c.id === "env-example")).toMatchObject({
+        status: "passed",
+        evidence: ".env.example",
+      });
+    });
+
+    it("recognises common variants of the example env filename", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree([".env.sample"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "env-example")?.status).toBe("passed");
+    });
+
+    it("fails security checks when neither file is present", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "src/index.ts"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "security-md")?.status).toBe("failed");
+      expect(result.checks.find((c) => c.id === "env-example")?.status).toBe("failed");
+    });
+
+    it("marks security checks unknown when the tree is unavailable", () => {
+      const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
+
+      expect(result.checks.find((c) => c.id === "security-md")?.status).toBe("unknown");
+      expect(result.checks.find((c) => c.id === "env-example")?.status).toBe("unknown");
     });
   });
 });
