@@ -1,3 +1,10 @@
+export interface RepositoryLicense {
+  key: string;
+  name: string;
+  spdxId: string | null;
+  url: string | null;
+}
+
 export interface Repository {
   id: string;
   name: string;
@@ -6,10 +13,14 @@ export interface Repository {
   url: string;
   homepageUrl: string | null;
   language: string | null;
+  topics: string[];
+  license: RepositoryLicense | null;
+  defaultBranch: string;
   stars: number;
   forks: number;
   archived: boolean;
   fork: boolean;
+  createdAt: string;
   updatedAt: string;
   pushedAt: string | null;
 }
