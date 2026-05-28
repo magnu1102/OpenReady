@@ -91,7 +91,7 @@ export function DashboardRoute() {
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Dashboard</h1>
         <p className="text-sm text-text-secondary">
           {username
-            ? `Public repositories for ${username}. Phase 3 checks run locally.`
+            ? `Public repositories for ${username}. Deterministic checks and scoring run locally.`
             : "Enter a GitHub username to fetch public repositories."}
         </p>
       </header>
@@ -122,7 +122,7 @@ export function DashboardRoute() {
                   {value}
                 </div>
                 <div className="mt-1 text-xs text-text-muted">
-                  {label === "Repositories" ? "Fetched public metadata" : "Phase 3 checks"}
+                  {label === "Repositories" ? "Fetched public metadata" : "From category scores"}
                 </div>
               </Card>
             </Tooltip>
