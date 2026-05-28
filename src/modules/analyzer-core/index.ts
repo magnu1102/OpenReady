@@ -222,7 +222,11 @@ function recentActivityCheck(repository: Repository, now: Date): CheckResult {
 function readmeChecks(readmeState: RepositoryReadmeState | undefined): CheckResult[] {
   if (!readmeState) {
     return [
-      unknownCheck("readme", "README status is known", "README has not been fetched yet."),
+      unknownCheck(
+        "readme",
+        "README status is known",
+        "README content is unavailable for this repository.",
+      ),
       ...readmeSections.map((section) =>
         unknownCheck(
           `readme-${section.id}`,
