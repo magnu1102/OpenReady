@@ -49,6 +49,14 @@ function analysis(repositoryOverride: Partial<Repository> = {}): AnalysisResult 
     unknownCount: 0,
     missingSignals: [],
     recommendations: [],
+    classification: {
+      type: "unknown",
+      detectedType: "unknown",
+      confidence: "low",
+      reasons: [],
+      runnerUp: null,
+      overridden: false,
+    },
   };
 }
 

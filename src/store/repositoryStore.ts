@@ -8,7 +8,7 @@ import {
   snapshotToMetadata,
   type AnalysisCacheMetadata,
 } from "@/lib/analysisCache";
-import { analyzeRepositories } from "@/modules/analyzer-core";
+import { analyzeRepositories, analyzeRepository } from "@/modules/analyzer-core";
 import {
   fetchRepositoryReadme,
   fetchRepositoryTree,
@@ -18,6 +18,7 @@ import {
 import type { GitHubClientErrorCode } from "@/modules/github-client";
 import type {
   AnalysisResult,
+  ProjectType,
   Repository,
   RepositoryReadmeState,
   RepositoryTreeState,
@@ -52,6 +53,7 @@ interface RepositoryState {
   loadCachedAnalyses: () => Promise<void>;
   restoreCachedAnalysis: (username: string) => Promise<boolean>;
   clearRepositoryCache: () => Promise<void>;
+  overrideClassification: (repositoryId: string, type: ProjectType | null) => Promise<void>;
   reset: () => void;
 }
 
@@ -146,6 +148,41 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
   clearRepositoryCache: async () => {
     await clearAnalysisCache();
     set({ cachedAnalyses: [], activeCache: null, cacheStatus: "ready" });
+  },
+  overrideClassification: async (repositoryId, type) => {
+    const state = get();
+    const repository = state.repositories.find((candidate) => candidate.id === repositoryId);
+    if (!repository) return;
+
+    const updated = analyzeRepository(
+      repository,
+      state.readmes[repositoryId],
+      state.trees[repositoryId],
+      new Date(),
+      type ?? undefined,
+    );
+
+    const analyses = state.analyses.map((analysis) =>
+      analysis.repository.id === repositoryId ? updated : analysis,
+    );
+    set({ analyses });
+
+    if (!state.username) return;
+    const fetchedAt = state.activeCache?.fetchedAt ?? new Date().toISOString();
+    const snapshot = createAnalysisCacheSnapshot({
+      username: state.username,
+      repositories: state.repositories,
+      readmes: state.readmes,
+      trees: state.trees,
+      analyses,
+      fetchedAt,
+    });
+    try {
+      await saveAnalysisSnapshot(snapshot);
+      set({ activeCache: snapshotToMetadata(snapshot) });
+    } catch {
+      // Cache write failure is non-fatal for the override flow.
+    }
   },
   reset: () => set(initialState),
 }));

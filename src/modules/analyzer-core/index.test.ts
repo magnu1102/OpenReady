@@ -224,6 +224,44 @@ Add scoring.
     ]);
   });
 
+  describe("classification", () => {
+    it("returns unknown classification when no tree is available", () => {
+      const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
+      expect(result.classification.type).toBe("unknown");
+    });
+
+    it("classifies a frontend repo and applies the frontend profile weights", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree([
+          "package.json",
+          "pnpm-lock.yaml",
+          "index.html",
+          "vite.config.ts",
+          "src/components/App.tsx",
+        ]),
+        now,
+      );
+      expect(result.classification.type).toBe("frontend");
+      expect(result.score.categories.find((c) => c.category === "presentation")?.weight).toBe(2);
+    });
+
+    it("honors a manual override", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["index.html", "vite.config.ts"]),
+        now,
+        "library",
+      );
+      expect(result.classification.type).toBe("library");
+      expect(result.classification.overridden).toBe(true);
+      expect(result.classification.detectedType).toBe("frontend");
+      expect(result.classificationOverride).toBe("library");
+    });
+  });
+
   describe("tier labels", () => {
     it("maps a high total to Portfolio-ready", () => {
       const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);

@@ -133,6 +133,30 @@ const RECOMMENDATION_RULES: Record<string, RecommendationRule> = {
       "As projects grow, moving detailed documentation (like architecture or deployment guides) into a dedicated docs/ folder keeps the README clean.",
     priority: "low",
   },
+  "api-section-in-readme": {
+    title: "Document the API surface",
+    description:
+      "Backend and full-stack projects benefit from an API, Endpoints or Routes section in the README so consumers can see what is exposed.",
+    priority: "high",
+  },
+  "release-artifact-link-in-readme": {
+    title: "Link to release artifacts",
+    description:
+      "Desktop apps should point readers to a Releases page, installer or download link so users don't have to build from source.",
+    priority: "medium",
+  },
+  "cli-usage-example-in-readme": {
+    title: "Show a command-line example",
+    description:
+      "CLI tools are easier to evaluate when the README shows at least one shell invocation that demonstrates real usage.",
+    priority: "high",
+  },
+  "api-or-usage-section-in-readme": {
+    title: "Document the public API or usage",
+    description:
+      "Libraries need an API, Usage or Reference section so consumers can adopt them without reading the source.",
+    priority: "high",
+  },
 };
 
 const PRIORITY_WEIGHTS: Record<RecommendationPriority, number> = {
