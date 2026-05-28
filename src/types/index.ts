@@ -65,7 +65,8 @@ export type CheckCategory =
   | "ci"
   | "tests"
   | "containerization"
-  | "infrastructure";
+  | "infrastructure"
+  | "security";
 
 export interface CheckResult {
   id: string;
