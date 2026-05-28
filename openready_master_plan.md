@@ -1,4 +1,4 @@
-# RepoPulse Master Plan
+# OpenReady Master Plan
 
 Mission statement, product constitution, architecture outlook and long-term roadmap.
 
@@ -6,33 +6,33 @@ Mission statement, product constitution, architecture outlook and long-term road
 
 ## 1. Working identity
 
-**Working name:** RepoPulse  
+**Working name:** OpenReady  
 **Product type:** Open-source desktop application, with optional CLI, web, GitHub Action and AI-assisted extensions later  
 **Primary platform target:** Windows first, then macOS/Linux if practical  
 **Recommended app framework:** Tauri + React + TypeScript  
 **Primary purpose:** Help developers understand, improve and present their GitHub repositories clearly.
 
-RepoPulse is a local-first desktop application that analyzes public GitHub repositories and turns repository metadata, documentation signals and project structure into clear, actionable feedback.
+OpenReady is a local-first desktop application that analyzes public GitHub repositories and turns repository metadata, documentation signals and project structure into clear, actionable feedback.
 
 The product should be useful for individual developers, students, job seekers, maintainers, small teams and portfolio builders. It should help users answer a simple but valuable question:
 
 > Which of my repositories are actually ready to show to someone else, and what should I improve next?
 
-RepoPulse should not be just another GitHub statistics dashboard. It should combine repository health, documentation quality, portfolio readiness and developer-facing guidance into a simple, well-designed desktop tool.
+OpenReady should not be just another GitHub statistics dashboard. It should combine repository health, documentation quality, portfolio readiness and developer-facing guidance into a simple, well-designed desktop tool.
 
 ---
 
 ## 2. Product mission
 
-RepoPulse exists to make GitHub repositories easier to evaluate, improve and present.
+OpenReady exists to make GitHub repositories easier to evaluate, improve and present.
 
 Many developers have useful projects that are difficult for others to understand because the repositories lack clear READMEs, screenshots, setup instructions, license information, CI status, examples, architecture notes or visible project purpose. This is especially common for students, junior developers, portfolio builders and people who work on many side projects over time.
 
-RepoPulse should help users turn scattered repositories into a coherent, understandable technical portfolio.
+OpenReady should help users turn scattered repositories into a coherent, understandable technical portfolio.
 
 The long-term mission is:
 
-> RepoPulse helps developers maintain a healthier, clearer and more presentable GitHub presence by analyzing repositories, explaining what is missing, and generating practical next steps.
+> OpenReady helps developers maintain a healthier, clearer and more presentable GitHub presence by analyzing repositories, explaining what is missing, and generating practical next steps.
 
 ---
 
@@ -42,7 +42,7 @@ These principles should guide all future planning and implementation.
 
 ### 3.1 Open-source first
 
-RepoPulse should be open-source from the beginning. The project should be easy to inspect, run, fork and improve.
+OpenReady should be open-source from the beginning. The project should be easy to inspect, run, fork and improve.
 
 The application itself should demonstrate the same values it promotes:
 
@@ -63,7 +63,7 @@ A new user should be able to get value quickly.
 
 The ideal first experience:
 
-1. Download or run RepoPulse.
+1. Download or run OpenReady.
 2. Enter a GitHub username.
 3. Analyze public repositories.
 4. See clear repository health and readiness insights.
@@ -83,7 +83,7 @@ Advanced features can be added later, but the default mode should stay simple.
 
 ### 3.3 Local-first by default
 
-RepoPulse should do as much work locally as possible.
+OpenReady should do as much work locally as possible.
 
 The default mode should:
 
@@ -97,7 +97,7 @@ If private repository analysis, sync or AI features are added later, they should
 
 ### 3.4 AI-compatible, not AI-dependent
 
-RepoPulse may eventually include optional AI-assisted features, but the core product should not depend on AI.
+OpenReady may eventually include optional AI-assisted features, but the core product should not depend on AI.
 
 The application should be useful without:
 
@@ -121,7 +121,7 @@ But deterministic analysis must remain the foundation.
 
 ### 3.5 Transparent scoring
 
-RepoPulse should never give a mysterious score without explanation.
+OpenReady should never give a mysterious score without explanation.
 
 If a repository gets a readiness score, the app must explain what contributed to it.
 
@@ -147,7 +147,7 @@ Scores should be understandable, inspectable and adjustable in later versions.
 
 ### 3.6 Helpful, not judgmental
 
-RepoPulse should act like a practical project coach, not a linter that shames the user.
+OpenReady should act like a practical project coach, not a linter that shames the user.
 
 Avoid:
 
@@ -190,7 +190,7 @@ Later expansion:
 
 ### 3.8 Designed for multiple personas
 
-RepoPulse should eventually serve several user types:
+OpenReady should eventually serve several user types:
 
 - students building their first portfolio
 - junior developers applying for jobs
@@ -204,7 +204,7 @@ The product should stay simple enough for beginners, but useful enough for exper
 
 ### 3.9 Presentation matters
 
-RepoPulse should not be visually generic.
+OpenReady should not be visually generic.
 
 The app should have a polished desktop interface that communicates quality:
 
@@ -219,7 +219,7 @@ The app should have a polished desktop interface that communicates quality:
 - keyboard-friendly navigation
 - dark/light mode eventually
 
-RepoPulse should itself feel portfolio-ready.
+OpenReady should itself feel portfolio-ready.
 
 ### 3.10 Contribution and AI-agent policy
 
@@ -253,7 +253,7 @@ The project should start as a desktop application, not as a backend-heavy web pl
 
 Recommended direction:
 
-> RepoPulse Desktop: a local-first desktop app that analyzes GitHub repositories and exports actionable reports.
+> OpenReady Desktop: a local-first desktop app that analyzes GitHub repositories and exports actionable reports.
 
 Why desktop first:
 
@@ -293,7 +293,7 @@ But the first product shape should be a real desktop app.
 
 ### 5.2 Why Tauri
 
-Tauri allows building desktop applications with a web frontend while using a Rust-based backend/runtime. It is a strong fit because RepoPulse benefits from a polished frontend, local desktop packaging and lightweight distribution.
+Tauri allows building desktop applications with a web frontend while using a Rust-based backend/runtime. It is a strong fit because OpenReady benefits from a polished frontend, local desktop packaging and lightweight distribution.
 
 The project should not overuse Rust early. Rust should mostly be used where Tauri requires it or where local filesystem/app integration is needed. The main product logic can start in TypeScript and later be moved into a reusable core if needed.
 
@@ -323,7 +323,7 @@ AI could be useful later, but it introduces:
 - dependency on external services
 - harder open-source onboarding
 
-RepoPulse should prove its usefulness with deterministic analysis first.
+OpenReady should prove its usefulness with deterministic analysis first.
 
 ---
 
@@ -333,7 +333,7 @@ RepoPulse should prove its usefulness with deterministic analysis first.
 
 A first-time user should experience something like this:
 
-1. Open RepoPulse.
+1. Launch OpenReady.
 2. See a short explanation of what the app does.
 3. Enter a GitHub username.
 4. Optionally add a GitHub token for higher rate limits.
@@ -437,7 +437,7 @@ Purpose:
 
 ## 7. Repository analysis model
 
-RepoPulse should analyze repositories through layered checks.
+OpenReady should analyze repositories through layered checks.
 
 ### 7.1 Repository metadata checks
 
@@ -525,7 +525,7 @@ Useful questions:
 Detect:
 
 - tests/ folder
-- __tests__ folder
+- **tests** folder
 - test scripts in package.json
 - pytest config
 - GitHub Actions workflows
@@ -583,7 +583,7 @@ Initial checks should be light and safe:
 - dependency scanning workflow later
 - secret scanning warning if suspicious filenames are present
 
-RepoPulse should not attempt deep security scanning early. That can become a separate advanced module.
+OpenReady should not attempt deep security scanning early. That can become a separate advanced module.
 
 ---
 
@@ -591,7 +591,7 @@ RepoPulse should not attempt deep security scanning early. That can become a sep
 
 Repositories should not all be evaluated the same way.
 
-RepoPulse should eventually classify repositories into broad types and apply relevant expectations.
+OpenReady should eventually classify repositories into broad types and apply relevant expectations.
 
 ### 8.1 Initial project types
 
@@ -746,7 +746,7 @@ Possible hidden gem signals:
 - no screenshots
 - no repo description
 
-This could become one of RepoPulse’s most useful features.
+This could become one of OpenReady’s most useful features.
 
 ### 9.4 Scoring transparency
 
@@ -804,7 +804,7 @@ AI decides whether the repo is good.
 Good:
 
 ```text
-RepoPulse detects missing screenshots, weak setup instructions and no license. AI optionally suggests a clearer README summary.
+OpenReady detects missing screenshots, weak setup instructions and no license. AI optionally suggests a clearer README summary.
 ```
 
 ### 10.3 Possible AI features later
@@ -835,7 +835,7 @@ If AI is added:
 
 ## 11. Export and integration vision
 
-RepoPulse should not only analyze repositories. It should help users reuse the results.
+OpenReady should not only analyze repositories. It should help users reuse the results.
 
 ### 11.1 Export formats
 
@@ -851,13 +851,13 @@ Potential exports:
 
 ### 11.2 Homepage integration
 
-RepoPulse could export a file like:
+OpenReady could export a file like:
 
 ```json
 {
   "projects": [
     {
-      "name": "RepoPulse",
+      "name": "OpenReady",
       "summary": "Desktop app for analyzing GitHub repository health and portfolio readiness.",
       "technologies": ["Tauri", "React", "TypeScript"],
       "status": "In development",
@@ -872,12 +872,13 @@ A personal homepage could then consume this file.
 
 ### 11.3 GitHub profile README integration
 
-RepoPulse could generate a project section like:
+OpenReady could generate a project section like:
 
 ```md
 ## Featured Projects
 
-### RepoPulse
+### OpenReady
+
 Desktop app for analyzing GitHub repository health, documentation quality and portfolio readiness.
 
 **Tech:** Tauri, React, TypeScript, GitHub API
@@ -885,7 +886,7 @@ Desktop app for analyzing GitHub repository health, documentation quality and po
 
 ### 11.4 Future API / plugin possibility
 
-If the project grows, RepoPulse could expose:
+If the project grows, OpenReady could expose:
 
 - CLI command output
 - JSON schema
@@ -913,7 +914,7 @@ Tauri desktop app
 ### 12.2 Mature architecture
 
 ```text
-RepoPulse
+OpenReady
   ├── apps/
   │   ├── desktop/
   │   ├── cli/
@@ -1154,11 +1155,11 @@ Possible outputs:
 
 ### Phase 11: CLI version
 
-Goal: Make RepoPulse useful in developer workflows.
+Goal: Make OpenReady useful in developer workflows.
 
 Possible outputs:
 
-- `repopulse analyze <username>`
+- `openready analyze <username>`
 - terminal summary
 - JSON/Markdown output
 - reusable analyzer core extraction if needed
@@ -1230,7 +1231,7 @@ Possible outputs:
 
 ## 14. UI and design philosophy
 
-RepoPulse should feel like a serious desktop tool, not a quick script with a UI.
+OpenReady should feel like a serious desktop tool, not a quick script with a UI.
 
 ### 14.1 Visual tone
 
@@ -1253,7 +1254,7 @@ The user wanted the app to cover several identities:
 - portfolio coach
 - GitHub analytics tool
 
-RepoPulse can combine all three by separating modes/areas:
+OpenReady can combine all three by separating modes/areas:
 
 - Dashboard: analytics overview
 - Repository detail: developer health checks
@@ -1326,7 +1327,7 @@ If added:
 
 ## 16. Error handling and edge cases
 
-RepoPulse should handle real-world GitHub messiness.
+OpenReady should handle real-world GitHub messiness.
 
 Important cases:
 
@@ -1352,7 +1353,7 @@ Errors should be user-friendly and actionable.
 
 ## 17. Quality and testing outlook
 
-RepoPulse should eventually include tests for:
+OpenReady should eventually include tests for:
 
 - GitHub API response handling
 - scoring logic
@@ -1382,7 +1383,7 @@ Useful fixtures:
 
 ## 18. Documentation requirements
 
-RepoPulse should have strong documentation because documentation quality is central to the product.
+OpenReady should have strong documentation because documentation quality is central to the product.
 
 Suggested docs:
 
@@ -1399,7 +1400,7 @@ Suggested docs:
 
 The README should clearly explain:
 
-- what RepoPulse does
+- what OpenReady does
 - who it is for
 - how to run it
 - what it checks
@@ -1412,7 +1413,7 @@ The README should clearly explain:
 
 ## 19. Release strategy outlook
 
-RepoPulse should eventually publish real releases.
+OpenReady should eventually publish real releases.
 
 ### 19.1 Early releases
 
@@ -1441,7 +1442,7 @@ Signing can be documented as a serious distribution consideration even if not im
 
 ## 20. Open-source community direction
 
-RepoPulse should be friendly to outside users and contributors eventually.
+OpenReady should be friendly to outside users and contributors eventually.
 
 Possible future community features:
 
@@ -1531,7 +1532,7 @@ This backlog intentionally includes more than the first version should build.
 
 ## 22. Definition of success
 
-RepoPulse is successful if:
+OpenReady is successful if:
 
 - someone can download or run it without complex setup
 - it can analyze a public GitHub profile
@@ -1561,11 +1562,11 @@ For the user’s portfolio, it is successful if it demonstrates:
 ## 23. Suggested README opening
 
 ```md
-# RepoPulse
+# OpenReady
 
-RepoPulse is an open-source desktop app that analyzes GitHub repositories and helps developers understand which projects are clear, healthy and ready to share. It checks public repositories for documentation, setup instructions, licensing, CI, technology signals, presentation quality and other practical indicators, then turns the findings into transparent scores and actionable improvement suggestions.
+OpenReady is an open-source desktop app that analyzes GitHub repositories and helps developers understand which projects are clear, healthy and ready to share. It checks public repositories for documentation, setup instructions, licensing, CI, technology signals, presentation quality and other practical indicators, then turns the findings into transparent scores and actionable improvement suggestions.
 
-RepoPulse is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
+OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 ```
 
 ---
@@ -1573,7 +1574,7 @@ RepoPulse is designed to be useful without AI, accounts or cloud setup. Optional
 ## 24. Suggested portfolio description
 
 ```text
-RepoPulse is an open-source desktop application for analyzing GitHub repository health and portfolio readiness. Built with Tauri, React and TypeScript, it uses deterministic checks against public GitHub repositories to detect documentation quality, setup signals, licensing, CI, technology stack and presentation gaps, then generates transparent scores and exportable improvement reports.
+OpenReady is an open-source desktop application for analyzing GitHub repository health and portfolio readiness. Built with Tauri, React and TypeScript, it uses deterministic checks against public GitHub repositories to detect documentation quality, setup signals, licensing, CI, technology stack and presentation gaps, then generates transparent scores and exportable improvement reports.
 ```
 
 ---
@@ -1585,11 +1586,11 @@ Use this when starting the first implementation phase with a planning agent.
 ```text
 /plan
 
-We are starting the RepoPulse project.
+We are starting the OpenReady project.
 
-Before planning, read the RepoPulse master plan if it exists in the repository and treat it as the source of truth. Do not attempt to implement the entire product. This project is intentionally large and should be developed in many careful phases.
+Before planning, read the OpenReady master plan if it exists in the repository and treat it as the source of truth. Do not attempt to implement the entire product. This project is intentionally large and should be developed in many careful phases.
 
-RepoPulse is an open-source, local-first desktop application for analyzing GitHub repository health and portfolio readiness. It should be designed for other users from day one, not only for my own GitHub profile. The app should be useful without AI, accounts, cloud setup or a database. Optional AI features are part of the long-term expansion path, but should not be part of the first implementation phase.
+OpenReady is an open-source, local-first desktop application for analyzing GitHub repository health and portfolio readiness. It should be designed for other users from day one, not only for my own GitHub profile. The app should be useful without AI, accounts, cloud setup or a database. Optional AI features are part of the long-term expansion path, but should not be part of the first implementation phase.
 
 Strategic direction:
 - Desktop app first
@@ -1643,8 +1644,8 @@ Do not write a large amount of code yet. The goal is to produce a careful, stabl
 
 ## 26. Decision log
 
-- RepoPulse should be designed for other users from day one.
-- RepoPulse should be production-minded and open-source, not a personal-only script.
+- OpenReady should be designed for other users from day one.
+- OpenReady should be production-minded and open-source, not a personal-only script.
 - The app should start as a desktop application and eventually produce a real Windows executable/installer.
 - Tauri + React + TypeScript is the preferred direction.
 - The first versions should focus on general repository health, not job-market mode.

@@ -1,10 +1,10 @@
-# RepoPulse
+# OpenReady
 
-RepoPulse is an open-source desktop app that analyzes GitHub repositories and helps developers understand which projects are clear, healthy and ready to share. It checks public repositories for documentation, setup instructions, licensing, CI, technology signals, presentation quality and other practical indicators, then turns the findings into transparent scores and actionable improvement suggestions.
+OpenReady is an open-source desktop app that analyzes GitHub repositories and helps developers understand which projects are clear, healthy and ready to share. It checks public repositories for documentation, setup instructions, licensing, CI, technology signals, presentation quality and other practical indicators, then turns the findings into transparent scores and actionable improvement suggestions.
 
-RepoPulse is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
+OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 1 — app shell only. The desktop app boots with welcome, dashboard, repository detail and settings screens. Real GitHub analysis arrives in Phase 2.
+> **Status:** Phase 2 — public repository fetch. Enter a GitHub username to fetch and view the first 100 public repositories. Deterministic checks and scoring arrive in later phases.
 
 ## Screenshots
 
@@ -32,7 +32,15 @@ pnpm tauri dev
 pnpm dev
 ```
 
-This opens RepoPulse in your browser without compiling the Rust shell.
+This opens OpenReady in your browser without compiling the Rust shell.
+
+### Current app flow
+
+1. Enter a public GitHub user account on the Welcome screen.
+2. OpenReady calls GitHub's public REST API without authentication.
+3. The Dashboard shows public repository metadata such as name, description, language, stars, forks, updated date, fork status and archive status.
+
+Phase 2 does not store fetched repository data, request a GitHub token, fetch repository contents, run deterministic checks or produce scores yet.
 
 ### Useful scripts
 
@@ -43,7 +51,7 @@ pnpm test        # Vitest
 pnpm format      # Prettier write
 ```
 
-## What RepoPulse checks (planned)
+## What OpenReady checks (planned)
 
 - README presence and section coverage
 - License, contributing and security policy
@@ -54,7 +62,7 @@ pnpm format      # Prettier write
 - Repository metadata (description, topics, homepage, activity)
 - Project type classification
 
-## What RepoPulse does **not** do
+## What OpenReady does **not** do
 
 - Send repository contents to any third party
 - Require a GitHub account or login
@@ -63,7 +71,7 @@ pnpm format      # Prettier write
 
 ## Roadmap
 
-See [docs/roadmap.md](docs/roadmap.md) and [`repopulse_master_plan.md`](repopulse_master_plan.md) for the full long-form plan.
+See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openready_master_plan.md) for the full long-form plan.
 
 ## Documentation
 
