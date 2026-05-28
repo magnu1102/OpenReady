@@ -30,6 +30,8 @@ import type {
   CheckCategory,
   CheckStatus,
   HealthLabel,
+  Recommendation,
+  RecommendationPriority,
   RepositoryTreeState,
 } from "@/types";
 
@@ -210,15 +212,67 @@ export function RepositoryDetailRoute() {
           </div>
         </TabsContent>
         <TabsContent value="recommendations">
-          <PlaceholderPanel
-            icon={Lightbulb}
-            title="Suggested improvements"
-            description="Prioritized recommendations arrive after scoring and richer checks."
-          />
+          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+            <RecommendationsPanel recommendations={analysis?.recommendations} />
+            <AnalysisSummary analysis={analysis} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
   );
+}
+
+function RecommendationsPanel({ recommendations }: { recommendations?: Recommendation[] }) {
+  if (!recommendations) {
+    return (
+      <PlaceholderPanel
+        icon={CircleHelp}
+        title="Recommendations unavailable"
+        description="Run analysis again to generate improvement suggestions."
+      />
+    );
+  }
+
+  if (recommendations.length === 0) {
+    return (
+      <EmptyState
+        icon={CheckCircle2}
+        title="Looking good!"
+        description="No major missing signals were found for this repository. Great work keeping it well documented and structured."
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {recommendations.map((rec, index) => (
+        <Card key={rec.id} className="flex gap-4 p-5">
+          <div className="mt-0.5 shrink-0 text-text-muted">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface font-mono text-xs font-semibold shadow-sm">
+              {index + 1}
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-semibold text-text-primary">{rec.title}</h3>
+              <PriorityBadge priority={rec.priority} />
+            </div>
+            <p className="text-sm text-text-secondary">{rec.description}</p>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: RecommendationPriority }) {
+  if (priority === "high") {
+    return <Badge tone="danger">High priority</Badge>;
+  }
+  if (priority === "medium") {
+    return <Badge tone="warn">Medium priority</Badge>;
+  }
+  return <Badge tone="neutral">Low priority</Badge>;
 }
 
 function CheckPanel({

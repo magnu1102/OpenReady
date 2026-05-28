@@ -9,6 +9,7 @@ import type {
   RepositoryTreeState,
 } from "@/types";
 import { scoreChecks } from "@/modules/scoring-engine";
+import { generateRecommendations } from "@/modules/recommendation-engine";
 import { detectTechSignals, findTechSignal } from "./tech-stack";
 import type { TechSignal } from "./tech-stack";
 
@@ -162,6 +163,7 @@ export function analyzeRepository(
     .slice(0, 3);
 
   const score = scoreChecks(checks);
+  const recommendations = generateRecommendations(checks);
 
   return {
     repository,
@@ -173,6 +175,7 @@ export function analyzeRepository(
     failedCount: failedChecks.length,
     unknownCount,
     missingSignals,
+    recommendations,
   };
 }
 

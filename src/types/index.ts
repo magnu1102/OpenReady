@@ -88,6 +88,16 @@ export type HealthLabel =
   | "Fork"
   | "Analyzing";
 
+export type RecommendationPriority = "high" | "medium" | "low";
+
+export interface Recommendation {
+  id: string;
+  checkId: string;
+  title: string;
+  description: string;
+  priority: RecommendationPriority;
+}
+
 export interface AnalysisResult {
   repository: Repository;
   checks: CheckResult[];
@@ -98,6 +108,7 @@ export interface AnalysisResult {
   failedCount: number;
   unknownCount: number;
   missingSignals: string[];
+  recommendations: Recommendation[];
 }
 
 export type { CategoryScore, RepositoryScore, ScoreCategory } from "@/modules/scoring-engine";
