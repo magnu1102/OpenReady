@@ -109,4 +109,33 @@ describe("App", () => {
     expect(screen.getByRole("link", { name: /change username/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
   });
+
+  it("renders deterministic labels and repository check details", async () => {
+    const user = userEvent.setup();
+    const noReadmeRepository: Repository = {
+      ...repository,
+      id: "2",
+      name: "no-readme",
+      fullName: "octocat/no-readme",
+      fork: false,
+      forks: 0,
+    };
+    fetchUserRepositoriesMock.mockResolvedValueOnce([noReadmeRepository]);
+    fetchRepositoryReadmeMock.mockResolvedValueOnce(null);
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.click(screen.getByRole("button", { name: /analyze/i }));
+
+    expect(await screen.findByText("Needs README")).toBeInTheDocument();
+    expect(screen.getByText(/No README found/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("link", { name: "no-readme" }));
+    expect(await screen.findByRole("heading", { name: "no-readme" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /documentation/i }));
+    expect(screen.getByText("README exists")).toBeInTheDocument();
+    expect(screen.getAllByText("No README found").length).toBeGreaterThan(0);
+  });
 });
