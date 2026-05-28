@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { GitHubClientError } from "./index";
-import { fetchUserRepositories, isValidGitHubUsername } from "./index";
+import { fetchRepositoryReadme, fetchUserRepositories, isValidGitHubUsername } from "./index";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -38,10 +38,19 @@ describe("github-client", () => {
           html_url: "https://github.com/octocat/hello-world",
           homepage: "https://example.com",
           language: "TypeScript",
+          topics: ["desktop", "github"],
+          license: {
+            key: "mit",
+            name: "MIT License",
+            spdx_id: "MIT",
+            url: "https://api.github.com/licenses/mit",
+          },
+          default_branch: "main",
           stargazers_count: 42,
           forks_count: 7,
           archived: false,
           fork: true,
+          created_at: "2025-05-28T10:00:00Z",
           updated_at: "2026-05-28T10:00:00Z",
           pushed_at: "2026-05-28T09:00:00Z",
         },
@@ -70,10 +79,19 @@ describe("github-client", () => {
         url: "https://github.com/octocat/hello-world",
         homepageUrl: "https://example.com",
         language: "TypeScript",
+        topics: ["desktop", "github"],
+        license: {
+          key: "mit",
+          name: "MIT License",
+          spdxId: "MIT",
+          url: "https://api.github.com/licenses/mit",
+        },
+        defaultBranch: "main",
         stars: 42,
         forks: 7,
         archived: false,
         fork: true,
+        createdAt: "2025-05-28T10:00:00Z",
         updatedAt: "2026-05-28T10:00:00Z",
         pushedAt: "2026-05-28T09:00:00Z",
       },
@@ -124,5 +142,70 @@ describe("github-client", () => {
       code: "invalid-username",
     } satisfies Partial<GitHubClientError>);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fetches and decodes repository README content", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        path: "README.md",
+        html_url: "https://github.com/octocat/hello-world/blob/main/README.md",
+        content: "IyBIZWxsbyBXb3JsZAoKUnVuIGl0IGxvY2FsbHku",
+        encoding: "base64",
+      }),
+    );
+
+    const readme = await fetchRepositoryReadme("octocat", "hello-world");
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe("https://api.github.com/repos/octocat/hello-world/readme");
+    expect(init).toMatchObject({
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    expect(readme).toEqual({
+      repositoryFullName: "octocat/hello-world",
+      path: "README.md",
+      htmlUrl: "https://github.com/octocat/hello-world/blob/main/README.md",
+      content: "# Hello World\n\nRun it locally.",
+    });
+  });
+
+  it("returns null when a repository README is missing", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "Not Found" }, { status: 404 }));
+
+    await expect(fetchRepositoryReadme("octocat", "empty")).resolves.toBeNull();
+  });
+
+  it("throws rate-limit when README fetch is rate limited", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { message: "API rate limit exceeded" },
+        { status: 403, headers: { "x-ratelimit-remaining": "0" } },
+      ),
+    );
+
+    await expect(fetchRepositoryReadme("octocat", "hello-world")).rejects.toMatchObject({
+      code: "rate-limit",
+      status: 403,
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("throws network when README fetch rejects", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    await expect(fetchRepositoryReadme("octocat", "hello-world")).rejects.toMatchObject({
+      code: "network",
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("throws invalid-response for malformed README responses", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "ok" }));
+
+    await expect(fetchRepositoryReadme("octocat", "hello-world")).rejects.toMatchObject({
+      code: "invalid-response",
+    } satisfies Partial<GitHubClientError>);
   });
 });

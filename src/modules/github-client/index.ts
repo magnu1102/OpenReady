@@ -1,4 +1,4 @@
-import type { Repository } from "@/types";
+import type { Repository, RepositoryReadme } from "@/types";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const USERNAME_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
@@ -30,12 +30,28 @@ interface GitHubRepositoryResponse {
   html_url: string;
   homepage: string | null;
   language: string | null;
+  topics?: string[];
+  license: {
+    key: string;
+    name: string;
+    spdx_id: string | null;
+    url: string | null;
+  } | null;
+  default_branch: string;
   stargazers_count: number;
   forks_count: number;
   archived: boolean;
   fork: boolean;
+  created_at: string;
   updated_at: string;
   pushed_at: string | null;
+}
+
+interface GitHubReadmeResponse {
+  path: string;
+  html_url: string;
+  content: string;
+  encoding: string;
 }
 
 export function normalizeGitHubUsername(username: string): string {
@@ -88,6 +104,62 @@ export async function fetchUserRepositories(username: string): Promise<Repositor
   }
 
   return data.map(mapRepository);
+}
+
+export async function fetchRepositoryReadme(
+  owner: string,
+  repo: string,
+): Promise<RepositoryReadme | null> {
+  const normalizedOwner = owner.trim();
+  const normalizedRepo = repo.trim();
+  if (
+    !normalizedOwner ||
+    !normalizedRepo ||
+    normalizedOwner.includes("/") ||
+    normalizedRepo.includes("/")
+  ) {
+    throw new GitHubClientError("invalid-username", "Enter a valid repository owner and name.");
+  }
+
+  const url = new URL(
+    `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(normalizedRepo)}/readme`,
+    GITHUB_API_BASE_URL,
+  );
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+  } catch {
+    throw new GitHubClientError("network", "Could not reach GitHub while checking the README.");
+  }
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw await toGitHubClientError(response);
+  }
+
+  const data: unknown = await response.json();
+  if (!isGitHubReadmeResponse(data) || data.encoding !== "base64") {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned an unexpected README response.",
+    );
+  }
+
+  return {
+    repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
+    path: data.path,
+    htmlUrl: data.html_url,
+    content: decodeBase64(data.content),
+  };
 }
 
 async function toGitHubClientError(response: Response): Promise<GitHubClientError> {
@@ -148,11 +220,43 @@ function mapRepository(repo: GitHubRepositoryResponse): Repository {
     url: repo.html_url,
     homepageUrl: repo.homepage || null,
     language: repo.language,
+    topics: repo.topics ?? [],
+    license: repo.license
+      ? {
+          key: repo.license.key,
+          name: repo.license.name,
+          spdxId: repo.license.spdx_id,
+          url: repo.license.url,
+        }
+      : null,
+    defaultBranch: repo.default_branch,
     stars: repo.stargazers_count,
     forks: repo.forks_count,
     archived: repo.archived,
     fork: repo.fork,
+    createdAt: repo.created_at,
     updatedAt: repo.updated_at,
     pushedAt: repo.pushed_at,
   };
+}
+
+function isGitHubReadmeResponse(value: unknown): value is GitHubReadmeResponse {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "path" in value &&
+    typeof value.path === "string" &&
+    "html_url" in value &&
+    typeof value.html_url === "string" &&
+    "content" in value &&
+    typeof value.content === "string" &&
+    "encoding" in value &&
+    typeof value.encoding === "string"
+  );
+}
+
+function decodeBase64(content: string): string {
+  const binary = atob(content.replace(/\s/g, ""));
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
