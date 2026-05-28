@@ -16,6 +16,7 @@ import {
   Star,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -44,6 +45,7 @@ export function DashboardRoute() {
   const activeCache = useRepositoryStore((s) => s.activeCache);
   const error = useRepositoryStore((s) => s.error);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
+  const reducedMotion = useReducedMotion();
   const [exportState, setExportState] = useState<{
     status: "idle" | "saving" | "saved" | "error";
     message: string;
@@ -156,7 +158,7 @@ export function DashboardRoute() {
       </header>
 
       <motion.div
-        initial="hidden"
+        initial={reducedMotion ? "show" : "hidden"}
         animate="show"
         variants={{
           hidden: {},
@@ -167,7 +169,10 @@ export function DashboardRoute() {
         {stats.map(({ label, value, icon: Icon, hint }) => (
           <motion.div
             key={label}
-            variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0 } }}
+            variants={{
+              hidden: reducedMotion ? {} : { opacity: 0, y: 6 },
+              show: { opacity: 1, y: 0 },
+            }}
           >
             <Tooltip content={hint}>
               <Card className="cursor-help">
