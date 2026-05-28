@@ -166,7 +166,15 @@ export function WelcomeRoute() {
             </p>
           ) : null}
           <p className="text-xs text-text-muted">
-            Optional token support can raise GitHub API limits from Settings.
+            Optional token support can raise GitHub API limits from Settings. Press{" "}
+            <kbd className="rounded border border-border-subtle bg-subtle px-1 font-mono text-[10px]">
+              /
+            </kbd>{" "}
+            to focus this field or{" "}
+            <kbd className="rounded border border-border-subtle bg-subtle px-1 font-mono text-[10px]">
+              ⌘K
+            </kbd>{" "}
+            to open the command palette.
           </p>
         </form>
       </Card>
