@@ -27,7 +27,7 @@ export function SettingsRoute() {
       <Section
         icon={<Github className="h-4 w-4" />}
         title="GitHub"
-        status="Phase 2"
+        status="Phase 8"
         statusTone="warn"
       >
         <Row

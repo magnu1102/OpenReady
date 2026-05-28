@@ -1,22 +1,23 @@
 # github-client
 
-Public GitHub REST API client. Handles fetching user repositories, repository contents, README/workflow files, rate limits and optional token authentication.
+Public GitHub REST API client. Handles fetching user repositories, README files, rate limits and optional token authentication later.
 
-**Phase:** public repository listing implemented in Phase 2.
+**Phase:** public repository listing implemented in Phase 2; README fetching added in Phase 3.
 
-**Public surface:** `fetchUserRepositories(username)`.
+**Public surface:** `fetchUserRepositories(username)`, `fetchRepositoryReadme(owner, repo)`.
 
 Current behavior:
 
 - Fetches the first 100 public repositories for a GitHub user.
 - Sorts repositories by most recently pushed.
+- Fetches README content for selected repositories.
 - Uses unauthenticated public GitHub REST API requests.
 - Maps GitHub responses into OpenReady's internal `Repository` type.
 - Returns structured errors for invalid usernames, missing users, rate limits, network failure and unexpected API responses.
 
 Not implemented yet:
 
-- Repository contents, README, license or workflow fetching.
+- Full repository file-tree or workflow fetching.
 - Optional token authentication.
 - Organization repository listing.
 - Caching or persistence.
