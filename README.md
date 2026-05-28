@@ -4,7 +4,7 @@ RepoPulse is an open-source desktop app that analyzes GitHub repositories and he
 
 RepoPulse is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 1 — app shell only. The desktop app boots with welcome, dashboard, repository detail and settings screens. Real GitHub analysis arrives in Phase 2.
+> **Status:** Phase 2 — public repository fetch. Enter a GitHub username to fetch and view the first 100 public repositories. Deterministic checks and scoring arrive in later phases.
 
 ## Screenshots
 
@@ -33,6 +33,14 @@ pnpm dev
 ```
 
 This opens RepoPulse in your browser without compiling the Rust shell.
+
+### Current app flow
+
+1. Enter a public GitHub user account on the Welcome screen.
+2. RepoPulse calls GitHub's public REST API without authentication.
+3. The Dashboard shows public repository metadata such as name, description, language, stars, forks, updated date, fork status and archive status.
+
+Phase 2 does not store fetched repository data, request a GitHub token, fetch repository contents, run deterministic checks or produce scores yet.
 
 ### Useful scripts
 

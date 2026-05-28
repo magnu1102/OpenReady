@@ -3,8 +3,8 @@
 A condensed phase outline. The master plan (`repopulse_master_plan.md` §13) is the source of truth.
 
 - **Phase 0 — Foundation.** Master plan, principles, contribution policy. ✅
-- **Phase 1 — Desktop app skeleton.** Tauri + React + TS shell, navigation, four placeholder screens, design system, docs skeleton. ← _current_
-- **Phase 2 — GitHub public repository fetch.** Username input wired up, GitHub client, public repo list, loading/error/rate-limit states.
+- **Phase 1 — Desktop app skeleton.** Tauri + React + TS shell, navigation, four placeholder screens, design system, docs skeleton. ✅
+- **Phase 2 — GitHub public repository fetch.** Username input wired up, GitHub client, public repo list, loading/error/rate-limit states. ← _current_
 - **Phase 3 — Basic deterministic checks.** README, license, description, topics, homepage, recent activity, archived/fork status.
 - **Phase 4 — File and tech-stack detection.** Package manifests, Docker, CI workflows, mobile/Gradle, IaC, docs, tests.
 - **Phase 5 — Scoring engine v1.** Category scores, total score, evidence list, labels.
