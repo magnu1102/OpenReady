@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
@@ -233,7 +233,7 @@ export function DashboardRoute() {
         ) : null}
 
         {hasRepositories ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <RepositoryGrid>
             {repositories.map((repository, index) => (
               <RepositoryCard
                 key={repository.id}
@@ -243,7 +243,7 @@ export function DashboardRoute() {
                 tourAnchor={index === 0 ? "dashboard-first-card" : undefined}
               />
             ))}
-          </div>
+          </RepositoryGrid>
         ) : null}
       </section>
 
@@ -354,6 +354,67 @@ function ExportPanel({
   );
 }
 
+function RepositoryGrid({ children }: { children: ReactNode }) {
+  const gridRef = useRef<HTMLDivElement | null>(null);
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const links = Array.from(
+      grid.querySelectorAll<HTMLAnchorElement>("a[data-repo-card-link='true']"),
+    );
+    if (links.length === 0) return;
+    const active = document.activeElement;
+    const currentIndex = links.findIndex((link) => link === active);
+    if (currentIndex < 0) return;
+
+    const cols = window.matchMedia("(min-width: 1024px)").matches
+      ? 3
+      : window.matchMedia("(min-width: 640px)").matches
+        ? 2
+        : 1;
+
+    let nextIndex: number;
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = Math.min(links.length - 1, currentIndex + 1);
+        break;
+      case "ArrowLeft":
+        nextIndex = Math.max(0, currentIndex - 1);
+        break;
+      case "ArrowDown":
+        nextIndex = Math.min(links.length - 1, currentIndex + cols);
+        break;
+      case "ArrowUp":
+        nextIndex = Math.max(0, currentIndex - cols);
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = links.length - 1;
+        break;
+      default:
+        return;
+    }
+    if (nextIndex === currentIndex) return;
+    event.preventDefault();
+    links[nextIndex]?.focus();
+  }
+
+  return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- list owns arrow-key nav for the focused link inside each card
+    <div
+      ref={gridRef}
+      role="list"
+      onKeyDown={onKeyDown}
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      {children}
+    </div>
+  );
+}
+
 function RepositoryLoadingGrid() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading repositories">
@@ -392,11 +453,16 @@ function RepositoryCard({
 }) {
   const techSignals = collectTechSignals(treeState).slice(0, 3);
   return (
-    <Card className="flex min-h-[240px] flex-col gap-4" data-tour-anchor={tourAnchor}>
+    <Card
+      role="listitem"
+      className="flex min-h-[240px] flex-col gap-4"
+      data-tour-anchor={tourAnchor}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
             to={`/dashboard/repo/${encodeURIComponent(repository.id)}`}
+            data-repo-card-link="true"
             className="block truncate text-md font-semibold text-text-primary hover:text-accent"
           >
             {repository.name}
