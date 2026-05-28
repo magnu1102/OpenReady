@@ -6,7 +6,10 @@ import type {
   HealthLabel,
   Repository,
   RepositoryReadmeState,
+  RepositoryTreeState,
 } from "@/types";
+import { detectTechSignals, findTechSignal } from "./tech-stack";
+import type { TechSignal } from "./tech-stack";
 
 const RECENT_ACTIVITY_DAYS = 365;
 
@@ -78,18 +81,21 @@ const readmeSections: ReadmeSectionDefinition[] = [
 export function analyzeRepositories(
   repositories: Repository[],
   readmes: Record<string, RepositoryReadmeState> = {},
+  trees: Record<string, RepositoryTreeState> = {},
   now: Date = new Date(),
 ): AnalysisResult[] {
   return repositories.map((repository) =>
-    analyzeRepository(repository, readmes[repository.id], now),
+    analyzeRepository(repository, readmes[repository.id], trees[repository.id], now),
   );
 }
 
 export function analyzeRepository(
   repository: Repository,
   readmeState: RepositoryReadmeState | undefined,
+  treeState: RepositoryTreeState | undefined = undefined,
   now: Date = new Date(),
 ): AnalysisResult {
+  const techSignals = collectTechSignals(treeState);
   const checks = [
     metadataCheck(
       "description",
@@ -135,6 +141,8 @@ export function analyzeRepository(
         : undefined,
     } satisfies CheckResult,
     ...readmeChecks(readmeState),
+    ...buildabilityChecks(treeState, techSignals),
+    ...ciChecks(treeState, techSignals),
   ];
 
   const passedCount = checks.filter((check) => check.status === "passed").length;
@@ -305,4 +313,162 @@ function parseDate(value: string | null): Date | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function collectTechSignals(treeState: RepositoryTreeState | undefined): TechSignal[] {
+  if (!treeState) return [];
+  if (treeState.status === "found" || treeState.status === "truncated") {
+    return detectTechSignals(treeState.tree);
+  }
+  return [];
+}
+
+function buildabilityChecks(
+  treeState: RepositoryTreeState | undefined,
+  techSignals: TechSignal[],
+): CheckResult[] {
+  const treeUnknown = isTreeUnknown(treeState);
+  const treeEmpty = treeState?.status === "empty";
+
+  const manifestSignal = ["node", "python", "rust", "go", "java-gradle"]
+    .map((id) => findTechSignal(techSignals, id as TechSignal["id"]))
+    .find((signal): signal is TechSignal => Boolean(signal));
+
+  const lockfileEvidence = findLockfileEvidence(treeState);
+
+  const dockerSignal = findTechSignal(techSignals, "docker");
+
+  return [
+    deriveCheck({
+      id: "build-manifest",
+      label: "Repository declares a build manifest",
+      category: "buildability",
+      treeUnknown,
+      treeEmpty,
+      passed: Boolean(manifestSignal),
+      passedEvidence: manifestSignal?.evidence.join(", "),
+      failedEvidence:
+        "No package manifest detected (package.json, pyproject.toml, Cargo.toml, go.mod, build.gradle*).",
+    }),
+    deriveCheck({
+      id: "lockfile",
+      label: "Dependency lockfile is committed",
+      category: "buildability",
+      treeUnknown,
+      treeEmpty,
+      passed: lockfileEvidence !== null,
+      passedEvidence: lockfileEvidence ?? undefined,
+      failedEvidence: "No lockfile committed — installs may not be reproducible.",
+    }),
+    deriveCheck({
+      id: "dockerfile",
+      label: "Repository ships a Dockerfile or Compose file",
+      category: "containerization",
+      treeUnknown,
+      treeEmpty,
+      passed: Boolean(dockerSignal),
+      passedEvidence: dockerSignal?.evidence.join(", "),
+      failedEvidence: "No Dockerfile or docker-compose file found.",
+    }),
+  ];
+}
+
+function ciChecks(
+  treeState: RepositoryTreeState | undefined,
+  techSignals: TechSignal[],
+): CheckResult[] {
+  const treeUnknown = isTreeUnknown(treeState);
+  const treeEmpty = treeState?.status === "empty";
+  const ciSignal = findTechSignal(techSignals, "github-actions");
+
+  return [
+    deriveCheck({
+      id: "github-actions",
+      label: "GitHub Actions workflows are configured",
+      category: "ci",
+      treeUnknown,
+      treeEmpty,
+      passed: Boolean(ciSignal),
+      passedEvidence: ciSignal?.evidence.join(", "),
+      failedEvidence: "No GitHub Actions workflows found under .github/workflows.",
+    }),
+  ];
+}
+
+interface DeriveCheckInput {
+  id: string;
+  label: string;
+  category: CheckCategory;
+  treeUnknown: boolean;
+  treeEmpty: boolean;
+  passed: boolean;
+  passedEvidence?: string;
+  failedEvidence: string;
+}
+
+function deriveCheck(input: DeriveCheckInput): CheckResult {
+  if (input.passed) {
+    return {
+      id: input.id,
+      label: input.label,
+      category: input.category,
+      status: "passed",
+      evidence: input.passedEvidence,
+    };
+  }
+  if (input.treeUnknown) {
+    return {
+      id: input.id,
+      label: input.label,
+      category: input.category,
+      status: "unknown",
+      evidence: "Repository file tree was not available.",
+    };
+  }
+  if (input.treeEmpty) {
+    return {
+      id: input.id,
+      label: input.label,
+      category: input.category,
+      status: "not-applicable",
+      evidence: "Repository is empty.",
+    };
+  }
+  return {
+    id: input.id,
+    label: input.label,
+    category: input.category,
+    status: "failed",
+    evidence: input.failedEvidence,
+  };
+}
+
+function isTreeUnknown(treeState: RepositoryTreeState | undefined): boolean {
+  return !treeState || treeState.status === "unknown" || treeState.status === "truncated";
+}
+
+const LOCKFILE_NAMES = new Set([
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "package-lock.json",
+  "bun.lockb",
+  "Cargo.lock",
+  "go.sum",
+  "poetry.lock",
+  "Pipfile.lock",
+]);
+
+function findLockfileEvidence(treeState: RepositoryTreeState | undefined): string | null {
+  if (!treeState || (treeState.status !== "found" && treeState.status !== "truncated")) {
+    return null;
+  }
+  for (const entry of treeState.tree.entries) {
+    if (entry.type !== "blob") continue;
+    const slash = entry.path.lastIndexOf("/");
+    const name = slash === -1 ? entry.path : entry.path.slice(slash + 1);
+    if (LOCKFILE_NAMES.has(name)) {
+      return entry.path;
+    }
+  }
+  return null;
 }
