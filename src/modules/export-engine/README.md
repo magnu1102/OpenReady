@@ -2,6 +2,6 @@
 
 Produces reusable outputs from analysis results: Markdown reports, JSON summaries, homepage project cards and (later) profile README sections.
 
-**Phase:** placeholder. Lands in Phase 7.
+**Phase:** export system implemented in Phase 7.
 
-**Public surface (planned):** `exportMarkdown(result)`, `exportJson(result)`, `exportHomepageCards(result)`.
+**Public surface:** `exportMarkdownReport(input)`, `exportJsonSummary(input)`, `exportHomepageCards(input)`, `suggestedExportFilename(format, username)`.
