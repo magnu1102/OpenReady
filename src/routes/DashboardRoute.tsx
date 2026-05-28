@@ -26,8 +26,6 @@ export function DashboardRoute() {
   const username = useRepositoryStore((s) => s.username);
   const repositories = useRepositoryStore((s) => s.repositories);
   const analyses = useRepositoryStore((s) => s.analyses);
-  const readmes = useRepositoryStore((s) => s.readmes);
-  const readmeStatus = useRepositoryStore((s) => s.readmeStatus);
   const trees = useRepositoryStore((s) => s.trees);
   const status = useRepositoryStore((s) => s.status);
   const error = useRepositoryStore((s) => s.error);
@@ -38,13 +36,19 @@ export function DashboardRoute() {
   const analysisByRepositoryId = new Map(
     analyses.map((analysis) => [analysis.repository.id, analysis]),
   );
-  const strongStarts = analyses.filter(
+  const portfolioReady = analyses.filter(
     (analysis) => analysis.healthLabel === "Portfolio-ready",
   ).length;
-  const needsAttention = analyses.filter((analysis) => analysis.failedCount > 0).length;
-  const readmesChecked = Object.values(readmes).filter(
-    (readme) => readme.status === "found" || readme.status === "missing",
+  const needsWork = analyses.filter(
+    (analysis) => analysis.healthLabel === "Needs work" || analysis.healthLabel === "Experimental",
   ).length;
+  const scoredTotals = analyses
+    .map((analysis) => analysis.score.total)
+    .filter((total): total is number => total !== null);
+  const averageScore =
+    scoredTotals.length === 0
+      ? null
+      : Math.round(scoredTotals.reduce((sum, value) => sum + value, 0) / scoredTotals.length);
   const stats = [
     {
       label: "Repositories",
@@ -53,22 +57,22 @@ export function DashboardRoute() {
       hint: "Public repositories fetched from GitHub.",
     },
     {
-      label: "Strong starts",
-      value: status === "success" ? strongStarts.toString() : "—",
+      label: "Portfolio-ready",
+      value: status === "success" ? portfolioReady.toString() : "—",
       icon: Activity,
-      hint: "Repositories with no missing Phase 3 signals.",
+      hint: "Repositories scoring at least 85 across the eight categories.",
     },
     {
-      label: "Needs attention",
-      value: status === "success" ? needsAttention.toString() : "—",
+      label: "Needs work",
+      value: status === "success" ? needsWork.toString() : "—",
       icon: ShieldQuestion,
-      hint: "Repositories with at least one missing deterministic signal.",
+      hint: "Repositories in the Needs work or Experimental tiers.",
     },
     {
-      label: "READMEs checked",
-      value: readmeStatus === "idle" ? "—" : readmesChecked.toString(),
+      label: "Avg score",
+      value: averageScore === null ? "—" : averageScore.toString(),
       icon: Inbox,
-      hint: "README checks run for the first 30 fetched repositories.",
+      hint: "Mean total score across repositories with at least one resolved category.",
     },
   ];
 
@@ -283,14 +287,15 @@ function RepositoryCard({
       <div className="mt-auto flex flex-col gap-3">
         {analysis ? (
           <div className="rounded-md bg-subtle px-3 py-2 text-xs text-text-secondary">
-            <div className="font-medium text-text-primary">
-              {analysis.passedCount} passed · {analysis.failedCount} missing
-              {analysis.unknownCount ? ` · ${analysis.unknownCount} unknown` : ""}
+            <div className="font-medium tabular-nums text-text-primary">
+              {analysis.score.total === null
+                ? "Score pending"
+                : `Score ${analysis.score.total} · ${analysis.healthLabel}`}
             </div>
             <div className="mt-1">
               {analysis.missingSignals.length > 0
-                ? analysis.missingSignals.join(" · ")
-                : "No critical gaps from Phase 3 checks."}
+                ? analysis.missingSignals[0]
+                : "No critical gaps detected."}
             </div>
           </div>
         ) : null}
