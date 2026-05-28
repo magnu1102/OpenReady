@@ -8,6 +8,7 @@ import type {
   RepositoryReadmeState,
   RepositoryTreeState,
 } from "@/types";
+import { scoreChecks } from "@/modules/scoring-engine";
 import { detectTechSignals, findTechSignal } from "./tech-stack";
 import type { TechSignal } from "./tech-stack";
 
@@ -160,11 +161,14 @@ export function analyzeRepository(
     .filter((signal): signal is string => Boolean(signal))
     .slice(0, 3);
 
+  const score = scoreChecks(checks);
+
   return {
     repository,
     checks,
     analyzedAt: now.toISOString(),
-    healthLabel: chooseHealthLabel(repository, checks),
+    healthLabel: chooseHealthLabel(repository, checks, score.total),
+    score,
     passedCount,
     failedCount: failedChecks.length,
     unknownCount,
@@ -296,20 +300,19 @@ function hasPurpose(content: string): boolean {
   return bodyWithoutTitle.length >= 120;
 }
 
-function chooseHealthLabel(repository: Repository, checks: CheckResult[]): HealthLabel {
+function chooseHealthLabel(
+  repository: Repository,
+  checks: CheckResult[],
+  total: number | null,
+): HealthLabel {
   if (repository.archived) return "Archived";
   if (repository.fork) return "Fork";
-  if (checkStatus(checks, "readme") === "failed") return "Needs README";
   if (checkStatus(checks, "recent-activity") === "failed") return "Stale";
-  if (
-    ["description", "topics", "homepage", "license"].some(
-      (id) => checkStatus(checks, id) === "failed",
-    )
-  ) {
-    return "Needs metadata";
-  }
-  if (checkStatus(checks, "readme-screenshots-demo") === "failed") return "Needs presentation";
-  return "Strong start";
+  if (total === null) return "Analyzing";
+  if (total >= 85) return "Portfolio-ready";
+  if (total >= 70) return "Almost ready";
+  if (total >= 50) return "Needs work";
+  return "Experimental";
 }
 
 function checkStatus(checks: CheckResult[], id: string): CheckStatus | undefined {
