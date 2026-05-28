@@ -92,7 +92,7 @@ export function RepositoryDetailRoute() {
         <EmptyState
           icon={CircleHelp}
           title="Repository details unavailable"
-          description="Repository details live in memory during Phase 3. Fetch a GitHub username again to reopen this view."
+          description="Repository details live in memory. Fetch a GitHub username again to reopen this view."
           action={
             <Button asChild variant="primary" size="md">
               <Link to="/">Analyze a username</Link>
@@ -167,7 +167,7 @@ export function RepositoryDetailRoute() {
             <div className="flex flex-col gap-6">
               <CheckPanel
                 title="Repository signals"
-                description="Metadata, activity and repository status checks from Phase 3."
+                description="Metadata, activity and repository status checks."
                 analysis={analysis}
                 categories={["metadata", "activity", "status"]}
               />
@@ -202,7 +202,7 @@ export function RepositoryDetailRoute() {
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
             <CheckPanel
               title="Presentation checks"
-              description="README screenshot and demo signals from Phase 3."
+              description="README screenshot and demo signals."
               analysis={analysis}
               checkIds={["homepage", "readme-screenshots-demo"]}
             />
