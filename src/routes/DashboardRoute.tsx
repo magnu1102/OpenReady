@@ -1,26 +1,74 @@
 import { Link } from "react-router-dom";
-import { Inbox, GitFork, Activity, ShieldQuestion } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Archive,
+  ExternalLink,
+  GitFork,
+  Github,
+  Inbox,
+  RefreshCw,
+  ShieldQuestion,
+  Star,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-
-const stats = [
-  { label: "Repositories", icon: GitFork, hint: "Total public repos analyzed." },
-  { label: "Average health", icon: Activity, hint: "Mean score across all repos." },
-  { label: "Portfolio-ready", icon: ShieldQuestion, hint: "Repos passing the readiness bar." },
-  { label: "Missing signals", icon: Inbox, hint: "Common gaps across your repos." },
-];
+import { Badge } from "@/components/ui/Badge";
+import { useRepositoryStore } from "@/store/repositoryStore";
+import type { Repository } from "@/types";
 
 export function DashboardRoute() {
+  const username = useRepositoryStore((s) => s.username);
+  const repositories = useRepositoryStore((s) => s.repositories);
+  const status = useRepositoryStore((s) => s.status);
+  const error = useRepositoryStore((s) => s.error);
+  const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
+
+  const isLoading = status === "loading";
+  const hasRepositories = repositories.length > 0;
+  const stats = [
+    {
+      label: "Repositories",
+      value: status === "success" ? repositories.length.toString() : "—",
+      icon: GitFork,
+      hint: "Public repositories fetched from GitHub.",
+    },
+    { label: "Average health", value: "—", icon: Activity, hint: "Scoring arrives in Phase 5." },
+    {
+      label: "Portfolio-ready",
+      value: "—",
+      icon: ShieldQuestion,
+      hint: "Readiness labels arrive after deterministic checks.",
+    },
+    {
+      label: "Missing signals",
+      value: "—",
+      icon: Inbox,
+      hint: "Gap detection arrives in Phase 3.",
+    },
+  ];
+
+  async function retry() {
+    if (!username) return;
+    try {
+      await fetchRepositories(username);
+    } catch {
+      // The repository store keeps the structured error for this screen.
+    }
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Dashboard</h1>
         <p className="text-sm text-text-secondary">
-          Overview of analyzed repositories. Populated once analysis runs.
+          {username
+            ? `Public repositories for ${username}. Deterministic checks arrive next.`
+            : "Enter a GitHub username to fetch public repositories."}
         </p>
       </header>
 
@@ -33,7 +81,7 @@ export function DashboardRoute() {
         }}
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        {stats.map(({ label, icon: Icon, hint }) => (
+        {stats.map(({ label, value, icon: Icon, hint }) => (
           <motion.div
             key={label}
             variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0 } }}
@@ -46,8 +94,12 @@ export function DashboardRoute() {
                   </span>
                   <Icon className="h-4 w-4 text-text-muted" strokeWidth={1.75} />
                 </div>
-                <div className="mt-3 text-3xl font-semibold tabular-nums text-text-primary">—</div>
-                <div className="mt-1 text-xs text-text-muted">Run analysis to populate</div>
+                <div className="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
+                  {value}
+                </div>
+                <div className="mt-1 text-xs text-text-muted">
+                  {label === "Repositories" ? "Fetched public metadata" : "Coming in later phases"}
+                </div>
               </Card>
             </Tooltip>
           </motion.div>
@@ -57,48 +109,176 @@ export function DashboardRoute() {
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold text-text-primary">Repositories</h2>
-          <span className="text-xs text-text-muted">Preview layout</span>
+          <span className="text-xs text-text-muted">
+            {hasRepositories ? `${repositories.length} fetched` : "Public fetch"}
+          </span>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <Card key={i} className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded-md" />
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-2.5 w-16" />
-                </div>
+
+        {isLoading ? <RepositoryLoadingGrid /> : null}
+
+        {status === "error" && error ? (
+          <EmptyState
+            icon={AlertTriangle}
+            title={errorTitle(error.code)}
+            description={error.message}
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild variant="secondary" size="md">
+                  <Link to="/">Change username</Link>
+                </Button>
+                {username ? (
+                  <Button variant="primary" size="md" onClick={retry}>
+                    <RefreshCw className="h-4 w-4" /> Try again
+                  </Button>
+                ) : null}
               </div>
-              <Skeleton className="h-2.5 w-full" />
-              <Skeleton className="h-2.5 w-4/5" />
-              <div className="flex gap-2">
-                <Skeleton className="h-4 w-10 rounded-full" />
-                <Skeleton className="h-4 w-12 rounded-full" />
-                <Skeleton className="h-4 w-8 rounded-full" />
-              </div>
-              {i === 0 && (
-                <Link
-                  to="/dashboard/repo/example"
-                  className="text-xs font-medium text-accent hover:text-accent-hover"
-                >
-                  View placeholder repository →
-                </Link>
-              )}
-            </Card>
-          ))}
-        </div>
+            }
+          />
+        ) : null}
+
+        {status === "success" && repositories.length === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            title="No public repositories found"
+            description="GitHub found that user, but there are no public repositories to show."
+            action={
+              <Button asChild variant="primary" size="md">
+                <Link to="/">Analyze another username</Link>
+              </Button>
+            }
+          />
+        ) : null}
+
+        {hasRepositories ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {repositories.map((repository) => (
+              <RepositoryCard key={repository.id} repository={repository} />
+            ))}
+          </div>
+        ) : null}
       </section>
 
-      <EmptyState
-        icon={Inbox}
-        title="No repositories analyzed yet"
-        description="Once Phase 2 lands, analyzing a GitHub username will populate this dashboard with health scores, breakdowns and recommendations."
-        action={
-          <Button asChild variant="primary" size="md">
-            <Link to="/">Back to Welcome</Link>
-          </Button>
-        }
-      />
+      {status === "idle" ? (
+        <EmptyState
+          icon={Github}
+          title="No username analyzed yet"
+          description="Start with a public GitHub username. OpenReady will fetch repository metadata without storing it."
+          action={
+            <Button asChild variant="primary" size="md">
+              <Link to="/">Back to Welcome</Link>
+            </Button>
+          }
+        />
+      ) : null}
     </div>
   );
+}
+
+function RepositoryLoadingGrid() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading repositories">
+      {[0, 1, 2].map((i) => (
+        <Card key={i} className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-2.5 w-16" />
+            </div>
+          </div>
+          <Skeleton className="h-2.5 w-full" />
+          <Skeleton className="h-2.5 w-4/5" />
+          <div className="flex gap-2">
+            <Skeleton className="h-4 w-10 rounded-full" />
+            <Skeleton className="h-4 w-12 rounded-full" />
+            <Skeleton className="h-4 w-8 rounded-full" />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function RepositoryCard({ repository }: { repository: Repository }) {
+  return (
+    <Card className="flex min-h-[240px] flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Link
+            to={`/dashboard/repo/${encodeURIComponent(repository.id)}`}
+            className="block truncate text-md font-semibold text-text-primary hover:text-accent"
+          >
+            {repository.name}
+          </Link>
+          <p className="mt-1 truncate text-xs text-text-muted">{repository.fullName}</p>
+        </div>
+        <Github className="h-4 w-4 shrink-0 text-text-muted" strokeWidth={1.75} />
+      </div>
+
+      <p className="line-clamp-3 min-h-[60px] text-sm text-text-secondary">
+        {repository.description || "No repository description provided."}
+      </p>
+
+      <div className="flex flex-wrap gap-1.5">
+        {repository.language ? <Badge>{repository.language}</Badge> : null}
+        {repository.fork ? (
+          <Badge tone="warn">
+            <GitFork className="h-3 w-3" /> Fork
+          </Badge>
+        ) : null}
+        {repository.archived ? (
+          <Badge tone="danger">
+            <Archive className="h-3 w-3" /> Archived
+          </Badge>
+        ) : null}
+      </div>
+
+      <div className="mt-auto flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-text-muted">
+          <span className="inline-flex items-center gap-1">
+            <Star className="h-3.5 w-3.5" /> {repository.stars}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <GitFork className="h-3.5 w-3.5" /> {repository.forks}
+          </span>
+          <span>Updated {formatDate(repository.updatedAt)}</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <a href={repository.url} target="_blank" rel="noreferrer">
+              <Github className="h-3.5 w-3.5" /> GitHub
+            </a>
+          </Button>
+          {repository.homepageUrl ? (
+            <Button asChild variant="ghost" size="sm">
+              <a href={repository.homepageUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-3.5 w-3.5" /> Homepage
+              </a>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function errorTitle(code: string) {
+  switch (code) {
+    case "not-found":
+      return "GitHub user not found";
+    case "rate-limit":
+      return "GitHub rate limit reached";
+    case "network":
+      return "Network connection failed";
+    default:
+      return "Repository fetch failed";
+  }
 }

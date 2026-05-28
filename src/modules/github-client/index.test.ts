@@ -1,0 +1,128 @@
+import { describe, it, expect, vi, afterEach } from "vitest";
+import type { GitHubClientError } from "./index";
+import { fetchUserRepositories, isValidGitHubUsername } from "./index";
+
+const fetchMock = vi.fn<typeof fetch>();
+
+vi.stubGlobal("fetch", fetchMock);
+
+afterEach(() => {
+  fetchMock.mockReset();
+});
+
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "content-type": "application/json", ...(init.headers ?? {}) },
+    ...init,
+  });
+}
+
+describe("github-client", () => {
+  it("validates basic GitHub usernames", () => {
+    expect(isValidGitHubUsername("octocat")).toBe(true);
+    expect(isValidGitHubUsername("open-ai")).toBe(true);
+    expect(isValidGitHubUsername("two words")).toBe(false);
+    expect(isValidGitHubUsername("https://github.com/octocat")).toBe(false);
+    expect(isValidGitHubUsername("-leading")).toBe(false);
+  });
+
+  it("fetches the first 100 user repositories sorted by recently pushed", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse([
+        {
+          id: 1,
+          name: "hello-world",
+          full_name: "octocat/hello-world",
+          description: "My first repo",
+          html_url: "https://github.com/octocat/hello-world",
+          homepage: "https://example.com",
+          language: "TypeScript",
+          stargazers_count: 42,
+          forks_count: 7,
+          archived: false,
+          fork: true,
+          updated_at: "2026-05-28T10:00:00Z",
+          pushed_at: "2026-05-28T09:00:00Z",
+        },
+      ]),
+    );
+
+    const repos = await fetchUserRepositories(" octocat ");
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      "https://api.github.com/users/octocat/repos?sort=pushed&direction=desc&per_page=100",
+    );
+    expect(init).toMatchObject({
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    expect(repos).toEqual([
+      {
+        id: "1",
+        name: "hello-world",
+        fullName: "octocat/hello-world",
+        description: "My first repo",
+        url: "https://github.com/octocat/hello-world",
+        homepageUrl: "https://example.com",
+        language: "TypeScript",
+        stars: 42,
+        forks: 7,
+        archived: false,
+        fork: true,
+        updatedAt: "2026-05-28T10:00:00Z",
+        pushedAt: "2026-05-28T09:00:00Z",
+      },
+    ]);
+  });
+
+  it("throws not-found for missing users", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "Not Found" }, { status: 404 }));
+
+    await expect(fetchUserRepositories("missing-user")).rejects.toMatchObject({
+      code: "not-found",
+      status: 404,
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("throws rate-limit when GitHub reports no remaining requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { message: "API rate limit exceeded" },
+        { status: 403, headers: { "x-ratelimit-remaining": "0" } },
+      ),
+    );
+
+    await expect(fetchUserRepositories("octocat")).rejects.toMatchObject({
+      code: "rate-limit",
+      status: 403,
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("throws network when fetch rejects", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    await expect(fetchUserRepositories("octocat")).rejects.toMatchObject({
+      code: "network",
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("throws invalid-response for non-array successful responses", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "ok" }));
+
+    await expect(fetchUserRepositories("octocat")).rejects.toMatchObject({
+      code: "invalid-response",
+    } satisfies Partial<GitHubClientError>);
+  });
+
+  it("rejects invalid usernames before calling GitHub", async () => {
+    await expect(fetchUserRepositories("octocat/repo")).rejects.toMatchObject({
+      code: "invalid-username",
+    } satisfies Partial<GitHubClientError>);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

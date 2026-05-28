@@ -12,7 +12,7 @@ export function SettingsRoute() {
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Settings</h1>
         <p className="text-sm text-text-secondary">
-          Configure how RepoPulse looks and behaves. Most settings unlock as later phases land.
+          Configure how OpenReady looks and behaves. Most settings unlock as later phases land.
         </p>
       </header>
 
@@ -34,12 +34,7 @@ export function SettingsRoute() {
           label="Personal access token"
           hint="Optional token raises GitHub API rate limits. Never required, never sent anywhere else."
         >
-          <Input
-            type="password"
-            placeholder="ghp_… (stored locally only)"
-            disabled
-            aria-disabled
-          />
+          <Input type="password" placeholder="ghp_… (stored locally only)" disabled aria-disabled />
         </Row>
       </Section>
 
@@ -71,7 +66,7 @@ export function SettingsRoute() {
       >
         <Row
           label="AI-assisted suggestions"
-          hint="RepoPulse is deterministic by design. Optional AI suggestions will be opt-in, bring-your-own-key, and never replace the core checks."
+          hint="OpenReady is deterministic by design. Optional AI suggestions will be opt-in, bring-your-own-key, and never replace the core checks."
         >
           <Button variant="secondary" size="sm" disabled aria-disabled>
             Configure provider

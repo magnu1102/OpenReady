@@ -2,12 +2,15 @@
 
 Stub — expanded as features land.
 
-Today (Phase 1):
+Today (Phase 2):
 
 - The app stores only the theme preference in `localStorage`.
-- No network calls are made.
+- The user-entered GitHub username is sent to `api.github.com`.
+- GitHub returns public repository metadata for that user.
+- Fetched repository metadata is kept in memory only and is cleared when the app restarts.
+- No GitHub token is requested or stored.
 
-Phase 2 and beyond:
+Phase 3 and beyond:
 
 - Public GitHub REST API calls only.
 - Optional GitHub token is stored locally and never sent anywhere except `api.github.com`.
