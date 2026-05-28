@@ -415,7 +415,7 @@ function TechStackPanel({
     return (
       <Card className="flex flex-col gap-2">
         <h2 className="text-md font-semibold text-text-primary">Detected stack</h2>
-        <p className="text-sm text-text-secondary">Repository is empty — nothing to detect.</p>
+        <p className="text-sm text-text-secondary">Repository is empty - nothing to detect.</p>
       </Card>
     );
   }
