@@ -7,6 +7,7 @@ import {
   fetchUserRepositories,
   GitHubClientError,
 } from "@/modules/github-client";
+import { saveExportFile } from "@/lib/exportFiles";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import type { Repository } from "@/types";
 
@@ -19,8 +20,13 @@ vi.mock("@/modules/github-client", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/exportFiles", () => ({
+  saveExportFile: vi.fn(),
+}));
+
 const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
 const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadme);
+const saveExportFileMock = vi.mocked(saveExportFile);
 
 const repository: Repository = {
   id: "1",
@@ -52,6 +58,8 @@ beforeEach(() => {
   fetchUserRepositoriesMock.mockReset();
   fetchRepositoryReadmeMock.mockReset();
   fetchRepositoryReadmeMock.mockResolvedValue(null);
+  saveExportFileMock.mockReset();
+  saveExportFileMock.mockResolvedValue({ status: "saved", path: "C:/Users/octocat/report.md" });
 });
 
 describe("App", () => {
@@ -80,6 +88,28 @@ describe("App", () => {
     expect(screen.getByText("octocat/openready")).toBeInTheDocument();
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
     expect(screen.getAllByText("Fork").length).toBeGreaterThan(0);
+  });
+
+  it("renders dashboard export actions and saves a Markdown report", async () => {
+    const user = userEvent.setup();
+    fetchUserRepositoriesMock.mockResolvedValueOnce([{ ...repository, fork: false }]);
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.click(screen.getByRole("button", { name: /analyze/i }));
+
+    expect(await screen.findByRole("heading", { name: /exports/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^markdown$/i }));
+
+    expect(saveExportFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        format: "markdown",
+        defaultPath: "octocat-openready-report.md",
+        content: expect.stringContaining("# OpenReady report for octocat"),
+      }),
+    );
+    expect(await screen.findByText("Export saved.")).toBeInTheDocument();
   });
 
   it("shows an empty dashboard state when GitHub returns no public repositories", async () => {
