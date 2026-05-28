@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
@@ -16,6 +16,7 @@ import {
   Star,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -44,6 +45,7 @@ export function DashboardRoute() {
   const activeCache = useRepositoryStore((s) => s.activeCache);
   const error = useRepositoryStore((s) => s.error);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
+  const reducedMotion = useReducedMotion();
   const [exportState, setExportState] = useState<{
     status: "idle" | "saving" | "saved" | "error";
     message: string;
@@ -156,7 +158,7 @@ export function DashboardRoute() {
       </header>
 
       <motion.div
-        initial="hidden"
+        initial={reducedMotion ? "show" : "hidden"}
         animate="show"
         variants={{
           hidden: {},
@@ -167,7 +169,10 @@ export function DashboardRoute() {
         {stats.map(({ label, value, icon: Icon, hint }) => (
           <motion.div
             key={label}
-            variants={{ hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0 } }}
+            variants={{
+              hidden: reducedMotion ? {} : { opacity: 0, y: 6 },
+              show: { opacity: 1, y: 0 },
+            }}
           >
             <Tooltip content={hint}>
               <Card className="cursor-help">
@@ -233,16 +238,17 @@ export function DashboardRoute() {
         ) : null}
 
         {hasRepositories ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {repositories.map((repository) => (
+          <RepositoryGrid>
+            {repositories.map((repository, index) => (
               <RepositoryCard
                 key={repository.id}
                 repository={repository}
                 analysis={analysisByRepositoryId.get(repository.id)}
                 treeState={trees[repository.id]}
+                tourAnchor={index === 0 ? "dashboard-first-card" : undefined}
               />
             ))}
-          </div>
+          </RepositoryGrid>
         ) : null}
       </section>
 
@@ -300,7 +306,10 @@ function ExportPanel({
   onExport: (format: ExportFormat) => void;
 }) {
   return (
-    <section className="flex flex-col gap-3 border-t border-border-subtle pt-6">
+    <section
+      className="flex flex-col gap-3 border-t border-border-subtle pt-6"
+      data-tour-anchor="export-panel"
+    >
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold text-text-primary">Exports</h2>
         <p className="text-sm text-text-secondary">
@@ -350,6 +359,67 @@ function ExportPanel({
   );
 }
 
+function RepositoryGrid({ children }: { children: ReactNode }) {
+  const gridRef = useRef<HTMLDivElement | null>(null);
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const links = Array.from(
+      grid.querySelectorAll<HTMLAnchorElement>("a[data-repo-card-link='true']"),
+    );
+    if (links.length === 0) return;
+    const active = document.activeElement;
+    const currentIndex = links.findIndex((link) => link === active);
+    if (currentIndex < 0) return;
+
+    const cols = window.matchMedia("(min-width: 1024px)").matches
+      ? 3
+      : window.matchMedia("(min-width: 640px)").matches
+        ? 2
+        : 1;
+
+    let nextIndex: number;
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = Math.min(links.length - 1, currentIndex + 1);
+        break;
+      case "ArrowLeft":
+        nextIndex = Math.max(0, currentIndex - 1);
+        break;
+      case "ArrowDown":
+        nextIndex = Math.min(links.length - 1, currentIndex + cols);
+        break;
+      case "ArrowUp":
+        nextIndex = Math.max(0, currentIndex - cols);
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = links.length - 1;
+        break;
+      default:
+        return;
+    }
+    if (nextIndex === currentIndex) return;
+    event.preventDefault();
+    links[nextIndex]?.focus();
+  }
+
+  return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- list owns arrow-key nav for the focused link inside each card
+    <div
+      ref={gridRef}
+      role="list"
+      onKeyDown={onKeyDown}
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      {children}
+    </div>
+  );
+}
+
 function RepositoryLoadingGrid() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading repositories">
@@ -379,18 +449,25 @@ function RepositoryCard({
   repository,
   analysis,
   treeState,
+  tourAnchor,
 }: {
   repository: Repository;
   analysis?: AnalysisResult;
   treeState?: RepositoryTreeState;
+  tourAnchor?: string;
 }) {
   const techSignals = collectTechSignals(treeState).slice(0, 3);
   return (
-    <Card className="flex min-h-[240px] flex-col gap-4">
+    <Card
+      role="listitem"
+      className="flex min-h-[240px] flex-col gap-4"
+      data-tour-anchor={tourAnchor}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
             to={`/dashboard/repo/${encodeURIComponent(repository.id)}`}
+            data-repo-card-link="true"
             className="block truncate text-md font-semibold text-text-primary hover:text-accent"
           >
             {repository.name}

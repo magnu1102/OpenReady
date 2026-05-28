@@ -1,6 +1,7 @@
 import { useLocation, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const labels: Record<string, string> = {
   "": "Welcome",
@@ -28,10 +29,7 @@ export function TopBar() {
               {last ? (
                 <span className="font-medium text-text-primary">{c.label}</span>
               ) : (
-                <Link
-                  to={c.href}
-                  className={cn("text-text-secondary hover:text-text-primary")}
-                >
+                <Link to={c.href} className={cn("text-text-secondary hover:text-text-primary")}>
                   {c.label}
                 </Link>
               )}
@@ -39,7 +37,9 @@ export function TopBar() {
           );
         })}
       </nav>
-      <div className="flex items-center gap-2" id="topbar-actions" />
+      <div className="flex items-center gap-2" id="topbar-actions">
+        <ThemeToggle />
+      </div>
     </header>
   );
 }
