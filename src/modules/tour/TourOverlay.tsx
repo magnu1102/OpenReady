@@ -5,6 +5,7 @@ import { useTourStore, TOUR_STEP_COUNT } from "./tourStore";
 import { tourSteps } from "./tourSteps";
 import type { TourPlacement } from "./types";
 import { Button } from "@/components/ui/Button";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 const POPOVER_WIDTH = 320;
 const GAP = 12;
@@ -25,6 +26,7 @@ export function TourOverlay() {
   const navigate = useNavigate();
   const location = useLocation();
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(popoverRef, activeStep !== null);
 
   const step = activeStep === null ? null : (tourSteps[activeStep] ?? null);
 

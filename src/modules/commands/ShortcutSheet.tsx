@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Kbd } from "@/components/ui/Kbd";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import type { Command } from "./types";
 import { COMMAND_GROUP_LABELS } from "./types";
 import { formatShortcut } from "./shortcuts";
@@ -14,6 +15,7 @@ export interface ShortcutSheetProps {
 export function ShortcutSheet({ open, commands, onClose }: ShortcutSheetProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  useFocusTrap(dialogRef, open);
 
   useEffect(() => {
     if (!open) {

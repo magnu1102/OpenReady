@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 import { Kbd } from "@/components/ui/Kbd";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 import type { Command } from "./types";
 import { COMMAND_GROUP_LABELS } from "./types";
 import { filterCommands } from "./useCommands";
@@ -23,7 +24,9 @@ function PaletteContents({ commands, onClose }: { commands: Command[]; onClose: 
   const [rawActiveIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  useFocusTrap(dialogRef, true);
 
   const filtered = useMemo(() => filterCommands(commands, query), [commands, query]);
   // Derive the bounded index so we never need an effect to clamp state.
@@ -83,6 +86,7 @@ function PaletteContents({ commands, onClose }: { commands: Command[]; onClose: 
   return createPortal(
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- modal dialog needs keyboard + outside-click handlers
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[90] flex items-start justify-center bg-black/40 p-[10vh]"
       role="dialog"
       aria-modal="true"
