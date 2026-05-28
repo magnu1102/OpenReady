@@ -34,16 +34,19 @@ applicable = count(passed) + count(failed)
 score      = applicable === 0 ? null : round(passed / applicable * 100)
 ```
 
-Total:
+Total (Phase 9 onward — weighted mean):
 
 ```
 applicableCategories = categories.filter(c => c.score !== null)
-total = applicableCategories.length === 0
+weightSum = sum(applicableCategories.map(c => c.weight))
+total = applicableCategories.length === 0 || weightSum === 0
       ? null
-      : round(mean(applicableCategories.map(c => c.score)))
+      : round(sum(applicableCategories.map(c => c.score * c.weight)) / weightSum)
 ```
 
-Equal weighting across categories in v1. The `RepositoryScore` returned by `scoreChecks` also exposes `weakestCategory` and `strongestCategory`, used by the detail view's breakdown panel.
+Each `CategoryScore` carries a `weight` (default `1`). The default profile keeps Phase 5's equal-weighted behaviour, but the project classifier (Phase 9) supplies per-type weights via a `ClassificationProfile` so a frontend repo emphasises presentation while a CLI emphasises documentation and testing. See [`classification.md`](classification.md) for the full per-type tables.
+
+The `RepositoryScore` returned by `scoreChecks` also exposes `weakestCategory` and `strongestCategory`, used by the detail view's breakdown panel — these stay derived from raw category scores, independent of weight.
 
 ## Tier labels
 
@@ -66,10 +69,8 @@ A transient **Analyzing** label appears when every category's score is `null` �
 
 ## What is intentionally deferred
 
-- **Custom weights.** Equal weighting now. Users will be able to define their own weights in a later phase (master plan §9.5).
-- **Type-specific adjustments.** A frontend repo failing the `dockerfile` check still counts as a failure today. Project classification (Phase 9) is the right place to apply type-aware rules.
+- **User-defined weights.** Type weights ship as part of Phase 9, but per-user custom weighting (master plan §9.5) is still future work.
 - **Hidden gem detection** (master plan §9.3) — owned by Phase 13.
-- **Recommendations and prioritised next steps** — Phase 6.
 - **Score history and trends** — Phase 13+.
 
 ## Implementation pointer
