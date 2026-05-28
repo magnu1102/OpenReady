@@ -39,15 +39,32 @@ export type RepositoryReadmeState =
 
 export type CheckStatus = "passed" | "failed" | "not-applicable" | "unknown";
 
+export type CheckCategory = "metadata" | "activity" | "status" | "documentation";
+
 export interface CheckResult {
   id: string;
   label: string;
+  category: CheckCategory;
   status: CheckStatus;
   evidence?: string;
 }
 
+export type HealthLabel =
+  | "Strong start"
+  | "Needs README"
+  | "Needs metadata"
+  | "Needs presentation"
+  | "Stale"
+  | "Archived"
+  | "Fork";
+
 export interface AnalysisResult {
   repository: Repository;
   checks: CheckResult[];
-  scoredAt: string;
+  analyzedAt: string;
+  healthLabel: HealthLabel;
+  passedCount: number;
+  failedCount: number;
+  unknownCount: number;
+  missingSignals: string[];
 }
