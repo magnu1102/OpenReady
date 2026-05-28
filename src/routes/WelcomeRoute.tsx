@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Clock3, Database, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
@@ -32,6 +32,7 @@ export function WelcomeRoute() {
   const [username, setUsername] = useState("");
   const [validationError, setValidationError] = useState("");
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const status = useRepositoryStore((s) => s.status);
   const cachedAnalyses = useRepositoryStore((s) => s.cachedAnalyses);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
@@ -43,6 +44,22 @@ export function WelcomeRoute() {
   useEffect(() => {
     void loadCachedAnalyses();
   }, [loadCachedAnalyses]);
+
+  // Press "/" anywhere on the welcome screen to jump to the username input,
+  // matching the GitHub keyboard convention.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "/") return;
+      const active = document.activeElement;
+      const tag = active?.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea" || (active as HTMLElement)?.isContentEditable)
+        return;
+      event.preventDefault();
+      inputRef.current?.focus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -115,6 +132,7 @@ export function WelcomeRoute() {
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               <Input
+                ref={inputRef}
                 id="username"
                 value={username}
                 onChange={(e) => {
