@@ -64,7 +64,7 @@ export function WelcomeRoute() {
         className="flex flex-col gap-4"
       >
         <Badge tone="accent" className="self-start">
-          <Sparkles className="h-3 w-3" /> Phase 5 — transparent scoring
+          <Sparkles className="h-3 w-3" /> Phase 6 - repository detail view
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
           Understand and improve your GitHub repositories.
@@ -72,7 +72,7 @@ export function WelcomeRoute() {
         <p className="max-w-2xl text-md text-text-secondary">
           OpenReady analyzes public GitHub repositories and turns metadata, README, build and
           presentation signals into clear, actionable feedback with transparent numeric scores per
-          category.
+          category and per-repository recommendations.
         </p>
       </motion.section>
 
@@ -115,8 +115,8 @@ export function WelcomeRoute() {
             </p>
           ) : null}
           <p className="text-xs text-text-muted">
-            Optional GitHub token support is planned later. This phase uses unauthenticated public
-            GitHub API access.
+            This phase uses unauthenticated public GitHub API access. Optional token support is
+            planned for the local cache and settings phase.
           </p>
         </form>
       </Card>

@@ -2,9 +2,9 @@
 
 Deterministic repository analysis. Consumes raw GitHub data and produces structured findings: documentation, buildability, presentation, testing and metadata signals.
 
-**Phase:** basic deterministic checks implemented in Phase 3.
+**Phase:** deterministic checks, scoring inputs and recommendations surfaced through the Phase 6 repository detail view.
 
-**Public surface:** `analyzeRepository(repository, readmeState, now) -> AnalysisResult`, `analyzeRepositories(repositories, readmes, now) -> AnalysisResult[]`.
+**Public surface:** `analyzeRepository(repository, readmeState, treeState, now) -> AnalysisResult`, `analyzeRepositories(repositories, readmes, trees, now) -> AnalysisResult[]`.
 
 Current checks:
 
@@ -17,15 +17,19 @@ Current checks:
 - fork status
 - README presence
 - README sections for purpose, setup, usage, screenshots/demo, tech stack, testing and roadmap
+- build manifests and dependency lockfiles
+- CI workflows, test files, Docker files and infrastructure-as-code signals
+- docs folders, SECURITY.md and example environment files
 
 Current labels:
 
-- Strong start
-- Needs README
-- Needs metadata
-- Needs presentation
+- Portfolio-ready
+- Almost ready
+- Needs work
+- Experimental
 - Stale
 - Archived
 - Fork
+- Analyzing
 
 Designed to be lifted into `packages/analyzer-core` later.

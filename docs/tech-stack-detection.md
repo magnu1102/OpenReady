@@ -68,4 +68,3 @@ GitHub's unauthenticated quota is 60 requests per hour per IP. A first analysis 
 - It does not read manifest _contents_ — dependency lists, framework names and project names are not extracted. This is a Phase 5+ enhancement.
 - It does not classify the repository as frontend, backend, full-stack, etc. Project classification is Phase 9.
 - It does not weight signals into a score. Scoring is Phase 5.
-- It does not turn detected gaps into prioritised recommendations. Phase 6 owns that.
