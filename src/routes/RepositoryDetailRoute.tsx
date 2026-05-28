@@ -11,6 +11,7 @@ import {
   Lightbulb,
   LayoutDashboard,
   MinusCircle,
+  ShieldCheck,
   XCircle,
   Star,
   GitFork,
@@ -23,6 +24,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/Button";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import type { TreeFetchStatus } from "@/store/repositoryStore";
 import { collectTechSignals } from "@/modules/analyzer-core";
 import type { TechSignal } from "@/modules/analyzer-core";
 import type {
@@ -48,7 +50,7 @@ const tabs = [
     label: "Documentation",
     icon: FileText,
     title: "Documentation checks",
-    body: "README presence and section checks. Contributing, changelog and docs folder detection arrive later.",
+    body: "README presence, section coverage and dedicated docs-folder detection.",
   },
   {
     value: "build",
@@ -56,6 +58,13 @@ const tabs = [
     icon: Hammer,
     title: "Build and tests",
     body: "Package manifests, lockfiles, Docker, CI workflows, test directories and infrastructure-as-code signals from the repository file tree.",
+  },
+  {
+    value: "security",
+    label: "Security",
+    icon: ShieldCheck,
+    title: "Security hygiene",
+    body: "SECURITY.md and example environment-file checks from the repository file tree.",
   },
   {
     value: "presentation",
@@ -69,7 +78,7 @@ const tabs = [
     label: "Recommendations",
     icon: Lightbulb,
     title: "Suggested improvements",
-    body: "Prioritized next steps. Phrased as a coach, not a linter — appearing alongside scoring in Phase 5–6.",
+    body: "Prioritized next steps generated from failed deterministic checks.",
   },
 ];
 
@@ -78,6 +87,7 @@ export function RepositoryDetailRoute() {
   const repositories = useRepositoryStore((s) => s.repositories);
   const analyses = useRepositoryStore((s) => s.analyses);
   const trees = useRepositoryStore((s) => s.trees);
+  const treeStatus = useRepositoryStore((s) => s.treeStatus);
   const repository = repositories.find((candidate) => candidate.id === id);
   const analysis = analyses.find((candidate) => candidate.repository.id === id);
   const treeState = trees[id];
@@ -173,7 +183,7 @@ export function RepositoryDetailRoute() {
                 analysis={analysis}
                 categories={["metadata", "activity", "status"]}
               />
-              <TechStackPanel signals={techSignals} treeState={treeState} />
+              <TechStackPanel signals={techSignals} treeState={treeState} treeStatus={treeStatus} />
             </div>
             <AnalysisSummary analysis={analysis} />
           </div>
@@ -196,6 +206,17 @@ export function RepositoryDetailRoute() {
               description="Detected from the recursive repository file tree. Package manifests, lockfiles, Docker, GitHub Actions, tests, docs and infrastructure-as-code."
               analysis={analysis}
               categories={["buildability", "ci", "tests", "containerization", "infrastructure"]}
+            />
+            <AnalysisSummary analysis={analysis} />
+          </div>
+        </TabsContent>
+        <TabsContent value="security">
+          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+            <CheckPanel
+              title="Security hygiene"
+              description="Lightweight public-repository hygiene checks detected from committed files."
+              analysis={analysis}
+              categories={["security"]}
             />
             <AnalysisSummary analysis={analysis} />
           </div>
@@ -304,6 +325,16 @@ function CheckPanel({
     return true;
   });
 
+  if (checks.length === 0) {
+    return (
+      <PlaceholderPanel
+        icon={CircleHelp}
+        title="No checks in this section"
+        description="This repository does not have any applicable checks for the selected section."
+      />
+    );
+  }
+
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -330,16 +361,18 @@ function CheckPanel({
 function TechStackPanel({
   signals,
   treeState,
+  treeStatus,
 }: {
   signals: TechSignal[];
   treeState: RepositoryTreeState | undefined;
+  treeStatus: TreeFetchStatus;
 }) {
   const description =
     treeState?.status === "truncated"
       ? "Detected from a partial file tree — GitHub truncated the response for this large repository."
       : "Detected from filenames in the recursive Git tree.";
 
-  if (!treeState) {
+  if (!treeState && treeStatus === "loading") {
     return (
       <Card className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -357,6 +390,18 @@ function TechStackPanel({
     );
   }
 
+  if (!treeState) {
+    return (
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-md font-semibold text-text-primary">Detected stack</h2>
+        <p className="text-sm text-text-secondary">
+          File-tree detection is unavailable for this repository. OpenReady currently checks the
+          first 30 fetched repositories to stay within GitHub's unauthenticated rate limit.
+        </p>
+      </Card>
+    );
+  }
+
   if (treeState.status === "unknown") {
     return (
       <Card className="flex flex-col gap-2">
@@ -370,7 +415,7 @@ function TechStackPanel({
     return (
       <Card className="flex flex-col gap-2">
         <h2 className="text-md font-semibold text-text-primary">Detected stack</h2>
-        <p className="text-sm text-text-secondary">Repository is empty — nothing to detect.</p>
+        <p className="text-sm text-text-secondary">Repository is empty - nothing to detect.</p>
       </Card>
     );
   }
