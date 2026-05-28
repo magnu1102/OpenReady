@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 8 - local cache and settings. Enter a GitHub username to fetch public repositories, run deterministic metadata, README and file-tree checks, restore recent local analyses, refresh intentionally, and export transparent reports, JSON summaries and homepage project cards.
+> **Status:** Phase 11 — CLI version. The desktop app classifies repositories by project type, applies type-weighted scoring, ships a guided onboarding tour and command palette (⌘K / ⌘/), and now exposes the same deterministic analyzer through a Node CLI (`openready analyze <username>` with table, JSON or Markdown output).
 
 ## Screenshots
 
