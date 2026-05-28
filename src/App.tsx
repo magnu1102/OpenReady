@@ -6,7 +6,7 @@ import { RepositoryDetailRoute } from "@/routes/RepositoryDetailRoute";
 import { SettingsRoute } from "@/routes/SettingsRoute";
 import { NotFoundRoute } from "@/routes/NotFoundRoute";
 
-export function createAppRouter(initialEntries = ["/"]) {
+function createAppRouter(initialEntries = ["/"]) {
   return createMemoryRouter(
     [
       {

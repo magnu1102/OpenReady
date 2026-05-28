@@ -7,9 +7,9 @@ import { useRepositoryStore } from "@/store/repositoryStore";
 import type { Repository } from "@/types";
 
 vi.mock("@/modules/github-client", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/modules/github-client")>();
+  const actual = await importOriginal();
   return {
-    ...actual,
+    ...(actual as object),
     fetchUserRepositories: vi.fn(),
   };
 });
