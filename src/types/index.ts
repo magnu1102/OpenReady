@@ -1,3 +1,5 @@
+import type { RepositoryScore } from "@/modules/scoring-engine";
+
 export interface RepositoryLicense {
   key: string;
   name: string;
@@ -77,21 +79,25 @@ export interface CheckResult {
 }
 
 export type HealthLabel =
-  | "Strong start"
-  | "Needs README"
-  | "Needs metadata"
-  | "Needs presentation"
+  | "Portfolio-ready"
+  | "Almost ready"
+  | "Needs work"
+  | "Experimental"
   | "Stale"
   | "Archived"
-  | "Fork";
+  | "Fork"
+  | "Analyzing";
 
 export interface AnalysisResult {
   repository: Repository;
   checks: CheckResult[];
   analyzedAt: string;
   healthLabel: HealthLabel;
+  score: RepositoryScore;
   passedCount: number;
   failedCount: number;
   unknownCount: number;
   missingSignals: string[];
 }
+
+export type { CategoryScore, RepositoryScore, ScoreCategory } from "@/modules/scoring-engine";

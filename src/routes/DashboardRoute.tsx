@@ -39,7 +39,7 @@ export function DashboardRoute() {
     analyses.map((analysis) => [analysis.repository.id, analysis]),
   );
   const strongStarts = analyses.filter(
-    (analysis) => analysis.healthLabel === "Strong start",
+    (analysis) => analysis.healthLabel === "Portfolio-ready",
   ).length;
   const needsAttention = analyses.filter((analysis) => analysis.failedCount > 0).length;
   const readmesChecked = Object.values(readmes).filter(
@@ -324,16 +324,18 @@ function RepositoryCard({
 
 function healthLabelTone(label: HealthLabel) {
   switch (label) {
-    case "Strong start":
+    case "Portfolio-ready":
       return "success";
-    case "Needs README":
-    case "Needs metadata":
-    case "Needs presentation":
+    case "Almost ready":
+      return "neutral";
+    case "Needs work":
     case "Stale":
       return "warn";
+    case "Experimental":
     case "Archived":
       return "danger";
     case "Fork":
+    case "Analyzing":
       return "neutral";
   }
 }

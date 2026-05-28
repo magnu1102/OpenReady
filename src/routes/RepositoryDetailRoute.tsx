@@ -412,16 +412,18 @@ function StatusIcon({ status }: { status: CheckStatus }) {
 
 function healthLabelTone(label: HealthLabel) {
   switch (label) {
-    case "Strong start":
+    case "Portfolio-ready":
       return "success";
-    case "Needs README":
-    case "Needs metadata":
-    case "Needs presentation":
+    case "Almost ready":
+      return "neutral";
+    case "Needs work":
     case "Stale":
       return "warn";
+    case "Experimental":
     case "Archived":
       return "danger";
     case "Fork":
+    case "Analyzing":
       return "neutral";
   }
 }
