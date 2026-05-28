@@ -25,6 +25,18 @@ export interface Repository {
   pushedAt: string | null;
 }
 
+export interface RepositoryReadme {
+  repositoryFullName: string;
+  path: string;
+  htmlUrl: string;
+  content: string;
+}
+
+export type RepositoryReadmeState =
+  | { status: "found"; readme: RepositoryReadme }
+  | { status: "missing" }
+  | { status: "unknown"; message: string };
+
 export type CheckStatus = "passed" | "failed" | "not-applicable" | "unknown";
 
 export interface CheckResult {
