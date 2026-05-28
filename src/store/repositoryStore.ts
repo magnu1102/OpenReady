@@ -54,6 +54,6 @@ function toRepositoryFetchError(error: unknown): RepositoryFetchError {
 
   return {
     code: "api-error",
-    message: "RepoPulse could not fetch repositories. Try again later.",
+    message: "OpenReady could not fetch repositories. Try again later.",
   };
 }

@@ -18,11 +18,11 @@ const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
 
 const repository: Repository = {
   id: "1",
-  name: "repopulse",
-  fullName: "octocat/repopulse",
+  name: "openready",
+  fullName: "octocat/openready",
   description: "Repository health desktop app",
-  url: "https://github.com/octocat/repopulse",
-  homepageUrl: "https://repopulse.dev",
+  url: "https://github.com/octocat/openready",
+  homepageUrl: "https://example.com/openready",
   language: "TypeScript",
   stars: 12,
   forks: 3,
@@ -59,8 +59,8 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     expect(await screen.findByRole("heading", { name: /dashboard/i })).toBeInTheDocument();
-    expect(await screen.findByRole("link", { name: "repopulse" })).toBeInTheDocument();
-    expect(screen.getByText("octocat/repopulse")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "openready" })).toBeInTheDocument();
+    expect(screen.getByText("octocat/openready")).toBeInTheDocument();
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
     expect(screen.getByText("Fork")).toBeInTheDocument();
   });

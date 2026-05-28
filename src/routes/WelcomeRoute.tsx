@@ -70,7 +70,7 @@ export function WelcomeRoute() {
           Understand and improve your GitHub repositories.
         </h1>
         <p className="max-w-2xl text-md text-text-secondary">
-          RepoPulse analyzes public GitHub repositories and turns documentation, setup, licensing
+          OpenReady analyzes public GitHub repositories and turns documentation, setup, licensing
           and presentation signals into clear, actionable feedback. This phase fetches public
           repositories first; deterministic checks land next.
         </p>
@@ -83,7 +83,7 @@ export function WelcomeRoute() {
               GitHub username
             </label>
             <p className="text-xs text-text-secondary">
-              Enter a public GitHub user account. RepoPulse fetches public repository metadata only.
+              Enter a public GitHub user account. OpenReady fetches public repository metadata only.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

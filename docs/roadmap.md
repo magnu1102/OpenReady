@@ -1,6 +1,6 @@
 # Roadmap
 
-A condensed phase outline. The master plan (`repopulse_master_plan.md` §13) is the source of truth.
+A condensed phase outline. The master plan (`openready_master_plan.md` §13) is the source of truth.
 
 - **Phase 0 — Foundation.** Master plan, principles, contribution policy. ✅
 - **Phase 1 — Desktop app skeleton.** Tauri + React + TS shell, navigation, four placeholder screens, design system, docs skeleton. ✅
@@ -13,7 +13,7 @@ A condensed phase outline. The master plan (`repopulse_master_plan.md` §13) is 
 - **Phase 8 — Local cache and settings.** Refresh, optional token storage, theme, preferences.
 - **Phase 9 — Project classification.** Type-specific expectations and overrides.
 - **Phase 10 — UI polish and onboarding.** Dark mode polish, animations, keyboard navigation, accessibility pass.
-- **Phase 11 — CLI version.** `repopulse analyze <username>` and reusable analyzer-core extraction.
+- **Phase 11 — CLI version.** `openready analyze <username>` and reusable analyzer-core extraction.
 - **Phase 12 — Release packaging.** Windows installer, GitHub Releases, versioning, changelog.
 - **Phase 13 — Advanced recommendations.** Prioritization, hidden-gem detection, custom weights.
 - **Phase 14 — Job-market and portfolio mode.** Role selection, portfolio export, CV/talking-points helpers.

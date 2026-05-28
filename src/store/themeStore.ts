@@ -29,7 +29,7 @@ export const useThemeStore = create<ThemeState>()(
       },
     }),
     {
-      name: "repopulse-theme",
+      name: "openready-theme",
       onRehydrateStorage: () => (state) => {
         if (state) applyTheme(state.mode);
       },

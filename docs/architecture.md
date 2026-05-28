@@ -1,11 +1,11 @@
 # Architecture
 
-RepoPulse is a Tauri desktop application. The frontend is React + TypeScript; the shell is Rust via Tauri.
+OpenReady is a Tauri desktop application. The frontend is React + TypeScript; the shell is Rust via Tauri.
 
 ## Current shape (Phase 2)
 
 ```
-RepoPulse desktop
+OpenReady desktop
   ├── React/TypeScript UI (Vite)
   │   ├── routes/        — Welcome, Dashboard, RepositoryDetail, Settings
   │   ├── components/    — shell + UI primitives (Radix-backed)
@@ -19,4 +19,4 @@ The `github-client` module now fetches public repository metadata for a GitHub u
 
 ## Long-term direction
 
-See `repopulse_master_plan.md` §12 for the mature architecture (apps + packages workspace).
+See `openready_master_plan.md` §12 for the mature architecture (apps + packages workspace).

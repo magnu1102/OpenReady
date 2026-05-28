@@ -162,7 +162,7 @@ export function DashboardRoute() {
         <EmptyState
           icon={Github}
           title="No username analyzed yet"
-          description="Start with a public GitHub username. RepoPulse will fetch repository metadata without storing it."
+          description="Start with a public GitHub username. OpenReady will fetch repository metadata without storing it."
           action={
             <Button asChild variant="primary" size="md">
               <Link to="/">Back to Welcome</Link>

@@ -15,10 +15,10 @@ const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
 
 const repository: Repository = {
   id: "1",
-  name: "repopulse",
-  fullName: "octocat/repopulse",
+  name: "openready",
+  fullName: "octocat/openready",
   description: "Repository health desktop app",
-  url: "https://github.com/octocat/repopulse",
+  url: "https://github.com/octocat/openready",
   homepageUrl: null,
   language: "TypeScript",
   stars: 4,
