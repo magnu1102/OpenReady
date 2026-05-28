@@ -279,4 +279,86 @@ Add scoring.
       expect(result.checks.find((c) => c.id === "build-manifest")?.status).toBe("unknown");
     });
   });
+
+  describe("tests, infrastructure and docs-folder checks", () => {
+    it("passes the tests check when a test directory is present", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        {
+          status: "found",
+          tree: {
+            repositoryFullName: "octocat/openready",
+            truncated: false,
+            entries: [
+              { path: "tests", type: "tree" },
+              { path: "tests/test_app.py", type: "blob" },
+            ],
+          },
+        },
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "tests-present")?.status).toBe("passed");
+    });
+
+    it("fails the tests check when no test files or directories are found", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "src/index.ts"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "tests-present")?.status).toBe("failed");
+    });
+
+    it("marks infrastructure-as-code passed when Terraform or Kubernetes manifests are detected", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["infra/main.tf", "k8s/deployment.yaml"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "infrastructure-as-code")).toMatchObject({
+        status: "passed",
+      });
+    });
+
+    it("marks infrastructure-as-code not-applicable for repositories without IaC", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "src/index.ts"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "infrastructure-as-code")?.status).toBe(
+        "not-applicable",
+      );
+    });
+
+    it("passes the docs-folder check when docs/ entries exist", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["docs/intro.md", "docs/usage.md"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "docs-folder")?.status).toBe("passed");
+    });
+
+    it("fails the docs-folder check when nothing is found", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["README.md"]),
+        now,
+      );
+
+      expect(result.checks.find((c) => c.id === "docs-folder")?.status).toBe("failed");
+    });
+  });
 });
