@@ -59,6 +59,21 @@ interface GitHubTreeResponse {
   truncated: boolean;
 }
 
+interface GitHubHttpResponse {
+  ok: boolean;
+  status: number;
+  headers: {
+    get: (name: string) => string | null;
+  };
+  json: () => Promise<unknown>;
+}
+
+interface GitHubProxyResponse {
+  status: number;
+  body: string;
+  rate_limit_remaining: string | null;
+}
+
 export function normalizeGitHubUsername(username: string): string {
   return username.trim();
 }
@@ -76,25 +91,15 @@ export async function fetchUserRepositories(username: string): Promise<Repositor
     );
   }
 
-  const url = new URL(`/users/${normalized}/repos`, GITHUB_API_BASE_URL);
-  url.searchParams.set("sort", "pushed");
-  url.searchParams.set("direction", "desc");
-  url.searchParams.set("per_page", "100");
-
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-  } catch {
-    throw new GitHubClientError(
-      "network",
-      "Could not reach GitHub. Check your connection and try again.",
-    );
-  }
+  const response = await githubGet(
+    `/users/${encodeURIComponent(normalized)}/repos`,
+    [
+      ["sort", "pushed"],
+      ["direction", "desc"],
+      ["per_page", "100"],
+    ],
+    "Could not reach GitHub. Check your connection and try again.",
+  );
 
   if (!response.ok) {
     throw await toGitHubClientError(response);
@@ -126,22 +131,11 @@ export async function fetchRepositoryReadme(
     throw new GitHubClientError("invalid-username", "Enter a valid repository owner and name.");
   }
 
-  const url = new URL(
-    `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(normalizedRepo)}/readme`,
-    GITHUB_API_BASE_URL,
-  );
+  const path = `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
+    normalizedRepo,
+  )}/readme`;
 
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-  } catch {
-    throw new GitHubClientError("network", "Could not reach GitHub while checking the README.");
-  }
+  const response = await githubGet(path, [], "Could not reach GitHub while checking the README.");
 
   if (response.status === 404) {
     return null;
@@ -188,28 +182,15 @@ export async function fetchRepositoryTree(
     );
   }
 
-  const url = new URL(
-    `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
-      normalizedRepo,
-    )}/git/trees/${encodeURIComponent(normalizedBranch)}`,
-    GITHUB_API_BASE_URL,
-  );
-  url.searchParams.set("recursive", "1");
+  const path = `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
+    normalizedRepo,
+  )}/git/trees/${encodeURIComponent(normalizedBranch)}`;
 
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-  } catch {
-    throw new GitHubClientError(
-      "network",
-      "Could not reach GitHub while checking the repository file tree.",
-    );
-  }
+  const response = await githubGet(
+    path,
+    [["recursive", "1"]],
+    "Could not reach GitHub while checking the repository file tree.",
+  );
 
   if (response.status === 404 || response.status === 409) {
     return null;
@@ -241,7 +222,53 @@ export async function fetchRepositoryTree(
   };
 }
 
-async function toGitHubClientError(response: Response): Promise<GitHubClientError> {
+async function githubGet(
+  path: string,
+  query: Array<[string, string]>,
+  networkMessage: string,
+): Promise<GitHubHttpResponse> {
+  if (isTauriRuntime()) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const response = await invoke<GitHubProxyResponse>("github_get", {
+        input: { path, query },
+      });
+      return toProxyHttpResponse(response);
+    } catch (error) {
+      throw new GitHubClientError("network", errorMessage(error) || networkMessage);
+    }
+  }
+
+  const url = new URL(path, GITHUB_API_BASE_URL);
+  for (const [key, value] of query) {
+    url.searchParams.set(key, value);
+  }
+
+  try {
+    return await fetch(url, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+  } catch {
+    throw new GitHubClientError("network", networkMessage);
+  }
+}
+
+function toProxyHttpResponse(response: GitHubProxyResponse): GitHubHttpResponse {
+  return {
+    ok: response.status >= 200 && response.status < 300,
+    status: response.status,
+    headers: {
+      get: (name) =>
+        name.toLowerCase() === "x-ratelimit-remaining" ? response.rate_limit_remaining : null,
+    },
+    json: async () => JSON.parse(response.body) as unknown,
+  };
+}
+
+async function toGitHubClientError(response: GitHubHttpResponse): Promise<GitHubClientError> {
   const message = await readGitHubErrorMessage(response);
   if (response.status === 404) {
     return new GitHubClientError(
@@ -266,7 +293,7 @@ async function toGitHubClientError(response: Response): Promise<GitHubClientErro
   );
 }
 
-async function readGitHubErrorMessage(response: Response): Promise<string> {
+async function readGitHubErrorMessage(response: GitHubHttpResponse): Promise<string> {
   try {
     const body: unknown = await response.json();
     if (
@@ -283,11 +310,21 @@ async function readGitHubErrorMessage(response: Response): Promise<string> {
   return "";
 }
 
-function isRateLimitResponse(response: Response, message: string): boolean {
+function isRateLimitResponse(response: GitHubHttpResponse, message: string): boolean {
   return (
     response.headers.get("x-ratelimit-remaining") === "0" ||
     message.toLowerCase().includes("rate limit")
   );
+}
+
+function errorMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  return "";
+}
+
+function isTauriRuntime(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
 function mapRepository(repo: GitHubRepositoryResponse): Repository {

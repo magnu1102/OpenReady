@@ -1,12 +1,14 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import {
   fetchRepositoryReadme,
+  fetchRepositoryTree,
   fetchUserRepositories,
   GitHubClientError,
 } from "@/modules/github-client";
+import { clearAnalysisCache } from "@/lib/analysisCache";
 import { saveExportFile } from "@/lib/exportFiles";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import type { Repository } from "@/types";
@@ -16,6 +18,7 @@ vi.mock("@/modules/github-client", async (importOriginal) => {
   return {
     ...(actual as object),
     fetchRepositoryReadme: vi.fn(),
+    fetchRepositoryTree: vi.fn(),
     fetchUserRepositories: vi.fn(),
   };
 });
@@ -26,6 +29,7 @@ vi.mock("@/lib/exportFiles", () => ({
 
 const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
 const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadme);
+const fetchRepositoryTreeMock = vi.mocked(fetchRepositoryTree);
 const saveExportFileMock = vi.mocked(saveExportFile);
 
 const repository: Repository = {
@@ -53,11 +57,14 @@ const repository: Repository = {
   pushedAt: "2026-05-28T09:00:00Z",
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await clearAnalysisCache();
   useRepositoryStore.getState().reset();
   fetchUserRepositoriesMock.mockReset();
   fetchRepositoryReadmeMock.mockReset();
   fetchRepositoryReadmeMock.mockResolvedValue(null);
+  fetchRepositoryTreeMock.mockReset();
+  fetchRepositoryTreeMock.mockResolvedValue(null);
   saveExportFileMock.mockReset();
   saveExportFileMock.mockResolvedValue({ status: "saved", path: "C:/Users/octocat/report.md" });
 });
@@ -110,6 +117,28 @@ describe("App", () => {
       }),
     );
     expect(await screen.findByText("Export saved.")).toBeInTheDocument();
+  });
+
+  it("restores a recent cached analysis from the Welcome screen", async () => {
+    const user = userEvent.setup();
+    fetchUserRepositoriesMock.mockResolvedValueOnce([{ ...repository, fork: false }]);
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.click(screen.getByRole("button", { name: /analyze/i }));
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().activeCache).not.toBeNull();
+    });
+    useRepositoryStore.getState().reset();
+
+    await user.click(screen.getByRole("link", { name: /welcome/i }));
+    expect(await screen.findByText(/recent cache/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /open cached/i }));
+
+    expect(await screen.findByRole("heading", { name: /dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "openready" })).toBeInTheDocument();
   });
 
   it("shows an empty dashboard state when GitHub returns no public repositories", async () => {

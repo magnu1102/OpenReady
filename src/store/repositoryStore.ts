@@ -1,4 +1,13 @@
 import { create } from "zustand";
+import {
+  clearAnalysisCache,
+  createAnalysisCacheSnapshot,
+  getCachedAnalysis,
+  listCachedAnalyses,
+  saveAnalysisSnapshot,
+  snapshotToMetadata,
+  type AnalysisCacheMetadata,
+} from "@/lib/analysisCache";
 import { analyzeRepositories } from "@/modules/analyzer-core";
 import {
   fetchRepositoryReadme,
@@ -17,6 +26,7 @@ import type {
 export type RepositoryFetchStatus = "idle" | "loading" | "success" | "error";
 export type ReadmeFetchStatus = "idle" | "loading" | "complete";
 export type TreeFetchStatus = "idle" | "loading" | "complete";
+export type CacheStatus = "idle" | "loading" | "ready" | "error";
 export const README_FETCH_LIMIT = 30;
 export const TREE_FETCH_LIMIT = 30;
 
@@ -34,8 +44,14 @@ interface RepositoryState {
   status: RepositoryFetchStatus;
   readmeStatus: ReadmeFetchStatus;
   treeStatus: TreeFetchStatus;
+  cacheStatus: CacheStatus;
+  cachedAnalyses: AnalysisCacheMetadata[];
+  activeCache: AnalysisCacheMetadata | null;
   error: RepositoryFetchError | null;
-  fetchRepositories: (username: string) => Promise<void>;
+  fetchRepositories: (username: string, options?: { forceRefresh?: boolean }) => Promise<void>;
+  loadCachedAnalyses: () => Promise<void>;
+  restoreCachedAnalysis: (username: string) => Promise<boolean>;
+  clearRepositoryCache: () => Promise<void>;
   reset: () => void;
 }
 
@@ -48,12 +64,15 @@ const initialState = {
   status: "idle" as const,
   readmeStatus: "idle" as const,
   treeStatus: "idle" as const,
+  cacheStatus: "idle" as const,
+  cachedAnalyses: [],
+  activeCache: null,
   error: null,
 };
 
 export const useRepositoryStore = create<RepositoryState>((set, get) => ({
   ...initialState,
-  fetchRepositories: async (username) => {
+  fetchRepositories: async (username, _options) => {
     const normalized = username.trim();
     set({
       username: normalized,
@@ -64,11 +83,13 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       status: "loading",
       readmeStatus: "idle",
       treeStatus: "idle",
+      activeCache: null,
       error: null,
     });
 
     try {
       const repositories = await fetchUserRepositories(normalized);
+      const fetchedAt = new Date().toISOString();
       set({
         repositories,
         analyses: analyzeRepositories(repositories),
@@ -78,8 +99,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
         error: null,
       });
 
-      void fetchReadmesForRepositories(repositories, normalized, set, get);
-      void fetchTreesForRepositories(repositories, normalized, set, get);
+      void fetchRepositoryDetailsAndCache(repositories, normalized, fetchedAt, set, get);
     } catch (error) {
       const repositoryError = toRepositoryFetchError(error);
       set({
@@ -90,10 +110,42 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
         status: "error",
         readmeStatus: "idle",
         treeStatus: "idle",
+        activeCache: null,
         error: repositoryError,
       });
       throw error;
     }
+  },
+  loadCachedAnalyses: async () => {
+    set({ cacheStatus: "loading" });
+    try {
+      const cachedAnalyses = await listCachedAnalyses();
+      set({ cachedAnalyses, cacheStatus: "ready" });
+    } catch {
+      set({ cachedAnalyses: [], cacheStatus: "error" });
+    }
+  },
+  restoreCachedAnalysis: async (username) => {
+    const snapshot = await getCachedAnalysis(username);
+    if (!snapshot) return false;
+
+    set({
+      username: snapshot.username,
+      repositories: snapshot.repositories,
+      readmes: snapshot.readmes,
+      trees: snapshot.trees,
+      analyses: snapshot.analyses,
+      status: "success",
+      readmeStatus: "complete",
+      treeStatus: "complete",
+      activeCache: snapshotToMetadata(snapshot),
+      error: null,
+    });
+    return true;
+  },
+  clearRepositoryCache: async () => {
+    await clearAnalysisCache();
+    set({ cachedAnalyses: [], activeCache: null, cacheStatus: "ready" });
   },
   reset: () => set(initialState),
 }));
@@ -110,6 +162,24 @@ function toRepositoryFetchError(error: unknown): RepositoryFetchError {
     code: "api-error",
     message: "OpenReady could not fetch repositories. Try again later.",
   };
+}
+
+async function fetchRepositoryDetailsAndCache(
+  repositories: Repository[],
+  username: string,
+  fetchedAt: string,
+  set: (
+    partial: Partial<RepositoryState> | ((state: RepositoryState) => Partial<RepositoryState>),
+  ) => void,
+  get: () => RepositoryState,
+): Promise<void> {
+  await Promise.all([
+    fetchReadmesForRepositories(repositories, username, set, get),
+    fetchTreesForRepositories(repositories, username, set, get),
+  ]);
+
+  if (get().username !== username) return;
+  await saveCurrentSnapshot(username, fetchedAt, set, get);
 }
 
 async function fetchReadmesForRepositories(
@@ -132,6 +202,7 @@ async function fetchReadmesForRepositories(
       const [owner, repo] = repository.fullName.split("/");
       try {
         const readme = await fetchRepositoryReadme(owner, repo);
+        // The 'satisfies' operator ensures the object matches the RepositoryReadmeState type without type casting.
         return [
           repository.id,
           readme
@@ -227,4 +298,37 @@ async function fetchTreesForRepositories(
 function toTreeUnknownMessage(error: unknown): string {
   if (error instanceof GitHubClientError) return error.message;
   return "Repository file tree could not be checked.";
+}
+
+async function saveCurrentSnapshot(
+  username: string,
+  fetchedAt: string,
+  set: (
+    partial: Partial<RepositoryState> | ((state: RepositoryState) => Partial<RepositoryState>),
+  ) => void,
+  get: () => RepositoryState,
+): Promise<void> {
+  const state = get();
+  const savedAt = new Date().toISOString();
+  const snapshot = createAnalysisCacheSnapshot({
+    username,
+    repositories: state.repositories,
+    readmes: state.readmes,
+    trees: state.trees,
+    analyses: state.analyses,
+    fetchedAt,
+    savedAt,
+  });
+
+  try {
+    await saveAnalysisSnapshot(snapshot);
+    const cachedAnalyses = await listCachedAnalyses();
+    set({
+      cachedAnalyses,
+      cacheStatus: "ready",
+      activeCache: snapshotToMetadata(snapshot),
+    });
+  } catch {
+    set({ cacheStatus: "error" });
+  }
 }
