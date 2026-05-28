@@ -11,6 +11,9 @@ import type {
 import { detectTechSignals, findTechSignal } from "./tech-stack";
 import type { TechSignal } from "./tech-stack";
 
+export type { TechSignal, TechSignalId } from "./tech-stack";
+export { detectTechSignals } from "./tech-stack";
+
 const RECENT_ACTIVITY_DAYS = 365;
 
 type ReadmeSectionId =

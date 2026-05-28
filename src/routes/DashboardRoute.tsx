@@ -19,7 +19,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useRepositoryStore } from "@/store/repositoryStore";
-import type { AnalysisResult, HealthLabel, Repository } from "@/types";
+import { collectTechSignals } from "@/modules/analyzer-core";
+import type { AnalysisResult, HealthLabel, Repository, RepositoryTreeState } from "@/types";
 
 export function DashboardRoute() {
   const username = useRepositoryStore((s) => s.username);
@@ -27,6 +28,7 @@ export function DashboardRoute() {
   const analyses = useRepositoryStore((s) => s.analyses);
   const readmes = useRepositoryStore((s) => s.readmes);
   const readmeStatus = useRepositoryStore((s) => s.readmeStatus);
+  const trees = useRepositoryStore((s) => s.trees);
   const status = useRepositoryStore((s) => s.status);
   const error = useRepositoryStore((s) => s.error);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
@@ -174,6 +176,7 @@ export function DashboardRoute() {
                 key={repository.id}
                 repository={repository}
                 analysis={analysisByRepositoryId.get(repository.id)}
+                treeState={trees[repository.id]}
               />
             ))}
           </div>
@@ -224,10 +227,13 @@ function RepositoryLoadingGrid() {
 function RepositoryCard({
   repository,
   analysis,
+  treeState,
 }: {
   repository: Repository;
   analysis?: AnalysisResult;
+  treeState?: RepositoryTreeState;
 }) {
+  const techSignals = collectTechSignals(treeState).slice(0, 3);
   return (
     <Card className="flex min-h-[240px] flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
@@ -263,6 +269,16 @@ function RepositoryCard({
           </Badge>
         ) : null}
       </div>
+
+      {techSignals.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {techSignals.map((signal) => (
+            <Badge key={signal.id} tone="neutral">
+              {signal.label}
+            </Badge>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-auto flex flex-col gap-3">
         {analysis ? (

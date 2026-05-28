@@ -3,9 +3,10 @@ import { waitFor } from "@testing-library/react";
 import {
   GitHubClientError,
   fetchRepositoryReadme,
+  fetchRepositoryTree,
   fetchUserRepositories,
 } from "@/modules/github-client";
-import { README_FETCH_LIMIT, useRepositoryStore } from "./repositoryStore";
+import { README_FETCH_LIMIT, TREE_FETCH_LIMIT, useRepositoryStore } from "./repositoryStore";
 import type { Repository } from "@/types";
 
 vi.mock("@/modules/github-client", async (importOriginal) => {
@@ -13,12 +14,14 @@ vi.mock("@/modules/github-client", async (importOriginal) => {
   return {
     ...(actual as object),
     fetchRepositoryReadme: vi.fn(),
+    fetchRepositoryTree: vi.fn(),
     fetchUserRepositories: vi.fn(),
   };
 });
 
 const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
 const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadme);
+const fetchRepositoryTreeMock = vi.mocked(fetchRepositoryTree);
 
 const repository: Repository = {
   id: "1",
@@ -50,6 +53,8 @@ beforeEach(() => {
   fetchUserRepositoriesMock.mockReset();
   fetchRepositoryReadmeMock.mockReset();
   fetchRepositoryReadmeMock.mockResolvedValue(null);
+  fetchRepositoryTreeMock.mockReset();
+  fetchRepositoryTreeMock.mockResolvedValue(null);
 });
 
 describe("repositoryStore", () => {
@@ -129,6 +134,55 @@ describe("repositoryStore", () => {
         code: "rate-limit",
         message: "GitHub rate limit reached. Wait a while and try again.",
       },
+    });
+  });
+
+  it("fetches file trees for the first 30 repositories and feeds them into analyses", async () => {
+    const repositories = Array.from({ length: TREE_FETCH_LIMIT + 2 }, (_, index) => ({
+      ...repository,
+      id: String(index + 1),
+      name: `repo-${index + 1}`,
+      fullName: `octocat/repo-${index + 1}`,
+    }));
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositories);
+    fetchRepositoryTreeMock.mockResolvedValue({
+      repositoryFullName: "octocat/repo-1",
+      truncated: false,
+      entries: [
+        { path: "package.json", type: "blob" },
+        { path: "pnpm-lock.yaml", type: "blob" },
+        { path: "Dockerfile", type: "blob" },
+        { path: ".github/workflows/ci.yml", type: "blob" },
+      ],
+    });
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().treeStatus).toBe("complete");
+    });
+    expect(fetchRepositoryTreeMock).toHaveBeenCalledTimes(TREE_FETCH_LIMIT);
+    expect(fetchRepositoryTreeMock).toHaveBeenCalledWith("octocat", "repo-1", "main");
+
+    const analysis = useRepositoryStore.getState().analyses[0];
+    expect(analysis.checks.find((check) => check.id === "dockerfile")?.status).toBe("passed");
+    expect(analysis.checks.find((check) => check.id === "github-actions")?.status).toBe("passed");
+  });
+
+  it("marks tree failures unknown without failing repository fetch", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchRepositoryTreeMock.mockRejectedValueOnce(
+      new GitHubClientError("rate-limit", "GitHub rate limit reached.", 403),
+    );
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().treeStatus).toBe("complete");
+    });
+    expect(useRepositoryStore.getState().trees[repository.id]).toEqual({
+      status: "unknown",
+      message: "GitHub rate limit reached.",
     });
   });
 
