@@ -19,17 +19,30 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useRepositoryStore } from "@/store/repositoryStore";
-import type { Repository } from "@/types";
+import type { AnalysisResult, HealthLabel, Repository } from "@/types";
 
 export function DashboardRoute() {
   const username = useRepositoryStore((s) => s.username);
   const repositories = useRepositoryStore((s) => s.repositories);
+  const analyses = useRepositoryStore((s) => s.analyses);
+  const readmes = useRepositoryStore((s) => s.readmes);
+  const readmeStatus = useRepositoryStore((s) => s.readmeStatus);
   const status = useRepositoryStore((s) => s.status);
   const error = useRepositoryStore((s) => s.error);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
 
   const isLoading = status === "loading";
   const hasRepositories = repositories.length > 0;
+  const analysisByRepositoryId = new Map(
+    analyses.map((analysis) => [analysis.repository.id, analysis]),
+  );
+  const strongStarts = analyses.filter(
+    (analysis) => analysis.healthLabel === "Strong start",
+  ).length;
+  const needsAttention = analyses.filter((analysis) => analysis.failedCount > 0).length;
+  const readmesChecked = Object.values(readmes).filter(
+    (readme) => readme.status === "found" || readme.status === "missing",
+  ).length;
   const stats = [
     {
       label: "Repositories",
@@ -37,18 +50,23 @@ export function DashboardRoute() {
       icon: GitFork,
       hint: "Public repositories fetched from GitHub.",
     },
-    { label: "Average health", value: "—", icon: Activity, hint: "Scoring arrives in Phase 5." },
     {
-      label: "Portfolio-ready",
-      value: "—",
-      icon: ShieldQuestion,
-      hint: "Readiness labels arrive after deterministic checks.",
+      label: "Strong starts",
+      value: status === "success" ? strongStarts.toString() : "—",
+      icon: Activity,
+      hint: "Repositories with no missing Phase 3 signals.",
     },
     {
-      label: "Missing signals",
-      value: "—",
+      label: "Needs attention",
+      value: status === "success" ? needsAttention.toString() : "—",
+      icon: ShieldQuestion,
+      hint: "Repositories with at least one missing deterministic signal.",
+    },
+    {
+      label: "READMEs checked",
+      value: readmeStatus === "idle" ? "—" : readmesChecked.toString(),
       icon: Inbox,
-      hint: "Gap detection arrives in Phase 3.",
+      hint: "README checks run for the first 30 fetched repositories.",
     },
   ];
 
@@ -67,7 +85,7 @@ export function DashboardRoute() {
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Dashboard</h1>
         <p className="text-sm text-text-secondary">
           {username
-            ? `Public repositories for ${username}. Deterministic checks arrive next.`
+            ? `Public repositories for ${username}. Phase 3 checks run locally.`
             : "Enter a GitHub username to fetch public repositories."}
         </p>
       </header>
@@ -98,7 +116,7 @@ export function DashboardRoute() {
                   {value}
                 </div>
                 <div className="mt-1 text-xs text-text-muted">
-                  {label === "Repositories" ? "Fetched public metadata" : "Coming in later phases"}
+                  {label === "Repositories" ? "Fetched public metadata" : "Phase 3 checks"}
                 </div>
               </Card>
             </Tooltip>
@@ -152,7 +170,11 @@ export function DashboardRoute() {
         {hasRepositories ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {repositories.map((repository) => (
-              <RepositoryCard key={repository.id} repository={repository} />
+              <RepositoryCard
+                key={repository.id}
+                repository={repository}
+                analysis={analysisByRepositoryId.get(repository.id)}
+              />
             ))}
           </div>
         ) : null}
@@ -199,7 +221,13 @@ function RepositoryLoadingGrid() {
   );
 }
 
-function RepositoryCard({ repository }: { repository: Repository }) {
+function RepositoryCard({
+  repository,
+  analysis,
+}: {
+  repository: Repository;
+  analysis?: AnalysisResult;
+}) {
   return (
     <Card className="flex min-h-[240px] flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
@@ -220,6 +248,9 @@ function RepositoryCard({ repository }: { repository: Repository }) {
       </p>
 
       <div className="flex flex-wrap gap-1.5">
+        {analysis ? (
+          <Badge tone={healthLabelTone(analysis.healthLabel)}>{analysis.healthLabel}</Badge>
+        ) : null}
         {repository.language ? <Badge>{repository.language}</Badge> : null}
         {repository.fork ? (
           <Badge tone="warn">
@@ -234,6 +265,19 @@ function RepositoryCard({ repository }: { repository: Repository }) {
       </div>
 
       <div className="mt-auto flex flex-col gap-3">
+        {analysis ? (
+          <div className="rounded-md bg-subtle px-3 py-2 text-xs text-text-secondary">
+            <div className="font-medium text-text-primary">
+              {analysis.passedCount} passed · {analysis.failedCount} missing
+              {analysis.unknownCount ? ` · ${analysis.unknownCount} unknown` : ""}
+            </div>
+            <div className="mt-1">
+              {analysis.missingSignals.length > 0
+                ? analysis.missingSignals.join(" · ")
+                : "No critical gaps from Phase 3 checks."}
+            </div>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-3 text-xs text-text-muted">
           <span className="inline-flex items-center gap-1">
             <Star className="h-3.5 w-3.5" /> {repository.stars}
@@ -260,6 +304,22 @@ function RepositoryCard({ repository }: { repository: Repository }) {
       </div>
     </Card>
   );
+}
+
+function healthLabelTone(label: HealthLabel) {
+  switch (label) {
+    case "Strong start":
+      return "success";
+    case "Needs README":
+    case "Needs metadata":
+    case "Needs presentation":
+    case "Stale":
+      return "warn";
+    case "Archived":
+      return "danger";
+    case "Fork":
+      return "neutral";
+  }
 }
 
 function formatDate(value: string) {

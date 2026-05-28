@@ -64,15 +64,15 @@ export function WelcomeRoute() {
         className="flex flex-col gap-4"
       >
         <Badge tone="accent" className="self-start">
-          <Sparkles className="h-3 w-3" /> Phase 2 — public repository fetch
+          <Sparkles className="h-3 w-3" /> Phase 3 — deterministic checks
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
           Understand and improve your GitHub repositories.
         </h1>
         <p className="max-w-2xl text-md text-text-secondary">
-          OpenReady analyzes public GitHub repositories and turns documentation, setup, licensing
-          and presentation signals into clear, actionable feedback. This phase fetches public
-          repositories first; deterministic checks land next.
+          OpenReady analyzes public GitHub repositories and turns metadata, README and presentation
+          signals into clear, actionable feedback. This phase adds local deterministic checks and
+          plain-language health labels.
         </p>
       </motion.section>
 
