@@ -9,11 +9,18 @@ export function AppShell() {
   useGlobalShortcuts();
   return (
     <TooltipProvider>
+      <a href="#main" className="skip-link">
+        Skip to main content
+      </a>
       <div className="flex h-full min-h-0 bg-canvas">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar />
-          <main className="flex-1 overflow-y-auto scrollbar-thin">
+          <main
+            id="main"
+            tabIndex={-1}
+            className="scrollbar-thin flex-1 overflow-y-auto focus-visible:outline-none"
+          >
             <div className="mx-auto w-full max-w-[1200px] px-8 py-8">
               <Outlet />
             </div>
