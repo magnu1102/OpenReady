@@ -4,12 +4,14 @@ import type {
   CheckResult,
   CheckStatus,
   HealthLabel,
+  ProjectType,
   Repository,
   RepositoryReadmeState,
   RepositoryTreeState,
 } from "@/types";
 import { scoreChecks } from "@/modules/scoring-engine";
 import { generateRecommendations } from "@/modules/recommendation-engine";
+import { classifyRepository, profileFor } from "@/modules/project-classifier";
 import { detectTechSignals, findTechSignal } from "./tech-stack";
 import type { TechSignal } from "./tech-stack";
 
@@ -88,9 +90,16 @@ export function analyzeRepositories(
   readmes: Record<string, RepositoryReadmeState> = {},
   trees: Record<string, RepositoryTreeState> = {},
   now: Date = new Date(),
+  overrides: Record<string, ProjectType> = {},
 ): AnalysisResult[] {
   return repositories.map((repository) =>
-    analyzeRepository(repository, readmes[repository.id], trees[repository.id], now),
+    analyzeRepository(
+      repository,
+      readmes[repository.id],
+      trees[repository.id],
+      now,
+      overrides[repository.id],
+    ),
   );
 }
 
@@ -99,8 +108,12 @@ export function analyzeRepository(
   readmeState: RepositoryReadmeState | undefined,
   treeState: RepositoryTreeState | undefined = undefined,
   now: Date = new Date(),
+  override?: ProjectType,
 ): AnalysisResult {
   const techSignals = collectTechSignals(treeState);
+  const classification = classifyRepository(repository, treeState, techSignals, override);
+  const profile = profileFor(classification.type);
+  const profileChecks = profile.extraChecks({ repository, readmeState, treeState });
   const checks = [
     metadataCheck(
       "description",
@@ -152,6 +165,7 @@ export function analyzeRepository(
     ...infrastructureChecks(treeState, techSignals),
     ...docsFolderChecks(treeState, techSignals),
     ...securityChecks(treeState),
+    ...profileChecks,
   ];
 
   const passedCount = checks.filter((check) => check.status === "passed").length;
@@ -162,7 +176,7 @@ export function analyzeRepository(
     .filter((signal): signal is string => Boolean(signal))
     .slice(0, 3);
 
-  const score = scoreChecks(checks);
+  const score = scoreChecks(checks, profile.categoryWeights);
   const recommendations = generateRecommendations(checks);
 
   return {
@@ -176,6 +190,8 @@ export function analyzeRepository(
     unknownCount,
     missingSignals,
     recommendations,
+    classification,
+    classificationOverride: override,
   };
 }
 

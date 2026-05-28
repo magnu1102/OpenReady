@@ -5,7 +5,7 @@ import type {
   RepositoryTreeState,
 } from "@/types";
 
-export const ANALYSIS_CACHE_SCHEMA_VERSION = 1;
+export const ANALYSIS_CACHE_SCHEMA_VERSION = 2;
 export const ANALYSIS_CACHE_RETENTION_LIMIT = 5;
 export const ANALYSIS_CACHE_STALE_MS = 24 * 60 * 60 * 1000;
 
