@@ -143,6 +143,9 @@ export function analyzeRepository(
     ...readmeChecks(readmeState),
     ...buildabilityChecks(treeState, techSignals),
     ...ciChecks(treeState, techSignals),
+    ...testsChecks(treeState, techSignals),
+    ...infrastructureChecks(treeState, techSignals),
+    ...docsFolderChecks(treeState, techSignals),
   ];
 
   const passedCount = checks.filter((check) => check.status === "passed").length;
@@ -391,6 +394,96 @@ function ciChecks(
       passed: Boolean(ciSignal),
       passedEvidence: ciSignal?.evidence.join(", "),
       failedEvidence: "No GitHub Actions workflows found under .github/workflows.",
+    }),
+  ];
+}
+
+function testsChecks(
+  treeState: RepositoryTreeState | undefined,
+  techSignals: TechSignal[],
+): CheckResult[] {
+  const treeUnknown = isTreeUnknown(treeState);
+  const treeEmpty = treeState?.status === "empty";
+  const testSignal = findTechSignal(techSignals, "tests");
+
+  return [
+    deriveCheck({
+      id: "tests-present",
+      label: "Repository contains test files or directories",
+      category: "tests",
+      treeUnknown,
+      treeEmpty,
+      passed: Boolean(testSignal),
+      passedEvidence: testSignal?.evidence.join(", "),
+      failedEvidence: "No test directories or test files detected.",
+    }),
+  ];
+}
+
+function infrastructureChecks(
+  treeState: RepositoryTreeState | undefined,
+  techSignals: TechSignal[],
+): CheckResult[] {
+  if (isTreeUnknown(treeState)) {
+    return [
+      {
+        id: "infrastructure-as-code",
+        label: "Repository declares infrastructure as code",
+        category: "infrastructure",
+        status: "unknown",
+        evidence: "Repository file tree was not available.",
+      },
+    ];
+  }
+
+  const terraform = findTechSignal(techSignals, "terraform");
+  const kubernetes = findTechSignal(techSignals, "kubernetes");
+  const evidence = [terraform, kubernetes]
+    .filter((signal): signal is TechSignal => Boolean(signal))
+    .flatMap((signal) => signal.evidence)
+    .slice(0, 3);
+
+  if (terraform || kubernetes) {
+    return [
+      {
+        id: "infrastructure-as-code",
+        label: "Repository declares infrastructure as code",
+        category: "infrastructure",
+        status: "passed",
+        evidence: evidence.join(", "),
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "infrastructure-as-code",
+      label: "Repository declares infrastructure as code",
+      category: "infrastructure",
+      status: "not-applicable",
+      evidence: "No Terraform, Helm or Kubernetes manifests detected.",
+    },
+  ];
+}
+
+function docsFolderChecks(
+  treeState: RepositoryTreeState | undefined,
+  techSignals: TechSignal[],
+): CheckResult[] {
+  const treeUnknown = isTreeUnknown(treeState);
+  const treeEmpty = treeState?.status === "empty";
+  const docsSignal = findTechSignal(techSignals, "docs-folder");
+
+  return [
+    deriveCheck({
+      id: "docs-folder",
+      label: "Repository ships a dedicated docs/ folder",
+      category: "documentation",
+      treeUnknown,
+      treeEmpty,
+      passed: Boolean(docsSignal),
+      passedEvidence: docsSignal?.evidence.join(", "),
+      failedEvidence: "No docs/ or documentation/ folder found.",
     }),
   ];
 }
