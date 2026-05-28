@@ -8,6 +8,7 @@ import type {
   RepositoryReadmeState,
   RepositoryTreeState,
 } from "@/types";
+import { scoreChecks } from "@/modules/scoring-engine";
 import { detectTechSignals, findTechSignal } from "./tech-stack";
 import type { TechSignal } from "./tech-stack";
 
@@ -149,6 +150,7 @@ export function analyzeRepository(
     ...testsChecks(treeState, techSignals),
     ...infrastructureChecks(treeState, techSignals),
     ...docsFolderChecks(treeState, techSignals),
+    ...securityChecks(treeState),
   ];
 
   const passedCount = checks.filter((check) => check.status === "passed").length;
@@ -159,11 +161,14 @@ export function analyzeRepository(
     .filter((signal): signal is string => Boolean(signal))
     .slice(0, 3);
 
+  const score = scoreChecks(checks);
+
   return {
     repository,
     checks,
     analyzedAt: now.toISOString(),
-    healthLabel: chooseHealthLabel(repository, checks),
+    healthLabel: chooseHealthLabel(repository, checks, score.total),
+    score,
     passedCount,
     failedCount: failedChecks.length,
     unknownCount,
@@ -295,20 +300,19 @@ function hasPurpose(content: string): boolean {
   return bodyWithoutTitle.length >= 120;
 }
 
-function chooseHealthLabel(repository: Repository, checks: CheckResult[]): HealthLabel {
+function chooseHealthLabel(
+  repository: Repository,
+  checks: CheckResult[],
+  total: number | null,
+): HealthLabel {
   if (repository.archived) return "Archived";
   if (repository.fork) return "Fork";
-  if (checkStatus(checks, "readme") === "failed") return "Needs README";
   if (checkStatus(checks, "recent-activity") === "failed") return "Stale";
-  if (
-    ["description", "topics", "homepage", "license"].some(
-      (id) => checkStatus(checks, id) === "failed",
-    )
-  ) {
-    return "Needs metadata";
-  }
-  if (checkStatus(checks, "readme-screenshots-demo") === "failed") return "Needs presentation";
-  return "Strong start";
+  if (total === null) return "Analyzing";
+  if (total >= 85) return "Portfolio-ready";
+  if (total >= 70) return "Almost ready";
+  if (total >= 50) return "Needs work";
+  return "Experimental";
 }
 
 function checkStatus(checks: CheckResult[], id: string): CheckStatus | undefined {
@@ -467,6 +471,62 @@ function infrastructureChecks(
       evidence: "No Terraform, Helm or Kubernetes manifests detected.",
     },
   ];
+}
+
+function securityChecks(treeState: RepositoryTreeState | undefined): CheckResult[] {
+  const treeUnknown = isTreeUnknown(treeState);
+  const treeEmpty = treeState?.status === "empty";
+
+  const securityMd = findEntry(treeState, (path) => /(^|\/)SECURITY\.md$/i.test(path));
+  const envExample = findEntry(treeState, (path) => {
+    const slash = path.lastIndexOf("/");
+    const name = slash === -1 ? path : path.slice(slash + 1);
+    return (
+      name === ".env.example" ||
+      name === ".env.sample" ||
+      name === ".env.template" ||
+      name === ".env.dist"
+    );
+  });
+
+  return [
+    deriveCheck({
+      id: "security-md",
+      label: "Repository ships a SECURITY.md",
+      category: "security",
+      treeUnknown,
+      treeEmpty,
+      passed: securityMd !== null,
+      passedEvidence: securityMd ?? undefined,
+      failedEvidence: "No SECURITY.md found — a short security policy helps reporters reach you.",
+    }),
+    deriveCheck({
+      id: "env-example",
+      label: "Repository ships an example env file",
+      category: "security",
+      treeUnknown,
+      treeEmpty,
+      passed: envExample !== null,
+      passedEvidence: envExample ?? undefined,
+      failedEvidence:
+        "No .env.example or equivalent template found — committed example env files document configuration safely.",
+    }),
+  ];
+}
+
+function findEntry(
+  treeState: RepositoryTreeState | undefined,
+  predicate: (path: string) => boolean,
+): string | null {
+  if (!treeState || (treeState.status !== "found" && treeState.status !== "truncated")) {
+    return null;
+  }
+  for (const entry of treeState.tree.entries) {
+    if (entry.type === "blob" && predicate(entry.path)) {
+      return entry.path;
+    }
+  }
+  return null;
 }
 
 function docsFolderChecks(

@@ -128,8 +128,7 @@ describe("App", () => {
     await user.type(screen.getByLabelText(/github username/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
-    expect(await screen.findByText("Needs README")).toBeInTheDocument();
-    expect(screen.getByText(/No README found/i)).toBeInTheDocument();
+    expect(await screen.findByText(/No README found/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("link", { name: "no-readme" }));
     expect(await screen.findByRole("heading", { name: "no-readme" })).toBeInTheDocument();
