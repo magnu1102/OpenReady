@@ -8,8 +8,8 @@ A condensed phase outline. The master plan (`openready_master_plan.md` §13) is 
 - **Phase 3 — Basic deterministic checks.** README, license, description, topics, homepage, recent activity, archived/fork status. ✅
 - **Phase 4 — File and tech-stack detection.** Package manifests, Docker, CI workflows, mobile/Gradle, IaC, docs, tests. ✅
 - **Phase 5 — Scoring engine v1.** Category scores, total score, evidence list, labels. ✅
-- **Phase 6 — Repository detail view.** Full per-repo breakdowns and recommendations. ← _current_
-- **Phase 7 — Export system v1.** Markdown, JSON and homepage cards.
+- **Phase 6 — Repository detail view.** Full per-repo breakdowns and recommendations. ✅
+- **Phase 7 — Export system v1.** Markdown, JSON and homepage cards. ← _current_
 - **Phase 8 — Local cache and settings.** Refresh, optional token storage, theme, preferences.
 - **Phase 9 — Project classification.** Type-specific expectations and overrides.
 - **Phase 10 — UI polish and onboarding.** Dark mode polish, animations, keyboard navigation, accessibility pass.
