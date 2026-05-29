@@ -172,7 +172,8 @@ export function RepositoryDetailRoute() {
         <Card className="flex w-full max-w-[260px] flex-col items-center gap-2 p-5">
           <ScoreRing value={analysis?.score.total ?? null} label="Score" />
           <p className="text-xs text-text-muted">
-            Equal-weighted mean of eight category scores. See the breakdown for evidence.
+            Weighted mean of eight category scores (by project type and your settings). See the
+            breakdown for evidence.
           </p>
           <Button asChild variant="secondary" size="sm">
             <a href={repository.url} target="_blank" rel="noreferrer">
