@@ -260,6 +260,36 @@ Add scoring.
       expect(result.classification.detectedType).toBe("frontend");
       expect(result.classificationOverride).toBe("library");
     });
+
+    it("layers user weights on top of profile weights (profile × user)", () => {
+      const treeState = foundTree([
+        "package.json",
+        "pnpm-lock.yaml",
+        "index.html",
+        "vite.config.ts",
+        "src/components/App.tsx",
+      ]);
+      const baseline = analyzeRepository(repository(), foundReadme(strongReadme), treeState, now);
+      const weighted = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        treeState,
+        now,
+        undefined,
+        {
+          presentation: 3,
+          documentation: 0,
+        },
+      );
+
+      // Frontend profile already sets presentation ×2; the user ×3 multiplies to 6.
+      const presentation = weighted.score.categories.find((c) => c.category === "presentation");
+      const documentation = weighted.score.categories.find((c) => c.category === "documentation");
+      expect(presentation?.weight).toBe(6);
+      expect(documentation?.weight).toBe(0);
+      // Re-weighting changes the total relative to the profile-only baseline.
+      expect(weighted.score.total).not.toBe(baseline.score.total);
+    });
   });
 
   describe("tier labels", () => {
