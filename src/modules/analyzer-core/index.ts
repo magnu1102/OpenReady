@@ -10,6 +10,7 @@ import type {
   RepositoryTreeState,
 } from "@/types";
 import { scoreChecks } from "@/modules/scoring-engine";
+import type { ScoreCategory } from "@/modules/scoring-engine";
 import { generateRecommendations } from "@/modules/recommendation-engine";
 import { classifyRepository, profileFor } from "@/modules/project-classifier";
 import { detectTechSignals, findTechSignal } from "./tech-stack";
@@ -91,6 +92,7 @@ export function analyzeRepositories(
   trees: Record<string, RepositoryTreeState> = {},
   now: Date = new Date(),
   overrides: Record<string, ProjectType> = {},
+  userWeights: Partial<Record<ScoreCategory, number>> = {},
 ): AnalysisResult[] {
   return repositories.map((repository) =>
     analyzeRepository(
@@ -99,6 +101,7 @@ export function analyzeRepositories(
       trees[repository.id],
       now,
       overrides[repository.id],
+      userWeights,
     ),
   );
 }
@@ -109,10 +112,12 @@ export function analyzeRepository(
   treeState: RepositoryTreeState | undefined = undefined,
   now: Date = new Date(),
   override?: ProjectType,
+  userWeights: Partial<Record<ScoreCategory, number>> = {},
 ): AnalysisResult {
   const techSignals = collectTechSignals(treeState);
   const classification = classifyRepository(repository, treeState, techSignals, override);
   const profile = profileFor(classification.type);
+  const weights = mergeWeights(profile.categoryWeights, userWeights);
   const profileChecks = profile.extraChecks({ repository, readmeState, treeState });
   const checks = [
     metadataCheck(
@@ -176,7 +181,7 @@ export function analyzeRepository(
     .filter((signal): signal is string => Boolean(signal))
     .slice(0, 3);
 
-  const score = scoreChecks(checks, profile.categoryWeights);
+  const score = scoreChecks(checks, weights);
   const recommendations = generateRecommendations(checks);
 
   return {
@@ -346,6 +351,26 @@ function parseDate(value: string | null): Date | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Combine project-type profile weights with user-configured multipliers so that
+ * classification still shapes scoring while user preferences nudge it:
+ * `finalWeight = (profileWeight ?? 1) * (userWeight ?? 1)`.
+ */
+export function mergeWeights(
+  profileWeights: Partial<Record<ScoreCategory, number>>,
+  userWeights: Partial<Record<ScoreCategory, number>>,
+): Partial<Record<ScoreCategory, number>> {
+  const categories = new Set<ScoreCategory>([
+    ...(Object.keys(profileWeights) as ScoreCategory[]),
+    ...(Object.keys(userWeights) as ScoreCategory[]),
+  ]);
+  const merged: Partial<Record<ScoreCategory, number>> = {};
+  for (const category of categories) {
+    merged[category] = (profileWeights[category] ?? 1) * (userWeights[category] ?? 1);
+  }
+  return merged;
 }
 
 export function collectTechSignals(treeState: RepositoryTreeState | undefined): TechSignal[] {

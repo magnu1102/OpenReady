@@ -83,6 +83,15 @@ const categoryDefinitions: CategoryDefinition[] = [
   },
 ];
 
+/**
+ * Resolve which scoring category a check contributes to, mirroring the matchers
+ * in {@link categoryDefinitions}. Returns null when no category claims the check
+ * (e.g. status-only checks like `not-archived`).
+ */
+export function categoryForCheck(check: CheckResult): ScoreCategory | null {
+  return categoryDefinitions.find((definition) => definition.match(check))?.id ?? null;
+}
+
 export function scoreChecks(
   checks: CheckResult[],
   weights: Partial<Record<ScoreCategory, number>> = {},
