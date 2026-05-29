@@ -1,5 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Sparkles, Settings as SettingsIcon, PanelLeft } from "lucide-react";
+import {
+  LayoutDashboard,
+  Sparkles,
+  Settings as SettingsIcon,
+  Briefcase,
+  PanelLeft,
+} from "lucide-react";
 import { useNavigationStore } from "@/store/navigationStore";
 import { APP_NAME, APP_PHASE } from "@/lib/env";
 import { Logo } from "./Logo";
@@ -9,6 +15,7 @@ import { cn } from "@/lib/cn";
 const items = [
   { to: "/", label: "Welcome", icon: Sparkles, end: true },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: false },
+  { to: "/portfolio", label: "Portfolio", icon: Briefcase, end: false },
   { to: "/settings", label: "Settings", icon: SettingsIcon, end: false },
 ];
 
