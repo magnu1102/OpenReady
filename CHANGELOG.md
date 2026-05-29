@@ -10,6 +10,11 @@ relevant section.
 
 ### Added
 
+- Portfolio mode (Phase 14): a new `/portfolio` route that auto-detects a target
+  role from the repository mix (override-able), recommends which projects to
+  feature (with pin/unpin), and generates a portfolio page, CV bullet points,
+  and interview talking points — each exportable as Markdown. Fully
+  deterministic and local; the CLI is unchanged.
 - Advanced recommendations (Phase 13): recommendations are ranked by their
   projected score impact (shown as `+N pts`); a deterministic hidden-gem
   detector flags strong-but-under-promoted repositories on the dashboard;
