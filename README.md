@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 13 — advanced recommendations. Recommendations are now ranked by their projected score impact ("+N pts"), repositories that score well but are under-promoted are flagged as **hidden gems**, scoring weights are user-customizable per category in Settings, and any two or three repositories can be compared side by side. Phase 12 shipped cross-platform release packaging: tagging `v*.*.*` builds macOS, Windows, and Linux Tauri bundles via `tauri-apps/tauri-action` and attaches the CLI esbuild bundle to a drafted GitHub Release.
+> **Status:** Phase 14 — job-market and portfolio mode. A new **Portfolio** screen detects your most likely target role from your repository mix (override-able), recommends which projects to feature, and generates a portfolio page, CV bullet points, and interview talking points — all exportable as Markdown, fully deterministic and local. Phase 13 added score-impact–ranked recommendations, hidden-gem detection, user-customizable scoring weights, and side-by-side repository comparison.
 
 ## Screenshots
 
@@ -114,6 +114,7 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 - [Project classification](docs/classification.md)
 - [Tech-stack detection](docs/tech-stack-detection.md)
 - [CLI](docs/cli.md)
+- [Portfolio mode](docs/portfolio.md)
 - [Onboarding and keyboard](docs/onboarding-and-keyboard.md)
 - [Releasing](docs/releasing.md)
 - [Signing notes](docs/signing.md)
