@@ -125,4 +125,4 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 
 ## License
 
-A license will be selected before the first public release.
+OpenReady is open source under the [MIT License](LICENSE).

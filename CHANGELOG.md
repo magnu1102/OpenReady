@@ -10,6 +10,21 @@ relevant section.
 
 ### Added
 
+- MIT `LICENSE` — OpenReady is now formally open source under the MIT License,
+  with matching `license` fields in `package.json` and `src-tauri/Cargo.toml`.
+
+### Fixed
+
+- Styling cleanup: corrected the stale "Phase 8" label shown on the welcome
+  screen and sidebar (now sourced from a single `APP_PHASE` constant); aligned
+  the dashboard summary numbers so a wrapping label no longer drops one out of
+  line; stopped badges from wrapping and clipping in narrow columns (e.g. the
+  repository detail score breakdown); strengthened light-mode card separation;
+  and collapsed the sidebar to its icon rail on narrow viewports so content no
+  longer clips.
+
+### Added
+
 - Portfolio mode (Phase 14): a new `/portfolio` route that auto-detects a target
   role from the repository mix (override-able), recommends which projects to
   feature (with pin/unpin), and generates a portfolio page, CV bullet points,

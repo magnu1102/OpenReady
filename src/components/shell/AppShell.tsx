@@ -4,11 +4,14 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import { useNavigationStore } from "@/store/navigationStore";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { TourOverlay, tourSteps, useTourStore } from "@/modules/tour";
 import { CommandsRoot } from "@/modules/commands";
 
 export function AppShell() {
   useTourAutoStart();
+  useResponsiveSidebar();
   return (
     <TooltipProvider>
       <a href="#main" className="skip-link">
@@ -33,6 +36,17 @@ export function AppShell() {
       <CommandsRoot />
     </TooltipProvider>
   );
+}
+
+// Below this width the full 240px sidebar squeezes content until it clips, so
+// collapse it to the 64px icon rail. The user can still expand it manually.
+function useResponsiveSidebar() {
+  const isNarrow = useMediaQuery("(max-width: 768px)");
+  const setSidebarCollapsed = useNavigationStore((s) => s.setSidebarCollapsed);
+
+  useEffect(() => {
+    if (isNarrow) setSidebarCollapsed(true);
+  }, [isNarrow, setSidebarCollapsed]);
 }
 
 function useTourAutoStart() {
