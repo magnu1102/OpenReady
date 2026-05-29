@@ -8,6 +8,16 @@ relevant section.
 
 ## [Unreleased]
 
+### Fixed
+
+- Styling cleanup: corrected the stale "Phase 8" label shown on the welcome
+  screen and sidebar (now sourced from a single `APP_PHASE` constant); aligned
+  the dashboard summary numbers so a wrapping label no longer drops one out of
+  line; stopped badges from wrapping and clipping in narrow columns (e.g. the
+  repository detail score breakdown); strengthened light-mode card separation;
+  and collapsed the sidebar to its icon rail on narrow viewports so content no
+  longer clips.
+
 ### Added
 
 - Portfolio mode (Phase 14): a new `/portfolio` route that auto-detects a target
