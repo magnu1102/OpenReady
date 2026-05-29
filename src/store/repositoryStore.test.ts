@@ -8,6 +8,7 @@ import {
   fetchUserRepositories,
 } from "@/modules/github-client";
 import { README_FETCH_LIMIT, TREE_FETCH_LIMIT, useRepositoryStore } from "./repositoryStore";
+import { usePreferencesStore } from "./preferencesStore";
 import type { Repository } from "@/types";
 
 vi.mock("@/modules/github-client", async (importOriginal) => {
@@ -52,6 +53,7 @@ const repository: Repository = {
 beforeEach(async () => {
   await clearAnalysisCache();
   useRepositoryStore.getState().reset();
+  usePreferencesStore.getState().resetWeights();
   fetchUserRepositoriesMock.mockReset();
   fetchRepositoryReadmeMock.mockReset();
   fetchRepositoryReadmeMock.mockResolvedValue(null);
@@ -240,6 +242,42 @@ describe("repositoryStore", () => {
       status: "unknown",
       message: "GitHub rate limit reached.",
     });
+  });
+
+  it("recomputeAnalyses applies custom weights and re-scores in place", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().treeStatus).toBe("complete");
+    });
+    const before = useRepositoryStore.getState().analyses[0].score.total;
+
+    // Drop documentation to zero weight; the total must change.
+    usePreferencesStore.getState().setCategoryWeight("documentation", 0);
+    await useRepositoryStore.getState().recomputeAnalyses();
+
+    const after = useRepositoryStore.getState().analyses[0];
+    expect(after.score.categories.find((c) => c.category === "documentation")?.weight).toBe(0);
+    expect(after.score.total).not.toBe(before);
+  });
+
+  it("recomputeAnalyses preserves per-repo classification overrides", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().treeStatus).toBe("complete");
+    });
+
+    await useRepositoryStore.getState().overrideClassification(repository.id, "library");
+    expect(useRepositoryStore.getState().analyses[0].classification.type).toBe("library");
+
+    usePreferencesStore.getState().setCategoryWeight("testing-ci", 2);
+    await useRepositoryStore.getState().recomputeAnalyses();
+
+    const after = useRepositoryStore.getState().analyses[0];
+    expect(after.classificationOverride).toBe("library");
+    expect(after.classification.type).toBe("library");
+    expect(after.classification.overridden).toBe(true);
   });
 
   it("resets repository state", async () => {

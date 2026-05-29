@@ -70,6 +70,7 @@ function analysis(name: string, score: number | null): AnalysisResult {
       runnerUp: null,
       overridden: false,
     },
+    hiddenGem: { isHiddenGem: false, reasons: [] },
   };
 }
 

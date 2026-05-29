@@ -9,6 +9,7 @@ import {
   type AnalysisCacheMetadata,
 } from "@/lib/analysisCache";
 import { analyzeRepositories, analyzeRepository } from "@/modules/analyzer-core";
+import { usePreferencesStore } from "@/store/preferencesStore";
 import {
   fetchRepositoryReadme,
   fetchRepositoryTree,
@@ -54,7 +55,24 @@ interface RepositoryState {
   restoreCachedAnalysis: (username: string) => Promise<boolean>;
   clearRepositoryCache: () => Promise<void>;
   overrideClassification: (repositoryId: string, type: ProjectType | null) => Promise<void>;
+  recomputeAnalyses: () => Promise<void>;
   reset: () => void;
+}
+
+/** Current user-configured category weights from the persisted preferences store. */
+function currentWeights() {
+  return usePreferencesStore.getState().categoryWeights;
+}
+
+/** Reconstruct the per-repo classification overrides baked into the analyses. */
+function overridesFromAnalyses(analyses: AnalysisResult[]): Record<string, ProjectType> {
+  const overrides: Record<string, ProjectType> = {};
+  for (const analysis of analyses) {
+    if (analysis.classificationOverride) {
+      overrides[analysis.repository.id] = analysis.classificationOverride;
+    }
+  }
+  return overrides;
 }
 
 const initialState = {
@@ -94,7 +112,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       const fetchedAt = new Date().toISOString();
       set({
         repositories,
-        analyses: analyzeRepositories(repositories),
+        analyses: analyzeRepositories(repositories, {}, {}, new Date(), {}, currentWeights()),
         status: "success",
         readmeStatus: repositories.length > 0 ? "loading" : "complete",
         treeStatus: repositories.length > 0 ? "loading" : "complete",
@@ -160,6 +178,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       state.trees[repositoryId],
       new Date(),
       type ?? undefined,
+      currentWeights(),
     );
 
     const analyses = state.analyses.map((analysis) =>
@@ -182,6 +201,37 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       set({ activeCache: snapshotToMetadata(snapshot) });
     } catch {
       // Cache write failure is non-fatal for the override flow.
+    }
+  },
+  recomputeAnalyses: async () => {
+    const state = get();
+    if (state.repositories.length === 0) return;
+
+    const analyses = analyzeRepositories(
+      state.repositories,
+      state.readmes,
+      state.trees,
+      new Date(),
+      overridesFromAnalyses(state.analyses),
+      currentWeights(),
+    );
+    set({ analyses });
+
+    if (!state.username) return;
+    const fetchedAt = state.activeCache?.fetchedAt ?? new Date().toISOString();
+    const snapshot = createAnalysisCacheSnapshot({
+      username: state.username,
+      repositories: state.repositories,
+      readmes: state.readmes,
+      trees: state.trees,
+      analyses,
+      fetchedAt,
+    });
+    try {
+      await saveAnalysisSnapshot(snapshot);
+      set({ activeCache: snapshotToMetadata(snapshot) });
+    } catch {
+      // Cache write failure is non-fatal for the recompute flow.
     }
   },
   reset: () => set(initialState),
@@ -267,7 +317,14 @@ async function fetchReadmesForRepositories(
     };
     return {
       readmes,
-      analyses: analyzeRepositories(state.repositories, readmes, state.trees),
+      analyses: analyzeRepositories(
+        state.repositories,
+        readmes,
+        state.trees,
+        new Date(),
+        overridesFromAnalyses(state.analyses),
+        currentWeights(),
+      ),
       readmeStatus: "complete",
     };
   });
@@ -326,7 +383,14 @@ async function fetchTreesForRepositories(
     };
     return {
       trees,
-      analyses: analyzeRepositories(state.repositories, state.readmes, trees),
+      analyses: analyzeRepositories(
+        state.repositories,
+        state.readmes,
+        trees,
+        new Date(),
+        overridesFromAnalyses(state.analyses),
+        currentWeights(),
+      ),
       treeStatus: "complete",
     };
   });

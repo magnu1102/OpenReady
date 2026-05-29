@@ -4,12 +4,15 @@ import type {
   CheckResult,
   CheckStatus,
   HealthLabel,
+  HiddenGem,
   ProjectType,
   Repository,
   RepositoryReadmeState,
   RepositoryTreeState,
 } from "@/types";
+import type { RepositoryScore } from "@/modules/scoring-engine";
 import { scoreChecks } from "@/modules/scoring-engine";
+import type { ScoreCategory } from "@/modules/scoring-engine";
 import { generateRecommendations } from "@/modules/recommendation-engine";
 import { classifyRepository, profileFor } from "@/modules/project-classifier";
 import { detectTechSignals, findTechSignal } from "./tech-stack";
@@ -91,6 +94,7 @@ export function analyzeRepositories(
   trees: Record<string, RepositoryTreeState> = {},
   now: Date = new Date(),
   overrides: Record<string, ProjectType> = {},
+  userWeights: Partial<Record<ScoreCategory, number>> = {},
 ): AnalysisResult[] {
   return repositories.map((repository) =>
     analyzeRepository(
@@ -99,6 +103,7 @@ export function analyzeRepositories(
       trees[repository.id],
       now,
       overrides[repository.id],
+      userWeights,
     ),
   );
 }
@@ -109,10 +114,12 @@ export function analyzeRepository(
   treeState: RepositoryTreeState | undefined = undefined,
   now: Date = new Date(),
   override?: ProjectType,
+  userWeights: Partial<Record<ScoreCategory, number>> = {},
 ): AnalysisResult {
   const techSignals = collectTechSignals(treeState);
   const classification = classifyRepository(repository, treeState, techSignals, override);
   const profile = profileFor(classification.type);
+  const weights = mergeWeights(profile.categoryWeights, userWeights);
   const profileChecks = profile.extraChecks({ repository, readmeState, treeState });
   const checks = [
     metadataCheck(
@@ -176,8 +183,8 @@ export function analyzeRepository(
     .filter((signal): signal is string => Boolean(signal))
     .slice(0, 3);
 
-  const score = scoreChecks(checks, profile.categoryWeights);
-  const recommendations = generateRecommendations(checks);
+  const score = scoreChecks(checks, weights);
+  const recommendations = generateRecommendations(checks, weights);
 
   return {
     repository,
@@ -192,6 +199,36 @@ export function analyzeRepository(
     recommendations,
     classification,
     classificationOverride: override,
+    hiddenGem: detectHiddenGem(repository, score),
+  };
+}
+
+// Hidden-gem thresholds. Deterministic and absolute (no network, no per-account
+// statistics) so the result is identical in the desktop app and the CLI.
+const HIDDEN_GEM_MIN_SCORE = 70;
+const HIDDEN_GEM_MAX_STARS = 5;
+
+/**
+ * A hidden gem is a genuinely strong repository (high score) that few people
+ * have found (low stars) and that is under-promoted (missing discoverability
+ * signals). Archived projects and forks are excluded.
+ */
+export function detectHiddenGem(repository: Repository, score: RepositoryScore): HiddenGem {
+  const noGem: HiddenGem = { isHiddenGem: false, reasons: [] };
+  if (repository.archived || repository.fork) return noGem;
+  if (score.total === null || score.total < HIDDEN_GEM_MIN_SCORE) return noGem;
+  if (repository.stars > HIDDEN_GEM_MAX_STARS) return noGem;
+
+  const gaps: string[] = [];
+  if (repository.topics.length === 0) gaps.push("no topics set");
+  if (!repository.homepageUrl?.trim()) gaps.push("no homepage or demo link");
+  if (!repository.description?.trim()) gaps.push("no description");
+  if (gaps.length === 0) return noGem;
+
+  const starLabel = repository.stars === 1 ? "1 star" : `${repository.stars} stars`;
+  return {
+    isHiddenGem: true,
+    reasons: [`Scores ${score.total} but has only ${starLabel}`, ...gaps],
   };
 }
 
@@ -346,6 +383,26 @@ function parseDate(value: string | null): Date | null {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Combine project-type profile weights with user-configured multipliers so that
+ * classification still shapes scoring while user preferences nudge it:
+ * `finalWeight = (profileWeight ?? 1) * (userWeight ?? 1)`.
+ */
+export function mergeWeights(
+  profileWeights: Partial<Record<ScoreCategory, number>>,
+  userWeights: Partial<Record<ScoreCategory, number>>,
+): Partial<Record<ScoreCategory, number>> {
+  const categories = new Set<ScoreCategory>([
+    ...(Object.keys(profileWeights) as ScoreCategory[]),
+    ...(Object.keys(userWeights) as ScoreCategory[]),
+  ]);
+  const merged: Partial<Record<ScoreCategory, number>> = {};
+  for (const category of categories) {
+    merged[category] = (profileWeights[category] ?? 1) * (userWeights[category] ?? 1);
+  }
+  return merged;
 }
 
 export function collectTechSignals(treeState: RepositoryTreeState | undefined): TechSignal[] {

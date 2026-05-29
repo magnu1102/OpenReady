@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { analyzeRepository, analyzeRepositories } from "./index";
+import { analyzeRepository, analyzeRepositories, detectHiddenGem } from "./index";
+import type { RepositoryScore } from "@/modules/scoring-engine";
 import type {
   Repository,
   RepositoryReadmeState,
   RepositoryTree,
   RepositoryTreeState,
 } from "@/types";
+
+function scoreOf(total: number | null): RepositoryScore {
+  return { total, categories: [], weakestCategory: null, strongestCategory: null };
+}
 
 const now = new Date("2026-05-28T12:00:00Z");
 
@@ -260,6 +265,36 @@ Add scoring.
       expect(result.classification.detectedType).toBe("frontend");
       expect(result.classificationOverride).toBe("library");
     });
+
+    it("layers user weights on top of profile weights (profile × user)", () => {
+      const treeState = foundTree([
+        "package.json",
+        "pnpm-lock.yaml",
+        "index.html",
+        "vite.config.ts",
+        "src/components/App.tsx",
+      ]);
+      const baseline = analyzeRepository(repository(), foundReadme(strongReadme), treeState, now);
+      const weighted = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        treeState,
+        now,
+        undefined,
+        {
+          presentation: 3,
+          documentation: 0,
+        },
+      );
+
+      // Frontend profile already sets presentation ×2; the user ×3 multiplies to 6.
+      const presentation = weighted.score.categories.find((c) => c.category === "presentation");
+      const documentation = weighted.score.categories.find((c) => c.category === "documentation");
+      expect(presentation?.weight).toBe(6);
+      expect(documentation?.weight).toBe(0);
+      // Re-weighting changes the total relative to the profile-only baseline.
+      expect(weighted.score.total).not.toBe(baseline.score.total);
+    });
   });
 
   describe("tier labels", () => {
@@ -267,6 +302,47 @@ Add scoring.
       const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
       expect(result.score.total).toBeGreaterThanOrEqual(85);
       expect(result.healthLabel).toBe("Portfolio-ready");
+    });
+  });
+
+  describe("hidden-gem detection", () => {
+    it("flags a high-scoring, low-star repo with discoverability gaps", () => {
+      const repo = repository({ stars: 2, topics: [], homepageUrl: null });
+      const gem = detectHiddenGem(repo, scoreOf(82));
+      expect(gem.isHiddenGem).toBe(true);
+      expect(gem.reasons[0]).toBe("Scores 82 but has only 2 stars");
+      expect(gem.reasons).toContain("no topics set");
+      expect(gem.reasons).toContain("no homepage or demo link");
+    });
+
+    it("does not flag a strong repo that is already well-promoted", () => {
+      const repo = repository({ stars: 2, topics: ["cli"], homepageUrl: "https://example.com" });
+      expect(detectHiddenGem(repo, scoreOf(82)).isHiddenGem).toBe(false);
+    });
+
+    it("does not flag popular, low-scoring, archived, or forked repos", () => {
+      const gaps = { topics: [], homepageUrl: null };
+      expect(detectHiddenGem(repository({ stars: 50, ...gaps }), scoreOf(90)).isHiddenGem).toBe(
+        false,
+      );
+      expect(detectHiddenGem(repository({ stars: 1, ...gaps }), scoreOf(40)).isHiddenGem).toBe(
+        false,
+      );
+      expect(
+        detectHiddenGem(repository({ stars: 1, archived: true, ...gaps }), scoreOf(90)).isHiddenGem,
+      ).toBe(false);
+      expect(
+        detectHiddenGem(repository({ stars: 1, fork: true, ...gaps }), scoreOf(90)).isHiddenGem,
+      ).toBe(false);
+      expect(detectHiddenGem(repository({ stars: 1, ...gaps }), scoreOf(null)).isHiddenGem).toBe(
+        false,
+      );
+    });
+
+    it("is attached to every AnalysisResult", () => {
+      const result = analyzeRepository(repository(), foundReadme(strongReadme), undefined, now);
+      expect(result.hiddenGem).toMatchObject({ isHiddenGem: false });
+      expect(Array.isArray(result.hiddenGem.reasons)).toBe(true);
     });
   });
 

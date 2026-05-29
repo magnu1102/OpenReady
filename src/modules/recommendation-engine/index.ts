@@ -1,4 +1,5 @@
 import type { CheckResult, Recommendation, RecommendationPriority } from "@/types";
+import { categoryForCheck, scoreChecks, type ScoreCategory } from "@/modules/scoring-engine";
 
 interface RecommendationRule {
   title: string;
@@ -165,26 +166,54 @@ const PRIORITY_WEIGHTS: Record<RecommendationPriority, number> = {
   low: 1,
 };
 
-export function generateRecommendations(checks: CheckResult[]): Recommendation[] {
+export function generateRecommendations(
+  checks: CheckResult[],
+  weights: Partial<Record<ScoreCategory, number>> = {},
+): Recommendation[] {
+  const baseTotal = scoreChecks(checks, weights).total;
   const recommendations: Recommendation[] = [];
 
   for (const check of checks) {
-    if (check.status === "failed") {
-      const rule = RECOMMENDATION_RULES[check.id];
-      if (rule) {
-        recommendations.push({
-          id: `rec-${check.id}`,
-          checkId: check.id,
-          title: rule.title,
-          description: rule.description,
-          priority: rule.priority,
-        });
-      }
-    }
+    if (check.status !== "failed") continue;
+    const rule = RECOMMENDATION_RULES[check.id];
+    if (!rule) continue;
+
+    recommendations.push({
+      id: `rec-${check.id}`,
+      checkId: check.id,
+      title: rule.title,
+      description: rule.description,
+      priority: rule.priority,
+      category: categoryForCheck(check),
+      scoreImpact: projectedImpact(checks, check, weights, baseTotal),
+    });
   }
 
-  // Sort by priority (high -> medium -> low)
-  return recommendations.sort((a, b) => {
-    return PRIORITY_WEIGHTS[b.priority] - PRIORITY_WEIGHTS[a.priority];
-  });
+  // Sort by a combined key so a missing license still ranks high, but a
+  // high-impact "medium" can climb above a low-impact "high".
+  return recommendations.sort(
+    (a, b) =>
+      PRIORITY_WEIGHTS[b.priority] * 10 +
+      b.scoreImpact -
+      (PRIORITY_WEIGHTS[a.priority] * 10 + a.scoreImpact),
+  );
+}
+
+/**
+ * Estimate how much the total score would rise if a single failing check were
+ * resolved, by re-scoring with that one check flipped to `passed`.
+ */
+function projectedImpact(
+  checks: CheckResult[],
+  target: CheckResult,
+  weights: Partial<Record<ScoreCategory, number>>,
+  baseTotal: number | null,
+): number {
+  if (baseTotal === null) return 0;
+  const simulated = checks.map((check) =>
+    check === target ? { ...check, status: "passed" as const } : check,
+  );
+  const newTotal = scoreChecks(simulated, weights).total;
+  if (newTotal === null) return 0;
+  return Math.max(0, newTotal - baseTotal);
 }

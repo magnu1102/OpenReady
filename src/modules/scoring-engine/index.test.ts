@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CheckCategory, CheckResult, CheckStatus } from "@/types";
-import { scoreChecks } from "./index";
+import { categoryForCheck, scoreChecks } from "./index";
 
 function check(id: string, category: CheckCategory, status: CheckStatus): CheckResult {
   return { id, label: id, category, status };
@@ -122,5 +122,26 @@ describe("scoring-engine", () => {
     expect(metadata?.score).toBe(50);
     expect(maint?.score).toBe(100);
     expect(result.total).toBe(75);
+  });
+});
+
+describe("categoryForCheck", () => {
+  it("maps presentation-specific check ids to presentation, not documentation", () => {
+    expect(categoryForCheck(check("readme-screenshots-demo", "documentation", "failed"))).toBe(
+      "presentation",
+    );
+    expect(categoryForCheck(check("homepage", "metadata", "failed"))).toBe("presentation");
+    expect(categoryForCheck(check("readme", "documentation", "passed"))).toBe("documentation");
+  });
+
+  it("maps remaining checks by their CheckCategory", () => {
+    expect(categoryForCheck(check("description", "metadata", "passed"))).toBe(
+      "metadata-discoverability",
+    );
+    expect(categoryForCheck(check("github-actions", "ci", "failed"))).toBe("testing-ci");
+    expect(categoryForCheck(check("recent-activity", "activity", "passed"))).toBe(
+      "maintainability",
+    );
+    expect(categoryForCheck(check("not-archived", "status", "passed"))).toBe("maintainability");
   });
 });
