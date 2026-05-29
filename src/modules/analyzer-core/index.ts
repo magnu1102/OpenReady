@@ -182,7 +182,7 @@ export function analyzeRepository(
     .slice(0, 3);
 
   const score = scoreChecks(checks, weights);
-  const recommendations = generateRecommendations(checks);
+  const recommendations = generateRecommendations(checks, weights);
 
   return {
     repository,

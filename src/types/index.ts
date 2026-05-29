@@ -1,4 +1,4 @@
-import type { RepositoryScore } from "@/modules/scoring-engine";
+import type { RepositoryScore, ScoreCategory } from "@/modules/scoring-engine";
 import type { ClassificationResult, ProjectType } from "@/modules/project-classifier/types";
 
 export interface RepositoryLicense {
@@ -97,6 +97,14 @@ export interface Recommendation {
   title: string;
   description: string;
   priority: RecommendationPriority;
+  /** Scoring category the underlying check contributes to, or null if uncategorized. */
+  category: ScoreCategory | null;
+  /**
+   * Projected increase to the repository's total score if this single failing
+   * check were resolved, given the active (profile × user) weights. 0 when the
+   * impact cannot be computed (e.g. total is null).
+   */
+  scoreImpact: number;
 }
 
 export interface AnalysisResult {

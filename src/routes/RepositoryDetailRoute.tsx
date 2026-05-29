@@ -295,6 +295,11 @@ function RecommendationsPanel({ recommendations }: { recommendations?: Recommend
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold text-text-primary">{rec.title}</h3>
               <PriorityBadge priority={rec.priority} />
+              {rec.scoreImpact > 0 ? (
+                <Badge tone="success" title="Projected increase to the total score if resolved">
+                  +{rec.scoreImpact} pts
+                </Badge>
+              ) : null}
             </div>
             <p className="text-sm text-text-secondary">{rec.description}</p>
           </div>
