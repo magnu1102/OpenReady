@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { WelcomeRoute } from "@/routes/WelcomeRoute";
 import { DashboardRoute } from "@/routes/DashboardRoute";
 import { CompareRoute } from "@/routes/CompareRoute";
+import { PortfolioRoute } from "@/routes/PortfolioRoute";
 import { RepositoryDetailRoute } from "@/routes/RepositoryDetailRoute";
 import { SettingsRoute } from "@/routes/SettingsRoute";
 import { NotFoundRoute } from "@/routes/NotFoundRoute";
@@ -18,6 +19,7 @@ function createAppRouter(initialEntries = ["/"]) {
           { path: "dashboard", element: <DashboardRoute /> },
           { path: "dashboard/compare", element: <CompareRoute /> },
           { path: "dashboard/repo/:id", element: <RepositoryDetailRoute /> },
+          { path: "portfolio", element: <PortfolioRoute /> },
           { path: "settings", element: <SettingsRoute /> },
           { path: "*", element: <NotFoundRoute /> },
         ],
