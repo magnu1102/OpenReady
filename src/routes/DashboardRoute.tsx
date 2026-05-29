@@ -186,11 +186,11 @@ export function DashboardRoute() {
           >
             <Tooltip content={hint}>
               <Card className="cursor-help">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                <div className="flex min-h-[2.25rem] items-start justify-between gap-2">
+                  <span className="text-xs font-medium uppercase leading-tight tracking-wider text-text-muted">
                     {label}
                   </span>
-                  <Icon className="h-4 w-4 text-text-muted" strokeWidth={1.75} />
+                  <Icon className="h-4 w-4 shrink-0 text-text-muted" strokeWidth={1.75} />
                 </div>
                 <div className="mt-3 text-3xl font-semibold tabular-nums text-text-primary">
                   {value}
