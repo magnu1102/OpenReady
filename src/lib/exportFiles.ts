@@ -17,6 +17,9 @@ const formatFilters: Record<ExportFormat, { name: string; extensions: string[] }
   markdown: { name: "Markdown", extensions: ["md"] },
   json: { name: "JSON", extensions: ["json"] },
   "homepage-cards": { name: "Markdown", extensions: ["md"] },
+  portfolio: { name: "Markdown", extensions: ["md"] },
+  cv: { name: "Markdown", extensions: ["md"] },
+  "talking-points": { name: "Markdown", extensions: ["md"] },
 };
 
 export async function saveExportFile(input: SaveExportInput): Promise<SaveExportResult> {

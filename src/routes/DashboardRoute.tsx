@@ -329,6 +329,9 @@ function buildExportContent(format: ExportFormat, input: ExportInput): string {
       return exportJsonSummary(input);
     case "homepage-cards":
       return exportHomepageCards(input);
+    default:
+      // Portfolio/CV/talking-points exports are produced from the Portfolio route.
+      throw new Error(`Unsupported dashboard export format: ${format}`);
   }
 }
 

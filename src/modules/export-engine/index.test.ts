@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { analyzeRepository } from "@/modules/analyzer-core";
 import {
+  exportCvBullets,
   exportHomepageCards,
   exportJsonSummary,
   exportMarkdownReport,
+  exportPortfolioMarkdown,
+  exportTalkingPointsMarkdown,
   suggestedExportFilename,
 } from ".";
-import type { AnalysisResult, Repository, RepositoryReadmeState, RepositoryTreeState } from "@/types";
+import { collectTechSignals } from "@/modules/analyzer-core";
+import type {
+  AnalysisResult,
+  Repository,
+  RepositoryReadmeState,
+  RepositoryTreeState,
+} from "@/types";
 
 const baseRepository: Repository = {
   id: "1",
@@ -157,6 +166,51 @@ describe("export-engine", () => {
     expect(suggestedExportFilename("homepage-cards", "Octo Cat!")).toBe(
       "octo-cat-homepage-cards.md",
     );
+    expect(suggestedExportFilename("portfolio", "Octo Cat!")).toBe("octo-cat-portfolio.md");
+    expect(suggestedExportFilename("cv", "Octo Cat!")).toBe("octo-cat-cv-bullets.md");
+    expect(suggestedExportFilename("talking-points", "Octo Cat!")).toBe(
+      "octo-cat-talking-points.md",
+    );
+  });
+
+  describe("portfolio exports", () => {
+    function portfolioInput() {
+      const analysis = analysisFor(baseRepository);
+      return {
+        username: "octocat",
+        analyses: [analysis],
+        signalsById: { [baseRepository.id]: collectTechSignals(completeTree) },
+        role: "frontend" as const,
+        generatedAt: "2026-05-28T12:00:00Z",
+      };
+    }
+
+    it("renders a role-framed portfolio with the featured repo", () => {
+      const md = exportPortfolioMarkdown(portfolioInput());
+      expect(md).toContain("Frontend Engineer portfolio");
+      expect(md).toContain("[openready](https://github.com/octocat/openready)");
+      expect(md).toContain("**Score:**");
+    });
+
+    it("renders CV bullets from facts in the analysis", () => {
+      const md = exportCvBullets(portfolioInput());
+      expect(md).toContain("CV bullet points — Frontend Engineer");
+      expect(md).toContain("## openready");
+      expect(md).toMatch(/- Built .*TypeScript/);
+    });
+
+    it("renders interview talking points with the three sections", () => {
+      const md = exportTalkingPointsMarkdown(portfolioInput());
+      expect(md).toContain("Interview talking points — Frontend Engineer");
+      expect(md).toContain("**Highlights**");
+      expect(md).toContain("**Likely questions**");
+      expect(md).toContain("**Gaps to own**");
+    });
+
+    it("handles an empty analyses list gracefully", () => {
+      const md = exportPortfolioMarkdown({ ...portfolioInput(), analyses: [], signalsById: {} });
+      expect(md).toContain("No repositories were available to feature.");
+    });
   });
 });
 
