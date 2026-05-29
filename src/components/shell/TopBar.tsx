@@ -7,6 +7,8 @@ const labels: Record<string, string> = {
   "": "Welcome",
   dashboard: "Dashboard",
   repo: "Repository",
+  compare: "Compare",
+  portfolio: "Portfolio",
   settings: "Settings",
 };
 
