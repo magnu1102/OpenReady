@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { isValidGitHubUsername } from "@/modules/github-client";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import { APP_PHASE } from "@/lib/env";
 
 const principles = [
   {
@@ -108,7 +109,7 @@ export function WelcomeRoute() {
         className="flex flex-col gap-4"
       >
         <Badge tone="accent" className="self-start">
-          <Sparkles className="h-3 w-3" /> Phase 8 - local cache and settings
+          <Sparkles className="h-3 w-3" /> {APP_PHASE}
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
           Understand and improve your GitHub repositories.
