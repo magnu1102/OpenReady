@@ -21,6 +21,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bump:version": "node scripts/bump-version.mjs",
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {
