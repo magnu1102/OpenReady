@@ -92,6 +92,10 @@ export function categoryForCheck(check: CheckResult): ScoreCategory | null {
   return categoryDefinitions.find((definition) => definition.match(check))?.id ?? null;
 }
 
+/** Ordered category id + label pairs, for UIs that let users tune weights. */
+export const SCORE_CATEGORIES: ReadonlyArray<{ id: ScoreCategory; label: string }> =
+  categoryDefinitions.map(({ id, label }) => ({ id, label }));
+
 export function scoreChecks(
   checks: CheckResult[],
   weights: Partial<Record<ScoreCategory, number>> = {},
