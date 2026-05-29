@@ -8,6 +8,11 @@ relevant section.
 
 ## [Unreleased]
 
+### Added
+
+- MIT `LICENSE` — OpenReady is now formally open source under the MIT License,
+  with matching `license` fields in `package.json` and `src-tauri/Cargo.toml`.
+
 ### Fixed
 
 - Styling cleanup: corrected the stale "Phase 8" label shown on the welcome
