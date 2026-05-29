@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Compass, Cpu, Database, Github, Palette, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Compass,
+  Cpu,
+  Database,
+  Github,
+  Palette,
+  RotateCcw,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +23,13 @@ import {
   type GitHubTokenStatus,
 } from "@/lib/githubAuth";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import {
+  usePreferencesStore,
+  DEFAULT_CATEGORY_WEIGHT,
+  MAX_CATEGORY_WEIGHT,
+  MIN_CATEGORY_WEIGHT,
+} from "@/store/preferencesStore";
+import { SCORE_CATEGORIES, type ScoreCategory } from "@/modules/scoring-engine";
 import { useTourStore } from "@/modules/tour";
 
 export function SettingsRoute() {
@@ -26,7 +43,24 @@ export function SettingsRoute() {
   const cachedAnalyses = useRepositoryStore((s) => s.cachedAnalyses);
   const clearRepositoryCache = useRepositoryStore((s) => s.clearRepositoryCache);
   const loadCachedAnalyses = useRepositoryStore((s) => s.loadCachedAnalyses);
+  const recomputeAnalyses = useRepositoryStore((s) => s.recomputeAnalyses);
   const cacheCount = cachedAnalyses.length;
+  const categoryWeights = usePreferencesStore((s) => s.categoryWeights);
+  const setCategoryWeight = usePreferencesStore((s) => s.setCategoryWeight);
+  const resetWeights = usePreferencesStore((s) => s.resetWeights);
+  const weightsCustomized = SCORE_CATEGORIES.some(
+    ({ id }) => (categoryWeights[id] ?? DEFAULT_CATEGORY_WEIGHT) !== DEFAULT_CATEGORY_WEIGHT,
+  );
+
+  function changeWeight(category: ScoreCategory, value: number) {
+    setCategoryWeight(category, value);
+    void recomputeAnalyses();
+  }
+
+  function resetAllWeights() {
+    resetWeights();
+    void recomputeAnalyses();
+  }
   const restartTour = useTourStore((s) => s.restart);
   const tourSeen = useTourStore((s) => s.seen);
 
@@ -202,6 +236,51 @@ export function SettingsRoute() {
       <Separator />
 
       <Section
+        icon={<SlidersHorizontal className="h-4 w-4" />}
+        title="Scoring weights"
+        status={weightsCustomized ? "Customized" : "Default"}
+        statusTone={weightsCustomized ? "accent" : "neutral"}
+      >
+        <div className="flex flex-col gap-5">
+          <div className="flex max-w-xl flex-col gap-1">
+            <span className="text-sm font-medium text-text-primary">
+              Tune how much each category counts
+            </span>
+            <span className="text-xs text-text-secondary">
+              These multipliers layer on top of the project-type weights, so a CLI is still judged
+              like a CLI. Changes re-score every repository immediately and persist locally. Leave a
+              category at {DEFAULT_CATEGORY_WEIGHT.toFixed(1)}× to keep its default weight; set it
+              to {MIN_CATEGORY_WEIGHT.toFixed(1)}× to ignore it.
+            </span>
+          </div>
+          <div className="flex flex-col divide-y divide-border-subtle">
+            {SCORE_CATEGORIES.map(({ id, label }) => (
+              <WeightRow
+                key={id}
+                label={label}
+                value={categoryWeights[id] ?? DEFAULT_CATEGORY_WEIGHT}
+                onChange={(value) => changeWeight(id, value)}
+              />
+            ))}
+          </div>
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!weightsCustomized}
+              aria-disabled={!weightsCustomized}
+              onClick={resetAllWeights}
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reset to defaults
+            </Button>
+          </div>
+        </div>
+      </Section>
+
+      <Separator />
+
+      <Section
         icon={<Cpu className="h-4 w-4" />}
         title="AI features"
         status="Phase 15"
@@ -252,6 +331,40 @@ function Section({
       </div>
       <Card>{children}</Card>
     </section>
+  );
+}
+
+function WeightRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const inputId = `weight-${label.replace(/\s+/g, "-").toLowerCase()}`;
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <label htmlFor={inputId} className="text-sm text-text-primary">
+        {label}
+      </label>
+      <div className="flex items-center gap-3">
+        <input
+          id={inputId}
+          type="range"
+          min={MIN_CATEGORY_WEIGHT}
+          max={MAX_CATEGORY_WEIGHT}
+          step={0.25}
+          value={value}
+          onChange={(event) => onChange(Number(event.currentTarget.value))}
+          className="w-40 accent-accent"
+        />
+        <span className="w-12 text-right text-sm font-medium tabular-nums text-text-secondary">
+          {value.toFixed(2)}×
+        </span>
+      </div>
+    </div>
   );
 }
 
