@@ -107,6 +107,13 @@ export interface Recommendation {
   scoreImpact: number;
 }
 
+export interface HiddenGem {
+  /** True when the repository scores well but has low reach and discoverability gaps. */
+  isHiddenGem: boolean;
+  /** Human-readable explanations for why the repository qualified (empty when it didn't). */
+  reasons: string[];
+}
+
 export interface AnalysisResult {
   repository: Repository;
   checks: CheckResult[];
@@ -120,6 +127,7 @@ export interface AnalysisResult {
   recommendations: Recommendation[];
   classification: ClassificationResult;
   classificationOverride?: ProjectType;
+  hiddenGem: HiddenGem;
 }
 
 export type { CategoryScore, RepositoryScore, ScoreCategory } from "@/modules/scoring-engine";
