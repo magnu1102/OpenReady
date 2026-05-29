@@ -13,8 +13,8 @@ A condensed phase outline. The master plan (`openready_master_plan.md` §13) is 
 - **Phase 8 — Local cache and settings.** Refresh, optional token storage, theme, preferences. ✅
 - **Phase 9 — Project classification.** Type-specific expectations, weighted scoring, manual overrides. ✅
 - **Phase 10 — UI polish and onboarding.** Guided tour, command palette, keyboard navigation, reduced-motion + accessibility pass. ✅
-- **Phase 11 — CLI version.** `openready analyze <username>` with table/JSON/Markdown output, token chain, esbuild bundle. ← _current_
-- **Phase 12 — Release packaging.** Windows installer, GitHub Releases, versioning, changelog.
+- **Phase 11 — CLI version.** `openready analyze <username>` with table/JSON/Markdown output, token chain, esbuild bundle. ✅
+- **Phase 12 — Release packaging.** Cross-platform Tauri bundles via tauri-action, CLI bundle asset, CHANGELOG + bump-version script, signing notes. ← _current_
 - **Phase 13 — Advanced recommendations.** Prioritization, hidden-gem detection, custom weights.
 - **Phase 14 — Job-market and portfolio mode.** Role selection, portfolio export, CV/talking-points helpers.
 - **Phase 15 — Optional AI assist.** Bring-your-own-key, README critique, summaries.

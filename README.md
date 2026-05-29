@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 11 — CLI version. The desktop app classifies repositories by project type, applies type-weighted scoring, ships a guided onboarding tour and command palette (⌘K / ⌘/), and now exposes the same deterministic analyzer through a Node CLI (`openready analyze <username>` with table, JSON or Markdown output).
+> **Status:** Phase 12 — release packaging. Tagging `v*.*.*` triggers a cross-platform GitHub Actions workflow that builds macOS, Windows, and Linux Tauri bundles via `tauri-apps/tauri-action`, attaches the CLI esbuild bundle, and drafts a GitHub Release. Versioning, changelog, and signing notes are in place; the first tagged artifact will be `v0.1.0`.
 
 ## Screenshots
 
@@ -115,9 +115,12 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 - [Tech-stack detection](docs/tech-stack-detection.md)
 - [CLI](docs/cli.md)
 - [Onboarding and keyboard](docs/onboarding-and-keyboard.md)
+- [Releasing](docs/releasing.md)
+- [Signing notes](docs/signing.md)
 - [Privacy model](docs/privacy.md)
 - [AI expansion](docs/ai-expansion.md)
 - [Roadmap](docs/roadmap.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
