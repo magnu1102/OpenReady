@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ScoreRing } from "@/components/ui/ScoreRing";
+import { ScoreBar } from "@/components/ui/ScoreBar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/Button";
@@ -171,7 +172,8 @@ export function RepositoryDetailRoute() {
         <Card className="flex w-full max-w-[260px] flex-col items-center gap-2 p-5">
           <ScoreRing value={analysis?.score.total ?? null} label="Score" />
           <p className="text-xs text-text-muted">
-            Equal-weighted mean of eight category scores. See the breakdown for evidence.
+            Weighted mean of eight category scores (by project type and your settings). See the
+            breakdown for evidence.
           </p>
           <Button asChild variant="secondary" size="sm">
             <a href={repository.url} target="_blank" rel="noreferrer">
@@ -295,6 +297,11 @@ function RecommendationsPanel({ recommendations }: { recommendations?: Recommend
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold text-text-primary">{rec.title}</h3>
               <PriorityBadge priority={rec.priority} />
+              {rec.scoreImpact > 0 ? (
+                <Badge tone="success" title="Projected increase to the total score if resolved">
+                  +{rec.scoreImpact} pts
+                </Badge>
+              ) : null}
             </div>
             <p className="text-sm text-text-secondary">{rec.description}</p>
           </div>
@@ -576,20 +583,6 @@ function confidenceTone(confidence: Confidence) {
     case "low":
       return "warn";
   }
-}
-
-function ScoreBar({ score }: { score: number | null }) {
-  if (score === null) {
-    return <div className="h-1.5 w-full rounded-full bg-border-subtle" aria-hidden />;
-  }
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-border-subtle" aria-hidden>
-      <div
-        className="h-full rounded-full bg-accent transition-[width] duration-soft ease-soft"
-        style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
-      />
-    </div>
-  );
 }
 
 function PlaceholderPanel({

@@ -10,6 +10,12 @@ relevant section.
 
 ### Added
 
+- Advanced recommendations (Phase 13): recommendations are ranked by their
+  projected score impact (shown as `+N pts`); a deterministic hidden-gem
+  detector flags strong-but-under-promoted repositories on the dashboard;
+  scoring weights are user-customizable per category from a new Settings card
+  (multipliers layered on top of the project-type profile weights); and a
+  `/dashboard/compare` view compares up to three repositories side by side.
 - Release packaging (Phase 12): `CHANGELOG.md`, `scripts/bump-version.mjs`, a
   pull-request `lint-and-test` workflow, a tag-triggered release workflow that
   builds the Tauri desktop bundles on macOS, Windows, and Linux via
@@ -17,6 +23,12 @@ relevant section.
   additional release asset.
 - New docs: `docs/releasing.md` (release checklist) and `docs/signing.md`
   (Gatekeeper / SmartScreen notes for unsigned artifacts).
+
+### Changed
+
+- The local analysis cache schema bumped to version 3 (`AnalysisResult` gained
+  a required `hiddenGem` field); pre-Phase-13 snapshots are dropped on first
+  read and repopulated on the next refresh.
 
 ## [0.1.0] — Initial release
 

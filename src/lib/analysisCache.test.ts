@@ -57,6 +57,7 @@ function analysis(repositoryOverride: Partial<Repository> = {}): AnalysisResult 
       runnerUp: null,
       overridden: false,
     },
+    hiddenGem: { isHiddenGem: false, reasons: [] },
   };
 }
 

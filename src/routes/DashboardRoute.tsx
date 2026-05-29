@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
@@ -8,7 +8,9 @@ import {
   ExternalLink,
   FileJson,
   FileText,
+  GitCompare,
   GitFork,
+  Gem,
   Github,
   Inbox,
   RefreshCw,
@@ -24,6 +26,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import { useComparisonStore, MAX_COMPARISON } from "@/store/comparisonStore";
 import { collectTechSignals } from "@/modules/analyzer-core";
 import { PROJECT_TYPE_LABELS } from "@/modules/project-classifier";
 import {
@@ -62,6 +65,7 @@ export function DashboardRoute() {
   const needsWork = analyses.filter(
     (analysis) => analysis.healthLabel === "Needs work" || analysis.healthLabel === "Experimental",
   ).length;
+  const hiddenGems = analyses.filter((analysis) => analysis.hiddenGem.isHiddenGem).length;
   const scoredTotals = analyses
     .map((analysis) => analysis.score.total)
     .filter((total): total is number => total !== null);
@@ -87,6 +91,12 @@ export function DashboardRoute() {
       value: status === "success" ? needsWork.toString() : "—",
       icon: ShieldQuestion,
       hint: "Repositories in the Needs work or Experimental tiers.",
+    },
+    {
+      label: "Hidden gems",
+      value: status === "success" ? hiddenGems.toString() : "—",
+      icon: Gem,
+      hint: "Strong repositories (score ≥ 70) with few stars and missing discoverability signals — under-promoted work worth surfacing.",
     },
     {
       label: "Avg score",
@@ -164,7 +174,7 @@ export function DashboardRoute() {
           hidden: {},
           show: { transition: { staggerChildren: 0.04 } },
         }}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
       >
         {stats.map(({ label, value, icon: Icon, hint }) => (
           <motion.div
@@ -273,6 +283,34 @@ export function DashboardRoute() {
           }
         />
       ) : null}
+
+      <CompareBar />
+    </div>
+  );
+}
+
+function CompareBar() {
+  const navigate = useNavigate();
+  const selectedIds = useComparisonStore((s) => s.selectedIds);
+  const clear = useComparisonStore((s) => s.clear);
+  if (selectedIds.length === 0) return null;
+
+  return (
+    <div className="bg-surface/95 sticky bottom-4 z-10 mx-auto flex items-center gap-3 rounded-full border border-border-default px-4 py-2 shadow-lg backdrop-blur">
+      <span className="text-sm text-text-secondary">{selectedIds.length} selected to compare</span>
+      <Button
+        type="button"
+        variant="primary"
+        size="sm"
+        disabled={selectedIds.length < 2}
+        aria-disabled={selectedIds.length < 2}
+        onClick={() => navigate("/dashboard/compare")}
+      >
+        <GitCompare className="h-3.5 w-3.5" /> Compare
+      </Button>
+      <Button type="button" variant="ghost" size="sm" onClick={clear}>
+        Clear
+      </Button>
     </div>
   );
 }
@@ -485,6 +523,11 @@ function RepositoryCard({
         {analysis ? (
           <Badge tone={healthLabelTone(analysis.healthLabel)}>{analysis.healthLabel}</Badge>
         ) : null}
+        {analysis?.hiddenGem.isHiddenGem ? (
+          <Badge tone="accent" title={analysis.hiddenGem.reasons.join(" · ")}>
+            <Gem className="h-3 w-3" /> Hidden gem
+          </Badge>
+        ) : null}
         {analysis && analysis.classification.type !== "unknown" ? (
           <Badge tone="accent" title={analysis.classification.reasons.join(" · ")}>
             {PROJECT_TYPE_LABELS[analysis.classification.type]}
@@ -550,9 +593,31 @@ function RepositoryCard({
               </a>
             </Button>
           ) : null}
+          <CompareToggle repositoryId={repository.id} />
         </div>
       </div>
     </Card>
+  );
+}
+
+function CompareToggle({ repositoryId }: { repositoryId: string }) {
+  const selectedIds = useComparisonStore((s) => s.selectedIds);
+  const toggle = useComparisonStore((s) => s.toggle);
+  const selected = selectedIds.includes(repositoryId);
+  const full = !selected && selectedIds.length >= MAX_COMPARISON;
+
+  return (
+    <Button
+      type="button"
+      variant={selected ? "primary" : "ghost"}
+      size="sm"
+      disabled={full}
+      aria-pressed={selected}
+      title={full ? `Compare up to ${MAX_COMPARISON} repositories at once` : undefined}
+      onClick={() => toggle(repositoryId)}
+    >
+      <GitCompare className="h-3.5 w-3.5" /> {selected ? "Selected" : "Compare"}
+    </Button>
   );
 }
 

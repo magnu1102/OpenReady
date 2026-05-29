@@ -1,4 +1,4 @@
-import type { RepositoryScore } from "@/modules/scoring-engine";
+import type { RepositoryScore, ScoreCategory } from "@/modules/scoring-engine";
 import type { ClassificationResult, ProjectType } from "@/modules/project-classifier/types";
 
 export interface RepositoryLicense {
@@ -97,6 +97,21 @@ export interface Recommendation {
   title: string;
   description: string;
   priority: RecommendationPriority;
+  /** Scoring category the underlying check contributes to, or null if uncategorized. */
+  category: ScoreCategory | null;
+  /**
+   * Projected increase to the repository's total score if this single failing
+   * check were resolved, given the active (profile × user) weights. 0 when the
+   * impact cannot be computed (e.g. total is null).
+   */
+  scoreImpact: number;
+}
+
+export interface HiddenGem {
+  /** True when the repository scores well but has low reach and discoverability gaps. */
+  isHiddenGem: boolean;
+  /** Human-readable explanations for why the repository qualified (empty when it didn't). */
+  reasons: string[];
 }
 
 export interface AnalysisResult {
@@ -112,6 +127,7 @@ export interface AnalysisResult {
   recommendations: Recommendation[];
   classification: ClassificationResult;
   classificationOverride?: ProjectType;
+  hiddenGem: HiddenGem;
 }
 
 export type { CategoryScore, RepositoryScore, ScoreCategory } from "@/modules/scoring-engine";
