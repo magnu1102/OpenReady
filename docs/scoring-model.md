@@ -46,6 +46,24 @@ total = applicableCategories.length === 0 || weightSum === 0
 
 Each `CategoryScore` carries a `weight` (default `1`). The default profile keeps Phase 5's equal-weighted behaviour, but the project classifier (Phase 9) supplies per-type weights via a `ClassificationProfile` so a frontend repo emphasises presentation while a CLI emphasises documentation and testing. See [`classification.md`](classification.md) for the full per-type tables.
 
+### User-customizable weights (Phase 13)
+
+The effective weight passed to `scoreChecks` is the **profile weight times a user multiplier**:
+
+```
+finalWeight[category] = (profileWeight[category] ?? 1) * (userWeight[category] ?? 1)
+```
+
+User multipliers live in the persisted `preferencesStore` (one per category, default `1`, range `0`–`3`) and are edited from the **Scoring weights** card in Settings. `mergeWeights` in `src/modules/analyzer-core/index.ts` performs the combination, so classification still shapes scoring while user preferences nudge it. Setting a category to `0` removes it from the weighted mean entirely. The CLI passes no user weights, so its output is unaffected.
+
+## Score impact for recommendations (Phase 13)
+
+Recommendations carry a `scoreImpact`: the projected rise in the total score if that single failing check were resolved. It is computed in `src/modules/recommendation-engine/index.ts` by re-running `scoreChecks` with the target check flipped to `passed` (against the active weights) and taking the difference. Recommendations sort by a combined key — `PRIORITY_WEIGHTS[priority] * 10 + scoreImpact` — so a missing license still ranks near the top while a high-impact "medium" can climb above a low-impact "high". The detail view renders this as a `+N pts` badge.
+
+## Hidden-gem detection (Phase 13)
+
+Every `AnalysisResult` carries a `hiddenGem` flag. A repository qualifies when it scores well (`total >= 70`) yet has low reach (`stars <= 5`) and at least one discoverability gap (no topics, homepage, or description), excluding archives and forks. Thresholds are absolute and deterministic (no network, no per-account statistics) so the app and CLI agree. The dashboard surfaces a badge per card and a summary count.
+
 The `RepositoryScore` returned by `scoreChecks` also exposes `weakestCategory` and `strongestCategory`, used by the detail view's breakdown panel — these stay derived from raw category scores, independent of weight.
 
 ## Tier labels
@@ -69,9 +87,8 @@ A transient **Analyzing** label appears when every category's score is `null` �
 
 ## What is intentionally deferred
 
-- **User-defined weights.** Type weights ship as part of Phase 9, but per-user custom weighting (master plan §9.5) is still future work.
-- **Hidden gem detection** (master plan §9.3) — owned by Phase 13.
-- **Score history and trends** — Phase 13+.
+- **Score history and trends** — comparing a repository against its own past snapshots is still future work.
+- **Per-account relative hidden-gem thresholds** — the current detector uses absolute thresholds; a median-based variant remains a possible refinement.
 
 ## Implementation pointer
 

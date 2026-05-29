@@ -4,7 +4,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** Phase 12 — release packaging. Tagging `v*.*.*` triggers a cross-platform GitHub Actions workflow that builds macOS, Windows, and Linux Tauri bundles via `tauri-apps/tauri-action`, attaches the CLI esbuild bundle, and drafts a GitHub Release. Versioning, changelog, and signing notes are in place; the first tagged artifact will be `v0.1.0`.
+> **Status:** Phase 13 — advanced recommendations. Recommendations are now ranked by their projected score impact ("+N pts"), repositories that score well but are under-promoted are flagged as **hidden gems**, scoring weights are user-customizable per category in Settings, and any two or three repositories can be compared side by side. Phase 12 shipped cross-platform release packaging: tagging `v*.*.*` builds macOS, Windows, and Linux Tauri bundles via `tauri-apps/tauri-action` and attaches the CLI esbuild bundle to a drafted GitHub Release.
 
 ## Screenshots
 
