@@ -5,7 +5,9 @@ import type {
   RepositoryTreeState,
 } from "@/types";
 
-export const ANALYSIS_CACHE_SCHEMA_VERSION = 2;
+// Bumped to 3 in Phase 13: AnalysisResult gained the required `hiddenGem`
+// field, so v2 snapshots are dropped on first read and repopulated on refresh.
+export const ANALYSIS_CACHE_SCHEMA_VERSION = 3;
 export const ANALYSIS_CACHE_RETENTION_LIMIT = 5;
 export const ANALYSIS_CACHE_STALE_MS = 24 * 60 * 60 * 1000;
 

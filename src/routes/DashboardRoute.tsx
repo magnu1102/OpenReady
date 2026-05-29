@@ -9,6 +9,7 @@ import {
   FileJson,
   FileText,
   GitFork,
+  Gem,
   Github,
   Inbox,
   RefreshCw,
@@ -62,6 +63,7 @@ export function DashboardRoute() {
   const needsWork = analyses.filter(
     (analysis) => analysis.healthLabel === "Needs work" || analysis.healthLabel === "Experimental",
   ).length;
+  const hiddenGems = analyses.filter((analysis) => analysis.hiddenGem.isHiddenGem).length;
   const scoredTotals = analyses
     .map((analysis) => analysis.score.total)
     .filter((total): total is number => total !== null);
@@ -87,6 +89,12 @@ export function DashboardRoute() {
       value: status === "success" ? needsWork.toString() : "—",
       icon: ShieldQuestion,
       hint: "Repositories in the Needs work or Experimental tiers.",
+    },
+    {
+      label: "Hidden gems",
+      value: status === "success" ? hiddenGems.toString() : "—",
+      icon: Gem,
+      hint: "Strong repositories (score ≥ 70) with few stars and missing discoverability signals — under-promoted work worth surfacing.",
     },
     {
       label: "Avg score",
@@ -164,7 +172,7 @@ export function DashboardRoute() {
           hidden: {},
           show: { transition: { staggerChildren: 0.04 } },
         }}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
       >
         {stats.map(({ label, value, icon: Icon, hint }) => (
           <motion.div
@@ -484,6 +492,11 @@ function RepositoryCard({
       <div className="flex flex-wrap gap-1.5">
         {analysis ? (
           <Badge tone={healthLabelTone(analysis.healthLabel)}>{analysis.healthLabel}</Badge>
+        ) : null}
+        {analysis?.hiddenGem.isHiddenGem ? (
+          <Badge tone="accent" title={analysis.hiddenGem.reasons.join(" · ")}>
+            <Gem className="h-3 w-3" /> Hidden gem
+          </Badge>
         ) : null}
         {analysis && analysis.classification.type !== "unknown" ? (
           <Badge tone="accent" title={analysis.classification.reasons.join(" · ")}>

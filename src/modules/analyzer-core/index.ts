@@ -4,11 +4,13 @@ import type {
   CheckResult,
   CheckStatus,
   HealthLabel,
+  HiddenGem,
   ProjectType,
   Repository,
   RepositoryReadmeState,
   RepositoryTreeState,
 } from "@/types";
+import type { RepositoryScore } from "@/modules/scoring-engine";
 import { scoreChecks } from "@/modules/scoring-engine";
 import type { ScoreCategory } from "@/modules/scoring-engine";
 import { generateRecommendations } from "@/modules/recommendation-engine";
@@ -197,6 +199,36 @@ export function analyzeRepository(
     recommendations,
     classification,
     classificationOverride: override,
+    hiddenGem: detectHiddenGem(repository, score),
+  };
+}
+
+// Hidden-gem thresholds. Deterministic and absolute (no network, no per-account
+// statistics) so the result is identical in the desktop app and the CLI.
+const HIDDEN_GEM_MIN_SCORE = 70;
+const HIDDEN_GEM_MAX_STARS = 5;
+
+/**
+ * A hidden gem is a genuinely strong repository (high score) that few people
+ * have found (low stars) and that is under-promoted (missing discoverability
+ * signals). Archived projects and forks are excluded.
+ */
+export function detectHiddenGem(repository: Repository, score: RepositoryScore): HiddenGem {
+  const noGem: HiddenGem = { isHiddenGem: false, reasons: [] };
+  if (repository.archived || repository.fork) return noGem;
+  if (score.total === null || score.total < HIDDEN_GEM_MIN_SCORE) return noGem;
+  if (repository.stars > HIDDEN_GEM_MAX_STARS) return noGem;
+
+  const gaps: string[] = [];
+  if (repository.topics.length === 0) gaps.push("no topics set");
+  if (!repository.homepageUrl?.trim()) gaps.push("no homepage or demo link");
+  if (!repository.description?.trim()) gaps.push("no description");
+  if (gaps.length === 0) return noGem;
+
+  const starLabel = repository.stars === 1 ? "1 star" : `${repository.stars} stars`;
+  return {
+    isHiddenGem: true,
+    reasons: [`Scores ${score.total} but has only ${starLabel}`, ...gaps],
   };
 }
 
