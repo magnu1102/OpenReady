@@ -1,0 +1,133 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re-)build, e.g. v0.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build desktop bundles
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            label: macOS (universal)
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            tauri-args: --target universal-apple-darwin
+          - os: windows-latest
+            label: Windows x64
+            rust-targets: ""
+            tauri-args: ""
+          - os: ubuntu-22.04
+            label: Linux x64
+            rust-targets: ""
+            tauri-args: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # workflow_dispatch may pass an existing tag; default checkout works
+          # for the tag-push trigger.
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - name: Cache Cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI bundle
+        if: matrix.os == 'ubuntu-22.04'
+        run: pnpm build:cli
+
+      - name: Upload CLI bundle artifact
+        if: matrix.os == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openready-cli
+          path: dist-cli/openready.mjs
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Build and publish Tauri bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: "OpenReady ${{ github.event.inputs.tag || github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.tauri-args }}
+
+  attach-cli:
+    name: Attach CLI bundle to release
+    needs: release
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download CLI bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openready-cli
+          path: cli-asset
+
+      - name: Rename bundle with version
+        id: rename
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          mv cli-asset/openready.mjs "cli-asset/openready-cli-${version}.mjs"
+          echo "asset=cli-asset/openready-cli-${version}.mjs" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to the draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          files: ${{ steps.rename.outputs.asset }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
