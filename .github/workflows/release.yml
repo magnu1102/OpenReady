@@ -102,3 +102,32 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.tauri-args }}
+
+  attach-cli:
+    name: Attach CLI bundle to release
+    needs: release
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download CLI bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openready-cli
+          path: cli-asset
+
+      - name: Rename bundle with version
+        id: rename
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          mv cli-asset/openready.mjs "cli-asset/openready-cli-${version}.mjs"
+          echo "asset=cli-asset/openready-cli-${version}.mjs" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to the draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          files: ${{ steps.rename.outputs.asset }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
