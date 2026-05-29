@@ -39,7 +39,7 @@ export function Sidebar() {
         <div className="flex items-center gap-2.5 overflow-hidden">
           <Logo />
           {!sidebarCollapsed && (
-            <div className="flex flex-col leading-tight">
+            <div className="flex min-w-0 flex-col leading-tight">
               <span className="text-sm font-semibold text-text-primary">{APP_NAME}</span>
               <span className="truncate text-[10px] uppercase tracking-wider text-text-muted">
                 {APP_PHASE}
