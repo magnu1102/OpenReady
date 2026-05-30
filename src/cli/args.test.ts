@@ -36,6 +36,16 @@ describe("parseCliArgs", () => {
     });
   });
 
+  it("ignores a leading -- separator forwarded by package managers (#13)", () => {
+    expect(parseCliArgs(["--", "analyze", "octocat", "--limit", "5"])).toMatchObject({
+      kind: "analyze",
+      username: "octocat",
+      limit: 5,
+    });
+    // A lone separator behaves like no arguments.
+    expect(parseCliArgs(["--"])).toEqual({ kind: "help" });
+  });
+
   it("parses options end-to-end", () => {
     const result = parseCliArgs([
       "analyze",
