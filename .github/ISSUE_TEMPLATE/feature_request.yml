@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What are you trying to do, and what's missing or painful today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like OpenReady to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches or workarounds you've thought about.
+    validations:
+      required: false
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Fit with OpenReady's principles
+      description: OpenReady is deterministic, transparent, and local-first (see docs/product-principles.md).
+      options:
+        - label: This works without requiring AI, accounts, or a cloud backend (or it's clearly opt-in).
+          required: false

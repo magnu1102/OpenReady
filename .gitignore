@@ -30,3 +30,14 @@ src-tauri/target
 # Tests
 coverage
 
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Claude Code local config
+.claude/
+

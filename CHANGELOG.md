@@ -12,9 +12,19 @@ relevant section.
 
 - MIT `LICENSE` — OpenReady is now formally open source under the MIT License,
   with matching `license` fields in `package.json` and `src-tauri/Cargo.toml`.
+- Open-source community files: `CONTRIBUTING.md` (setup, quality gates, PR flow,
+  and an authorship/AI-attribution policy), `CODE_OF_CONDUCT.md`, `SECURITY.md`
+  (private vulnerability reporting), and GitHub issue/PR templates under
+  `.github/`.
+- Package metadata (`description`, `author`, `repository`, `bugs`, `homepage`,
+  `keywords`) and README badges, a Contributing section, and a Screenshots
+  section.
 
 ### Fixed
 
+- CLI: a leading `--` separator forwarded by package managers
+  (`pnpm cli -- analyze …`) is now ignored, so the documented command no longer
+  fails with "Unknown command: --" (#13).
 - Styling cleanup: corrected the stale "Phase 8" label shown on the welcome
   screen and sidebar (now sourced from a single `APP_PHASE` constant); aligned
   the dashboard summary numbers so a wrapping label no longer drops one out of
