@@ -28,6 +28,9 @@ import {
   type ExportFormat,
 } from "@/modules/export-engine";
 import { saveExportFile } from "@/lib/exportFiles";
+import { AiSuggestionPanel } from "@/components/ai/AiSuggestionPanel";
+import { suggestWording } from "@/modules/ai-adapter";
+import { useAiStore } from "@/store/aiStore";
 
 export function PortfolioRoute() {
   const username = useRepositoryStore((s) => s.username);
@@ -37,6 +40,9 @@ export function PortfolioRoute() {
   const overrides = usePortfolioStore((s) => s.overrides);
   const setRole = usePortfolioStore((s) => s.setRole);
   const togglePin = usePortfolioStore((s) => s.togglePin);
+  const aiBaseUrl = useAiStore((s) => s.baseUrl);
+  const aiModel = useAiStore((s) => s.model);
+  const aiConfig = { baseUrl: aiBaseUrl, model: aiModel };
   const [message, setMessage] = useState<{ tone: "neutral" | "error"; text: string }>({
     tone: "neutral",
     text: "",
@@ -214,16 +220,38 @@ export function PortfolioRoute() {
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            {cvEntries.map((entry) => (
-              <Card key={entry.repoId} className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-text-primary">{entry.name}</h3>
-                <ul className="flex flex-col gap-1.5 text-sm text-text-secondary">
-                  {entry.bullets.map((bullet) => (
-                    <li key={bullet}>• {bullet}</li>
-                  ))}
-                </ul>
-              </Card>
-            ))}
+            {cvEntries.map((entry) => {
+              const entryAnalysis = featured.find(
+                (item) => item.analysis.repository.id === entry.repoId,
+              )?.analysis;
+              return (
+                <Card key={entry.repoId} className="flex flex-col gap-3">
+                  <h3 className="text-sm font-semibold text-text-primary">{entry.name}</h3>
+                  <ul className="flex flex-col gap-1.5 text-sm text-text-secondary">
+                    {entry.bullets.map((bullet) => (
+                      <li key={bullet}>• {bullet}</li>
+                    ))}
+                  </ul>
+                  {entryAnalysis ? (
+                    <AiSuggestionPanel
+                      title="Refine wording with AI"
+                      description="Sends these deterministic bullets to your provider for a tighter rewrite. The bullets above stay as the source of truth."
+                      generateLabel="Refine"
+                      generate={() =>
+                        suggestWording(
+                          {
+                            result: entryAnalysis,
+                            kind: "cv",
+                            draft: entry.bullets.join("\n"),
+                          },
+                          aiConfig,
+                        )
+                      }
+                    />
+                  ) : null}
+                </Card>
+              );
+            })}
           </div>
         )}
       </section>

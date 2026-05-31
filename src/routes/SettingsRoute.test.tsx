@@ -54,7 +54,7 @@ describe("SettingsRoute", () => {
     expect(
       await screen.findByText("A token is configured in the operating system credential store."),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /remove/i }));
+    await user.click(screen.getByRole("button", { name: /remove token/i }));
 
     expect(deleteGitHubTokenMock).toHaveBeenCalledOnce();
     expect(await screen.findByText("GitHub token removed.")).toBeInTheDocument();
