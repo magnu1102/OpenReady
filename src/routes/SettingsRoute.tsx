@@ -5,8 +5,10 @@ import {
   Cpu,
   Database,
   Github,
+  KeyRound,
   Palette,
   RotateCcw,
+  ShieldCheck,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
@@ -22,7 +24,16 @@ import {
   validateAndStoreGitHubToken,
   type GitHubTokenStatus,
 } from "@/lib/githubAuth";
+import {
+  deleteAiConfig,
+  getAiConfigStatus,
+  validateAndStoreAiConfig,
+  verifyAiConfig,
+  type AiConfigStatus,
+} from "@/lib/aiConfig";
+import { useAiStore } from "@/store/aiStore";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import { cn } from "@/lib/cn";
 import {
   usePreferencesStore,
   DEFAULT_CATEGORY_WEIGHT,
@@ -64,6 +75,87 @@ export function SettingsRoute() {
   const restartTour = useTourStore((s) => s.restart);
   const tourSeen = useTourStore((s) => s.seen);
 
+  const aiEnabled = useAiStore((s) => s.enabled);
+  const aiBaseUrl = useAiStore((s) => s.baseUrl);
+  const aiModel = useAiStore((s) => s.model);
+  const setAiEnabled = useAiStore((s) => s.setEnabled);
+  const setAiBaseUrl = useAiStore((s) => s.setBaseUrl);
+  const setAiModel = useAiStore((s) => s.setModel);
+  const [aiKey, setAiKey] = useState("");
+  const [aiStatus, setAiStatus] = useState<AiConfigStatus>({
+    configured: false,
+    available: false,
+  });
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiTone, setAiTone] = useState<"neutral" | "error" | "success">("neutral");
+  const [aiBusy, setAiBusy] = useState(false);
+
+  async function refreshAiStatus() {
+    try {
+      const status = await getAiConfigStatus();
+      setAiStatus(status);
+      setAiMessage(
+        status.available
+          ? status.configured
+            ? "An API key is stored in the operating system credential store."
+            : "No API key is configured."
+          : "AI features are available in the desktop app.",
+      );
+    } catch (error) {
+      setAiStatus({ configured: false, available: false });
+      setAiMessage(errorMessage(error));
+    }
+  }
+
+  async function saveAiKey() {
+    setAiBusy(true);
+    setAiTone("neutral");
+    setAiMessage("Saving API key...");
+    try {
+      const status = await validateAndStoreAiConfig(aiKey);
+      setAiKey("");
+      setAiStatus(status);
+      setAiTone("success");
+      setAiMessage("API key saved. Use Verify to confirm it works with your provider.");
+    } catch (error) {
+      setAiTone("error");
+      setAiMessage(errorMessage(error));
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function removeAiKey() {
+    setAiBusy(true);
+    try {
+      const status = await deleteAiConfig();
+      setAiStatus(status);
+      setAiTone("neutral");
+      setAiMessage("API key removed.");
+    } catch (error) {
+      setAiTone("error");
+      setAiMessage(errorMessage(error));
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function verifyAiKey() {
+    setAiBusy(true);
+    setAiTone("neutral");
+    setAiMessage("Verifying with the provider...");
+    try {
+      const result = await verifyAiConfig(aiBaseUrl);
+      setAiTone(result.ok ? "success" : "error");
+      setAiMessage(result.message);
+    } catch (error) {
+      setAiTone("error");
+      setAiMessage(errorMessage(error));
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   async function refreshTokenStatus() {
     try {
       const status = await getGitHubTokenStatus();
@@ -85,6 +177,7 @@ export function SettingsRoute() {
     void loadCachedAnalyses();
     const timer = window.setTimeout(() => {
       void refreshTokenStatus();
+      void refreshAiStatus();
     }, 0);
     return () => window.clearTimeout(timer);
   }, [loadCachedAnalyses]);
@@ -199,7 +292,7 @@ export function SettingsRoute() {
                 disabled={!tokenStatus.available || tokenBusy || !tokenStatus.configured}
                 onClick={removeToken}
               >
-                <Trash2 className="h-3.5 w-3.5" /> Remove
+                <Trash2 className="h-3.5 w-3.5" /> Remove token
               </Button>
             </div>
             {tokenMessage ? <p className="text-xs text-text-muted">{tokenMessage}</p> : null}
@@ -283,17 +376,133 @@ export function SettingsRoute() {
       <Section
         icon={<Cpu className="h-4 w-4" />}
         title="AI features"
-        status="Phase 15"
-        statusTone="warn"
+        status={aiEnabled ? (aiStatus.configured ? "Enabled" : "Key needed") : "Off"}
+        statusTone={aiEnabled ? (aiStatus.configured ? "success" : "warn") : "neutral"}
       >
-        <Row
-          label="AI-assisted suggestions"
-          hint="OpenReady is deterministic by design. Optional AI suggestions will be opt-in, bring-your-own-key, and never replace the core checks."
-        >
-          <Button variant="secondary" size="sm" disabled aria-disabled>
-            Configure provider
-          </Button>
-        </Row>
+        <div className="flex flex-col gap-5">
+          <Row
+            label="AI-assisted suggestions"
+            hint="OpenReady is deterministic by design. AI suggestions are opt-in, bring-your-own-key, and never replace the core checks. When enabled, you trigger each suggestion manually."
+          >
+            <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} label="Enable AI features" />
+          </Row>
+
+          <Row
+            label="Provider base URL"
+            hint="Any OpenAI-compatible endpoint — OpenAI, Groq, OpenRouter, or a local model such as Ollama (http://localhost:11434/v1)."
+          >
+            <Input
+              value={aiBaseUrl}
+              onChange={(event) => setAiBaseUrl(event.currentTarget.value)}
+              placeholder="https://api.openai.com/v1"
+              spellCheck={false}
+              disabled={!aiEnabled}
+              aria-disabled={!aiEnabled}
+              className="w-full sm:w-[360px]"
+            />
+          </Row>
+
+          <Row label="Model" hint="The model name to request, e.g. gpt-4o-mini or llama3.">
+            <Input
+              value={aiModel}
+              onChange={(event) => setAiModel(event.currentTarget.value)}
+              placeholder="gpt-4o-mini"
+              spellCheck={false}
+              disabled={!aiEnabled}
+              aria-disabled={!aiEnabled}
+              className="w-full sm:w-[360px]"
+            />
+          </Row>
+
+          <Row
+            label="API key"
+            hint="Stored in the operating system credential store, never in browser storage and never sent anywhere except your chosen provider. Optional for keyless local models."
+          >
+            <div className="flex w-full flex-col gap-2 sm:w-[360px]">
+              {aiStatus.configured ? (
+                <div className="bg-subtle/40 flex flex-col gap-3 rounded-lg border border-border-default p-3">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 shrink-0 text-text-muted" />
+                    <code className="min-w-0 truncate font-mono text-sm text-text-primary">
+                      {aiStatus.keyPreview ?? "Key stored"}
+                    </code>
+                    <Badge tone="success" className="ml-auto shrink-0">
+                      Stored
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap"
+                      disabled={!aiEnabled || !aiStatus.available || aiBusy}
+                      onClick={verifyAiKey}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" /> Verify
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap"
+                      disabled={!aiStatus.available || aiBusy}
+                      onClick={removeAiKey}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete key
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    type="password"
+                    value={aiKey}
+                    onChange={(event) => setAiKey(event.currentTarget.value)}
+                    placeholder="sk-..."
+                    spellCheck={false}
+                    disabled={!aiEnabled || !aiStatus.available || aiBusy}
+                    aria-disabled={!aiEnabled || !aiStatus.available || aiBusy}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap"
+                      disabled={
+                        !aiEnabled || !aiStatus.available || aiBusy || aiKey.trim().length === 0
+                      }
+                      onClick={saveAiKey}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Save key
+                    </Button>
+                  </div>
+                </>
+              )}
+              {aiMessage ? (
+                <p
+                  className={cn(
+                    "text-xs",
+                    aiTone === "error"
+                      ? "font-medium text-danger"
+                      : aiTone === "success"
+                        ? "font-medium text-success"
+                        : "text-text-muted",
+                  )}
+                >
+                  {aiMessage}
+                </p>
+              ) : null}
+            </div>
+          </Row>
+
+          <p className="text-xs text-text-muted">
+            When you generate a suggestion, OpenReady sends the relevant repository text (such as
+            the README and detected gaps) to your provider. Secret-looking strings are redacted
+            first. Costs are billed by your provider.
+          </p>
+        </div>
       </Section>
     </div>
   );
@@ -365,6 +574,38 @@ function WeightRow({
         </span>
       </div>
     </div>
+  );
+}
+
+function Switch({
+  checked,
+  onCheckedChange,
+  label,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onCheckedChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-micro ease-soft",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
+        checked ? "border-accent bg-accent" : "border-border-default bg-subtle",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block h-4 w-4 transform rounded-full bg-surface shadow-sm transition-transform duration-micro ease-soft",
+          checked ? "translate-x-6" : "translate-x-1",
+        )}
+      />
+    </button>
   );
 }
 

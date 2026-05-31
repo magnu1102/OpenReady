@@ -24,6 +24,9 @@ import { ScoreBar } from "@/components/ui/ScoreBar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/Button";
+import { AiSuggestionPanel } from "@/components/ai/AiSuggestionPanel";
+import { critiqueReadme, summarizeProject } from "@/modules/ai-adapter";
+import { useAiStore } from "@/store/aiStore";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import type { TreeFetchStatus } from "@/store/repositoryStore";
 import { collectTechSignals } from "@/modules/analyzer-core";
@@ -94,10 +97,16 @@ export function RepositoryDetailRoute() {
   const trees = useRepositoryStore((s) => s.trees);
   const treeStatus = useRepositoryStore((s) => s.treeStatus);
   const overrideClassification = useRepositoryStore((s) => s.overrideClassification);
+  const readmes = useRepositoryStore((s) => s.readmes);
+  const aiBaseUrl = useAiStore((s) => s.baseUrl);
+  const aiModel = useAiStore((s) => s.model);
   const repository = repositories.find((candidate) => candidate.id === id);
   const analysis = analyses.find((candidate) => candidate.repository.id === id);
   const treeState = trees[id];
   const techSignals = collectTechSignals(treeState);
+  const readmeState = id ? readmes[id] : undefined;
+  const readmeContent = readmeState?.status === "found" ? readmeState.readme.content : "";
+  const aiConfig = { baseUrl: aiBaseUrl, model: aiModel };
 
   function handleOverride(next: string) {
     if (!repository) return;
@@ -204,18 +213,38 @@ export function RepositoryDetailRoute() {
                 categories={["metadata", "activity", "status"]}
               />
               <TechStackPanel signals={techSignals} treeState={treeState} treeStatus={treeStatus} />
+              {analysis ? (
+                <AiSuggestionPanel
+                  title="Project summary"
+                  description="Sends this repository's description, topics and detected signals to your provider to draft a short plain-English summary."
+                  generateLabel="Draft summary"
+                  generate={() => summarizeProject(analysis, aiConfig)}
+                />
+              ) : null}
             </div>
             <AnalysisSummary analysis={analysis} />
           </div>
         </TabsContent>
         <TabsContent value="documentation">
           <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            <CheckPanel
-              title="Documentation checks"
-              description="README presence and section checks for the first 30 fetched repositories."
-              analysis={analysis}
-              categories={["documentation"]}
-            />
+            <div className="flex flex-col gap-6">
+              <CheckPanel
+                title="Documentation checks"
+                description="README presence and section checks for the first 30 fetched repositories."
+                analysis={analysis}
+                categories={["documentation"]}
+              />
+              {analysis ? (
+                <AiSuggestionPanel
+                  title="README critique"
+                  description="Sends the README text and the gaps OpenReady already detected to your provider for prioritized, constructive suggestions."
+                  generateLabel="Critique README"
+                  generate={() =>
+                    critiqueReadme({ result: analysis, readme: readmeContent }, aiConfig)
+                  }
+                />
+              ) : null}
+            </div>
             <AnalysisSummary analysis={analysis} />
           </div>
         </TabsContent>
