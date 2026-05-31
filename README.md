@@ -1,5 +1,8 @@
 # OpenReady
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![lint-and-test](https://github.com/magnu1102/OpenReady/actions/workflows/lint-and-test.yml/badge.svg)](https://github.com/magnu1102/OpenReady/actions/workflows/lint-and-test.yml)
+
 OpenReady is an open-source desktop app that analyzes GitHub repositories and helps developers understand which projects are clear, healthy and ready to share. It checks public repositories for documentation, setup instructions, licensing, CI, technology signals, presentation quality and other practical indicators, then turns the findings into transparent scores and actionable improvement suggestions.
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
@@ -122,6 +125,13 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 - [AI expansion](docs/ai-expansion.md)
 - [Roadmap](docs/roadmap.md)
 - [Changelog](CHANGELOG.md)
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the quality
+gates, and the pull-request flow, and our [Code of Conduct](CODE_OF_CONDUCT.md). To report a
+vulnerability, see [SECURITY.md](SECURITY.md) — please don't open a public issue for security
+problems.
 
 ## License
 

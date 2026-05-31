@@ -23,13 +23,17 @@ export type ParsedCommand =
 const VALID_FORMATS: OutputFormat[] = ["table", "json", "markdown"];
 
 export function parseCliArgs(argv: string[]): ParsedCommand {
-  if (argv.length === 0) return { kind: "help" };
+  // Package managers forward a literal `--` separator (e.g. `pnpm cli -- analyze
+  // octocat`). Drop a single leading separator so the command is still found.
+  const args = argv[0] === "--" ? argv.slice(1) : argv;
+
+  if (args.length === 0) return { kind: "help" };
 
   // Fast paths for global flags.
-  if (argv.includes("--help") || argv.includes("-h")) return { kind: "help" };
-  if (argv.includes("--version") || argv.includes("-v")) return { kind: "version" };
+  if (args.includes("--help") || args.includes("-h")) return { kind: "help" };
+  if (args.includes("--version") || args.includes("-v")) return { kind: "version" };
 
-  const [command, ...rest] = argv;
+  const [command, ...rest] = args;
 
   if (command !== "analyze") {
     return { kind: "error", message: `Unknown command: ${command}. Try \`openready --help\`.` };

@@ -3,6 +3,27 @@
   "private": true,
   "version": "0.1.0",
   "license": "MIT",
+  "description": "Analyze GitHub repositories for portfolio readiness — a deterministic, local-first desktop app and CLI.",
+  "author": "Magnus Almås",
+  "homepage": "https://github.com/magnu1102/OpenReady#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/magnu1102/OpenReady.git"
+  },
+  "bugs": {
+    "url": "https://github.com/magnu1102/OpenReady/issues"
+  },
+  "keywords": [
+    "github",
+    "repository-analysis",
+    "code-quality",
+    "portfolio",
+    "developer-tools",
+    "tauri",
+    "react",
+    "typescript",
+    "cli"
+  ],
   "type": "module",
   "bin": {
     "openready": "./dist-cli/openready.mjs"
