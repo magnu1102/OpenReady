@@ -114,10 +114,19 @@ async fn store_ai_config(key: String) -> Result<AiConfigStatus, String> {
     keychain_entry(KEYCHAIN_AI_KEY)?
         .set_password(&key)
         .map_err(keychain_message)?;
-    Ok(AiConfigStatus {
-        configured: true,
-        key_preview: Some(mask_ai_key(&key)),
-    })
+
+    // Read back to confirm the credential store actually persisted the key. This
+    // catches platforms where a write reports success but the value is not stored,
+    // which would otherwise look "configured" while every request is unauthenticated.
+    match read_ai_key_trimmed() {
+        Some(stored) if stored == key => Ok(AiConfigStatus {
+            configured: true,
+            key_preview: Some(mask_ai_key(&stored)),
+        }),
+        _ => Err(
+            "OpenReady saved the key but could not read it back from the credential store. The key was not persisted.".into(),
+        ),
+    }
 }
 
 #[tauri::command]
@@ -133,7 +142,7 @@ async fn delete_ai_config() -> Result<AiConfigStatus, String> {
 
 #[tauri::command]
 async fn ai_chat(input: AiChatQuery) -> Result<AiChatResponse, String> {
-    ai_chat_request(input, read_ai_key().ok()).await
+    ai_chat_request(input, read_ai_key_trimmed()).await
 }
 
 /// Performs a lightweight authenticated GET to `{base_url}/models` so the user can
@@ -148,16 +157,24 @@ async fn verify_ai_config(base_url: String) -> Result<AiChatResponse, String> {
         return Err("The AI provider base URL must start with http:// or https://.".into());
     }
 
-    let key = read_ai_key().ok().filter(|value| !value.is_empty());
+    let key = read_ai_key_trimmed();
     let url = format!("{base_url}/models");
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(AI_REQUEST_TIMEOUT_SECONDS))
         .build()
         .map_err(|_| "OpenReady could not start the AI request.".to_string())?;
 
-    let mut request = client.get(&url).header(USER_AGENT, "OpenReady");
-    if let Some(key) = key {
-        request = request.bearer_auth(key);
+    let mut request = client
+        .get(&url)
+        .header(USER_AGENT, HeaderValue::from_static("OpenReady"));
+    match key {
+        Some(key) => request = request.header(AUTHORIZATION, ai_auth_header(&key)?),
+        None if !is_local_base_url(base_url) => {
+            return Err(
+                "No API key is stored. Enter your key, click Save, then Verify again.".into(),
+            );
+        }
+        None => {}
     }
 
     let response = request.send().await.map_err(|_| {
@@ -263,10 +280,16 @@ async fn ai_chat_request(
 
     let mut request = client
         .post(&url)
-        .header(USER_AGENT, "OpenReady")
+        .header(USER_AGENT, HeaderValue::from_static("OpenReady"))
         .json(&payload);
-    if let Some(key) = key {
-        request = request.bearer_auth(key);
+    match key {
+        Some(key) => request = request.header(AUTHORIZATION, ai_auth_header(&key)?),
+        None if !is_local_base_url(base_url) => {
+            return Err(
+                "No API key is stored. Add your key in Settings before generating.".into(),
+            );
+        }
+        None => {}
     }
 
     let response = request
@@ -367,6 +390,30 @@ fn read_github_token() -> Result<String, KeyringError> {
 
 fn read_ai_key() -> Result<String, KeyringError> {
     Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_AI_KEY)?.get_password()
+}
+
+/// Reads the stored key, trimming stray whitespace/newlines a paste may include.
+/// Returns `None` when no key is stored or the stored value is blank.
+fn read_ai_key_trimmed() -> Option<String> {
+    read_ai_key()
+        .ok()
+        .map(|key| key.trim().to_string())
+        .filter(|key| !key.is_empty())
+}
+
+/// True for loopback base URLs, where a keyless local model is acceptable.
+fn is_local_base_url(base_url: &str) -> bool {
+    base_url.contains("://localhost")
+        || base_url.contains("://127.0.0.1")
+        || base_url.contains("://[::1]")
+}
+
+/// Builds a `Bearer` Authorization header value, surfacing a clear error if the
+/// stored key contains characters that are not valid in an HTTP header.
+fn ai_auth_header(key: &str) -> Result<HeaderValue, String> {
+    HeaderValue::from_str(&format!("Bearer {key}")).map_err(|_| {
+        "The stored API key has characters that are not valid in an HTTP header. Re-paste the key in Settings.".to_string()
+    })
 }
 
 fn keychain_entry(user: &str) -> Result<Entry, String> {
