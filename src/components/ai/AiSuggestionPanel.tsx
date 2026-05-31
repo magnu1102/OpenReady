@@ -79,6 +79,7 @@ export function AiSuggestionPanel({
           type="button"
           variant="secondary"
           size="sm"
+          className="shrink-0 whitespace-nowrap"
           disabled={!enabled || loading}
           aria-disabled={!enabled || loading}
           title={enabled ? undefined : "Enable AI features in Settings"}

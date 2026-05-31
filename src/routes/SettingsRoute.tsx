@@ -5,8 +5,10 @@ import {
   Cpu,
   Database,
   Github,
+  KeyRound,
   Palette,
   RotateCcw,
+  ShieldCheck,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
@@ -26,6 +28,7 @@ import {
   deleteAiConfig,
   getAiConfigStatus,
   validateAndStoreAiConfig,
+  verifyAiConfig,
   type AiConfigStatus,
 } from "@/lib/aiConfig";
 import { useAiStore } from "@/store/aiStore";
@@ -84,6 +87,7 @@ export function SettingsRoute() {
     available: false,
   });
   const [aiMessage, setAiMessage] = useState("");
+  const [aiTone, setAiTone] = useState<"neutral" | "error" | "success">("neutral");
   const [aiBusy, setAiBusy] = useState(false);
 
   async function refreshAiStatus() {
@@ -105,13 +109,16 @@ export function SettingsRoute() {
 
   async function saveAiKey() {
     setAiBusy(true);
+    setAiTone("neutral");
     setAiMessage("Saving API key...");
     try {
       const status = await validateAndStoreAiConfig(aiKey);
       setAiKey("");
       setAiStatus(status);
-      setAiMessage("API key saved.");
+      setAiTone("success");
+      setAiMessage("API key saved. Use Verify to confirm it works with your provider.");
     } catch (error) {
+      setAiTone("error");
       setAiMessage(errorMessage(error));
     } finally {
       setAiBusy(false);
@@ -123,8 +130,26 @@ export function SettingsRoute() {
     try {
       const status = await deleteAiConfig();
       setAiStatus(status);
+      setAiTone("neutral");
       setAiMessage("API key removed.");
     } catch (error) {
+      setAiTone("error");
+      setAiMessage(errorMessage(error));
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function verifyAiKey() {
+    setAiBusy(true);
+    setAiTone("neutral");
+    setAiMessage("Verifying with the provider...");
+    try {
+      const result = await verifyAiConfig(aiBaseUrl);
+      setAiTone(result.ok ? "success" : "error");
+      setAiMessage(result.message);
+    } catch (error) {
+      setAiTone("error");
       setAiMessage(errorMessage(error));
     } finally {
       setAiBusy(false);
@@ -394,37 +419,81 @@ export function SettingsRoute() {
             hint="Stored in the operating system credential store, never in browser storage and never sent anywhere except your chosen provider. Optional for keyless local models."
           >
             <div className="flex w-full flex-col gap-2 sm:w-[360px]">
-              <Input
-                type="password"
-                value={aiKey}
-                onChange={(event) => setAiKey(event.currentTarget.value)}
-                placeholder="sk-..."
-                disabled={!aiEnabled || !aiStatus.available || aiBusy}
-                aria-disabled={!aiEnabled || !aiStatus.available || aiBusy}
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  disabled={
-                    !aiEnabled || !aiStatus.available || aiBusy || aiKey.trim().length === 0
-                  }
-                  onClick={saveAiKey}
+              {aiStatus.configured ? (
+                <div className="bg-subtle/40 flex flex-col gap-3 rounded-lg border border-border-default p-3">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 shrink-0 text-text-muted" />
+                    <code className="min-w-0 truncate font-mono text-sm text-text-primary">
+                      {aiStatus.keyPreview ?? "Key stored"}
+                    </code>
+                    <Badge tone="success" className="ml-auto shrink-0">
+                      Stored
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap"
+                      disabled={!aiEnabled || !aiStatus.available || aiBusy}
+                      onClick={verifyAiKey}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" /> Verify
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap"
+                      disabled={!aiStatus.available || aiBusy}
+                      onClick={removeAiKey}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete key
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    type="password"
+                    value={aiKey}
+                    onChange={(event) => setAiKey(event.currentTarget.value)}
+                    placeholder="sk-..."
+                    spellCheck={false}
+                    disabled={!aiEnabled || !aiStatus.available || aiBusy}
+                    aria-disabled={!aiEnabled || !aiStatus.available || aiBusy}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      className="shrink-0 whitespace-nowrap"
+                      disabled={
+                        !aiEnabled || !aiStatus.available || aiBusy || aiKey.trim().length === 0
+                      }
+                      onClick={saveAiKey}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Save key
+                    </Button>
+                  </div>
+                </>
+              )}
+              {aiMessage ? (
+                <p
+                  className={cn(
+                    "text-xs",
+                    aiTone === "error"
+                      ? "font-medium text-danger"
+                      : aiTone === "success"
+                        ? "font-medium text-success"
+                        : "text-text-muted",
+                  )}
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Save key
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={!aiStatus.available || aiBusy || !aiStatus.configured}
-                  onClick={removeAiKey}
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Remove key
-                </Button>
-              </div>
-              {aiMessage ? <p className="text-xs text-text-muted">{aiMessage}</p> : null}
+                  {aiMessage}
+                </p>
+              ) : null}
             </div>
           </Row>
 

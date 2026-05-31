@@ -18,6 +18,9 @@ struct TokenStatus {
 #[derive(Debug, Serialize)]
 struct AiConfigStatus {
     configured: bool,
+    /// A masked preview of the stored key (e.g. `sk-proj-••••••••3a9f`) so the UI
+    /// can show which key is in use without exposing the secret. `None` when unset.
+    key_preview: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -98,11 +101,7 @@ async fn github_get(input: GitHubGetQuery) -> Result<GitHubProxyResponse, String
 
 #[tauri::command]
 async fn get_ai_config_status() -> Result<AiConfigStatus, String> {
-    Ok(AiConfigStatus {
-        configured: read_ai_key()
-            .map(|key| !key.is_empty())
-            .unwrap_or(false),
-    })
+    Ok(ai_config_status())
 }
 
 #[tauri::command]
@@ -115,13 +114,19 @@ async fn store_ai_config(key: String) -> Result<AiConfigStatus, String> {
     keychain_entry(KEYCHAIN_AI_KEY)?
         .set_password(&key)
         .map_err(keychain_message)?;
-    Ok(AiConfigStatus { configured: true })
+    Ok(AiConfigStatus {
+        configured: true,
+        key_preview: Some(mask_ai_key(&key)),
+    })
 }
 
 #[tauri::command]
 async fn delete_ai_config() -> Result<AiConfigStatus, String> {
     match keychain_entry(KEYCHAIN_AI_KEY)?.delete_credential() {
-        Ok(()) | Err(KeyringError::NoEntry) => Ok(AiConfigStatus { configured: false }),
+        Ok(()) | Err(KeyringError::NoEntry) => Ok(AiConfigStatus {
+            configured: false,
+            key_preview: None,
+        }),
         Err(error) => Err(keychain_message(error)),
     }
 }
@@ -129,6 +134,83 @@ async fn delete_ai_config() -> Result<AiConfigStatus, String> {
 #[tauri::command]
 async fn ai_chat(input: AiChatQuery) -> Result<AiChatResponse, String> {
     ai_chat_request(input, read_ai_key().ok()).await
+}
+
+/// Performs a lightweight authenticated GET to `{base_url}/models` so the user can
+/// confirm the stored key and base URL actually work — without spending tokens.
+#[tauri::command]
+async fn verify_ai_config(base_url: String) -> Result<AiChatResponse, String> {
+    let base_url = base_url.trim().trim_end_matches('/');
+    if base_url.is_empty() {
+        return Err("Set an AI provider base URL in Settings before verifying.".into());
+    }
+    if !(base_url.starts_with("http://") || base_url.starts_with("https://")) {
+        return Err("The AI provider base URL must start with http:// or https://.".into());
+    }
+
+    let key = read_ai_key().ok().filter(|value| !value.is_empty());
+    let url = format!("{base_url}/models");
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(AI_REQUEST_TIMEOUT_SECONDS))
+        .build()
+        .map_err(|_| "OpenReady could not start the AI request.".to_string())?;
+
+    let mut request = client.get(&url).header(USER_AGENT, "OpenReady");
+    if let Some(key) = key {
+        request = request.bearer_auth(key);
+    }
+
+    let response = request.send().await.map_err(|_| {
+        "Could not reach the AI provider. Check the base URL and your connection.".to_string()
+    })?;
+    let status = response.status().as_u16();
+    let body = response
+        .text()
+        .await
+        .map_err(|_| "The AI provider returned a response OpenReady could not read.".to_string())?;
+    Ok(AiChatResponse { status, body })
+}
+
+fn ai_config_status() -> AiConfigStatus {
+    match read_ai_key() {
+        Ok(key) if !key.is_empty() => AiConfigStatus {
+            configured: true,
+            key_preview: Some(mask_ai_key(&key)),
+        },
+        _ => AiConfigStatus {
+            configured: false,
+            key_preview: None,
+        },
+    }
+}
+
+/// Masks an API key for display: keeps a recognizable scheme prefix (e.g. `sk-proj-`)
+/// and the last four characters, replacing everything in between with bullets. The
+/// raw key never leaves the keychain; only this preview is returned to the UI.
+fn mask_ai_key(key: &str) -> String {
+    const PREFIXES: [&str; 7] = [
+        "sk-proj-",
+        "sk-svcacct-",
+        "sk-admin-",
+        "sk-",
+        "gsk_",
+        "xai-",
+        "or-v1-",
+    ];
+    let prefix = PREFIXES
+        .iter()
+        .find(|candidate| key.starts_with(**candidate))
+        .copied()
+        .unwrap_or("");
+
+    let body = &key[prefix.len()..];
+    let suffix: String = body.chars().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect();
+    if body.chars().count() <= 4 {
+        // Too short to reveal a suffix without exposing most of the secret.
+        format!("{prefix}••••")
+    } else {
+        format!("{prefix}••••••••{suffix}")
+    }
 }
 
 fn validate_ai_chat_input(base_url: &str, model: &str, message_count: usize) -> Result<(), String> {
@@ -215,7 +297,8 @@ pub fn run() {
             get_github_token_status,
             github_get,
             store_ai_config,
-            validate_and_store_github_token
+            validate_and_store_github_token,
+            verify_ai_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -335,7 +418,18 @@ fn is_valid_segment(segment: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_allowed_github_request, validate_ai_chat_input};
+    use super::{is_allowed_github_request, mask_ai_key, validate_ai_chat_input};
+
+    #[test]
+    fn mask_ai_key_keeps_prefix_and_last_four() {
+        assert_eq!(mask_ai_key("sk-proj-ABCDEFGHIJKL3a9f"), "sk-proj-••••••••3a9f");
+        assert_eq!(mask_ai_key("sk-1234567890abcd"), "sk-••••••••abcd");
+        assert_eq!(mask_ai_key("gsk_secretvalue99"), "gsk_••••••••ue99");
+        // Unknown scheme: no prefix revealed, only the last four.
+        assert_eq!(mask_ai_key("randomtoken1234"), "••••••••1234");
+        // Too short to reveal a suffix safely.
+        assert_eq!(mask_ai_key("sk-ab"), "sk-••••");
+    }
 
     #[test]
     fn ai_chat_input_accepts_well_formed_request() {
