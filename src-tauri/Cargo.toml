@@ -26,5 +26,12 @@ serde_json = "1"
 tauri-plugin-dialog = "2.7.1"
 tauri-plugin-fs = "2.5.1"
 tauri-plugin-store = "2.4.0"
-keyring = "3"
+# Native OS credential stores per platform. Without an explicit backend feature,
+# keyring v3 falls back to a non-persistent mock, so stored secrets cannot be read
+# back. Each feature's dependencies are target-gated, so enabling all three is safe.
+keyring = { version = "3", features = [
+  "apple-native",
+  "windows-native",
+  "sync-secret-service",
+] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
