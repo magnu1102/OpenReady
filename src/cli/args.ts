@@ -12,6 +12,11 @@ export interface AnalyzeArgs {
   token: string | null;
   fetchReadme: boolean;
   fetchTree: boolean;
+  failUnder: number | null;
+  requireChecks: string[];
+  plugins: string[];
+  profile: string | null;
+  allowPlugins: boolean;
 }
 
 export type ParsedCommand =
@@ -51,6 +56,11 @@ export function parseCliArgs(argv: string[]): ParsedCommand {
         token: { type: "string" },
         "no-readme": { type: "boolean" },
         "no-tree": { type: "boolean" },
+        "fail-under": { type: "string" },
+        "require-check": { type: "string", multiple: true },
+        plugins: { type: "string", multiple: true },
+        profile: { type: "string" },
+        "allow-plugins": { type: "boolean" },
       },
       allowPositionals: true,
       strict: true,
@@ -91,6 +101,29 @@ export function parseCliArgs(argv: string[]): ParsedCommand {
     limit = parsedLimit;
   }
 
+  const failUnderRaw = parsed.values["fail-under"] as string | undefined;
+  let failUnder: number | null = null;
+  if (failUnderRaw !== undefined) {
+    const parsedFailUnder = Number(failUnderRaw);
+    if (!Number.isFinite(parsedFailUnder) || parsedFailUnder < 0 || parsedFailUnder > 100) {
+      return {
+        kind: "error",
+        message: `Invalid --fail-under value: ${failUnderRaw}. Expected 0–100.`,
+      };
+    }
+    failUnder = parsedFailUnder;
+  }
+
+  const plugins = (parsed.values.plugins as string[] | undefined) ?? [];
+  const requireChecks = (parsed.values["require-check"] as string[] | undefined) ?? [];
+  const allowPlugins = Boolean(parsed.values["allow-plugins"]);
+  if (plugins.length > 0 && !allowPlugins) {
+    return {
+      kind: "error",
+      message: "Refusing to load --plugins without --allow-plugins (plugins run third-party code).",
+    };
+  }
+
   return {
     kind: "analyze",
     username,
@@ -101,5 +134,10 @@ export function parseCliArgs(argv: string[]): ParsedCommand {
     token: (parsed.values.token as string | undefined) ?? null,
     fetchReadme: !(parsed.values["no-readme"] as boolean | undefined),
     fetchTree: !(parsed.values["no-tree"] as boolean | undefined),
+    failUnder,
+    requireChecks,
+    plugins,
+    profile: (parsed.values.profile as string | undefined) ?? null,
+    allowPlugins,
   };
 }

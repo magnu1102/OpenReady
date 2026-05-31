@@ -1,5 +1,6 @@
 import type { AnalysisResult, CheckResult, Recommendation } from "@/types";
 import type { TechSignal } from "@/modules/analyzer-core";
+import type { CustomCheckResult } from "@/modules/check-plugins";
 import {
   buildCvBullets,
   buildTalkingPoints,
@@ -12,6 +13,12 @@ export interface ExportInput {
   username: string;
   analyses: AnalysisResult[];
   generatedAt?: string;
+  /**
+   * Optional custom-check results keyed by repository id. When provided, each
+   * repository in the JSON summary gains a `customChecks` array (additive, schema-v1
+   * compatible). The built-in score is unaffected.
+   */
+  customChecksByRepo?: Record<string, CustomCheckResult[]>;
 }
 
 export type ExportFormat =
@@ -54,6 +61,7 @@ interface JsonRepositorySummary {
   failedChecks: CheckResult[];
   unknownChecks: CheckResult[];
   recommendations: Recommendation[];
+  customChecks?: CustomCheckResult[];
 }
 
 const DEFAULT_GENERATED_AT = "unknown";
@@ -124,6 +132,9 @@ export function exportJsonSummary(input: ExportInput): string {
     username: input.username,
     repositoryCount: input.analyses.length,
     repositories: sortAnalyses(input.analyses).map((analysis) => ({
+      ...(input.customChecksByRepo
+        ? { customChecks: input.customChecksByRepo[analysis.repository.id] ?? [] }
+        : {}),
       id: analysis.repository.id,
       name: analysis.repository.name,
       fullName: analysis.repository.fullName,

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openready.dev/schemas/openready.profile.v1.schema.json",
+  "title": "OpenReady team profile (v1)",
+  "description": "A shareable profile that standardizes how a team defines portfolio readiness: category weights, optional score thresholds, an optional target role, and the names of check packs that should be enabled.",
+  "type": "object",
+  "required": ["schema", "name", "categoryWeights"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "openready.profile.v1" },
+    "name": { "type": "string", "minLength": 1 },
+    "categoryWeights": {
+      "type": "object",
+      "additionalProperties": false,
+      "propertyNames": {
+        "enum": [
+          "documentation",
+          "presentation",
+          "buildability",
+          "maintainability",
+          "testing-ci",
+          "deployment-operations",
+          "metadata-discoverability",
+          "security"
+        ]
+      },
+      "patternProperties": {
+        ".*": { "type": "number", "minimum": 0 }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "failUnder": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "role": { "type": "string" },
+    "enabledPacks": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
