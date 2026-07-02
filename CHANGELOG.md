@@ -8,6 +8,10 @@ relevant section.
 
 ## [Unreleased]
 
+_No changes yet._
+
+## [0.2.0] — 2026-07-02
+
 ### Added
 
 - CLI gating and plugins wired end to end: `openready analyze` now loads check
@@ -25,6 +29,12 @@ relevant section.
   reference pack), a small profiles module, and CLI gating for CI:
   `--fail-under`, `--require-check`, `--plugins`, `--profile`, and
   `--allow-plugins`, backed by a pure gating evaluator.
+- Optional AI assist (Phase 15): opt-in, bring-your-own-key support for an
+  OpenAI-compatible provider with README critique, project summaries, and
+  CV/homepage wording refinement. Every AI-touched surface is badged, provider
+  auth is explicit with a key board and verify action, keys persist in the OS
+  credential store (native keyring backends), and real provider errors are
+  surfaced. The deterministic core is unchanged and never requires a key.
 - MIT `LICENSE` — OpenReady is now formally open source under the MIT License,
   with matching `license` fields in `package.json` and `src-tauri/Cargo.toml`.
 - Open-source community files: `CONTRIBUTING.md` (setup, quality gates, PR flow,
@@ -34,22 +44,6 @@ relevant section.
 - Package metadata (`description`, `author`, `repository`, `bugs`, `homepage`,
   `keywords`) and README badges, a Contributing section, and a Screenshots
   section.
-
-### Fixed
-
-- CLI: a leading `--` separator forwarded by package managers
-  (`pnpm cli -- analyze …`) is now ignored, so the documented command no longer
-  fails with "Unknown command: --" (#13).
-- Styling cleanup: corrected the stale "Phase 8" label shown on the welcome
-  screen and sidebar (now sourced from a single `APP_PHASE` constant); aligned
-  the dashboard summary numbers so a wrapping label no longer drops one out of
-  line; stopped badges from wrapping and clipping in narrow columns (e.g. the
-  repository detail score breakdown); strengthened light-mode card separation;
-  and collapsed the sidebar to its icon rail on narrow viewports so content no
-  longer clips.
-
-### Added
-
 - Portfolio mode (Phase 14): a new `/portfolio` route that auto-detects a target
   role from the repository mix (override-able), recommends which projects to
   feature (with pin/unpin), and generates a portfolio page, CV bullet points,
@@ -66,8 +60,10 @@ relevant section.
   builds the Tauri desktop bundles on macOS, Windows, and Linux via
   `tauri-apps/tauri-action`, and the CLI esbuild bundle attached as an
   additional release asset.
-- New docs: `docs/releasing.md` (release checklist) and `docs/signing.md`
-  (Gatekeeper / SmartScreen notes for unsigned artifacts).
+- New docs: `docs/releasing.md` (release checklist), `docs/signing.md`
+  (Gatekeeper / SmartScreen notes for unsigned artifacts), `docs/plugins.md`
+  (check-pack and profile authoring guide), and `docs/json-schema.md` (the
+  versioned data contracts).
 
 ### Changed
 
@@ -75,11 +71,26 @@ relevant section.
   a required `hiddenGem` field); pre-Phase-13 snapshots are dropped on first
   read and repopulated on the next refresh.
 
-## [0.1.0] — Initial release
+### Fixed
+
+- CLI: a leading `--` separator forwarded by package managers
+  (`pnpm cli -- analyze …`) is now ignored, so the documented command no longer
+  fails with "Unknown command: --" (#13).
+- Styling cleanup: corrected the stale "Phase 8" label shown on the welcome
+  screen and sidebar (now sourced from a single `APP_PHASE` constant); aligned
+  the dashboard summary numbers so a wrapping label no longer drops one out of
+  line; stopped badges from wrapping and clipping in narrow columns (e.g. the
+  repository detail score breakdown); strengthened light-mode card separation;
+  and collapsed the sidebar to its icon rail on narrow viewports so content no
+  longer clips.
+
+## 0.1.0 — Initial release
+
+_Source-only milestone — never tagged, and no binaries were published. Its
+content ships as part of v0.2.0._
 
 Bundles the deterministic analyzer, the React desktop app shell, and the Node
-CLI as the first tagged artifact. Includes everything that landed in Phases
-1–11.
+CLI. Includes everything that landed in Phases 1–11.
 
 ### Added
 
@@ -121,5 +132,5 @@ CLI as the first tagged artifact. Includes everything that landed in Phases
   `OPENREADY_GITHUB_TOKEN` → `GITHUB_TOKEN`. esbuild bundle at
   `dist-cli/openready.mjs`.
 
-[Unreleased]: https://github.com/magnu1102/OpenReady/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/magnu1102/OpenReady/releases/tag/v0.1.0
+[Unreleased]: https://github.com/magnu1102/OpenReady/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/magnu1102/OpenReady/releases/tag/v0.2.0
