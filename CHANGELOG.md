@@ -10,6 +10,13 @@ relevant section.
 
 ### Added
 
+- Plugin and ecosystem foundation (Phase 16): versioned JSON Schema documents
+  for the JSON export, check packs, and profiles under `schemas/` (with an
+  Ajv-backed conformance test), a check-plugins system (Node plugin loader,
+  safe runner with id/output validation and evidence clipping, and an official
+  reference pack), a small profiles module, and CLI gating for CI:
+  `--fail-under`, `--require-check`, `--plugins`, `--profile`, and
+  `--allow-plugins`, backed by a pure gating evaluator.
 - MIT `LICENSE` — OpenReady is now formally open source under the MIT License,
   with matching `license` fields in `package.json` and `src-tauri/Cargo.toml`.
 - Open-source community files: `CONTRIBUTING.md` (setup, quality gates, PR flow,

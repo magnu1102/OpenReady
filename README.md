@@ -117,6 +117,7 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 - [Project classification](docs/classification.md)
 - [Tech-stack detection](docs/tech-stack-detection.md)
 - [CLI](docs/cli.md)
+- [JSON schemas](docs/json-schema.md)
 - [Portfolio mode](docs/portfolio.md)
 - [Onboarding and keyboard](docs/onboarding-and-keyboard.md)
 - [Releasing](docs/releasing.md)

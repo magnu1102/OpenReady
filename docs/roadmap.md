@@ -18,4 +18,12 @@ A condensed phase outline. The master plan (`openready_master_plan.md` §13) is 
 - **Phase 13 — Advanced recommendations.** Score-impact prioritization, hidden-gem detection, user-customizable category weights, repository comparison. ✅
 - **Phase 14 — Job-market and portfolio mode.** Auto-suggested role selection, recommended featuring, portfolio/CV/talking-points exports. ✅
 - **Phase 15 — Optional AI assist.** Bring-your-own-key, OpenAI-compatible provider, README critique, project summaries, CV/homepage wording refinement. Opt-in, badged, never replaces the deterministic core. ✅
-- **Phase 16 — Plugin and ecosystem.** Custom checks, GitHub Action, JSON schema. ← _current_
+- **Phase 16 — Plugin and ecosystem.** Versioned JSON Schemas with conformance tests, check-plugins system (loader, safe runner, official pack), profiles, CLI gating flags (`--fail-under`, `--require-check`, `--plugins`, `--profile`, `--allow-plugins`). Plugin authoring guide still pending. ✅
+- **Phase 17 — Ship v0.1.0 for real.** Screenshots, version alignment, local build verification, annotated tag, first run of the release workflow. ← _current_
+- **Phase 18 — CI gate and GitHub Action.** Composite action wrapping the CLI gating, score badges from the JSON export, example workflows.
+- **Phase 19 — Distribution hardening.** npm packaging of the CLI, updater groundwork, signing/notarization checklist, Rust checks in CI, e2e smoke test.
+- **Phase 20 — GitHub client efficiency and org support.** ETag conditional requests, request-budget indicator, optional GraphQL path, organization analysis, changed-repo-only refresh.
+- **Phase 21 — History and trends.** Bounded snapshot history, score deltas since last analysis, trend views, progress-report export.
+- **Phase 22 — Local AI providers.** Ollama via the OpenAI-compatible adapter, provider presets, local-model badge, graceful degradation for small models.
+
+> **Note:** The development machine currently cannot push to GitHub. Phases are merged into local `main` and transferred later via `git bundle`; GitHub-side steps (releases, CI verification, npm publishing) are queued as post-push steps. See the master plan §13 for details.

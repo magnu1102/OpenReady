@@ -1215,17 +1215,157 @@ Possible outputs:
 - CV/homepage wording suggestions
 - privacy/cost warnings
 
+### Working constraint: offline git workflow (Phase 16 onward)
+
+The development machine currently cannot push to GitHub. Until that changes,
+every phase below follows this workflow:
+
+- Feature work happens on a local branch and is merged into local `main`
+  directly (no PR flow from this machine).
+- Completed work is exported with `git bundle` (including annotated tags) and
+  pushed to GitHub later from a connected machine.
+- Steps that require GitHub itself — running CI, publishing releases, closing
+  issues, npm or Marketplace publishing — are listed per phase as **post-push
+  steps** and are queued, not attempted locally.
+
+Everything else (code, tests, docs, local builds, local tags) is fully
+implementable offline, and each phase is scoped so its definition of done is
+reachable without network access.
+
 ### Phase 16: Plugin and ecosystem direction
 
 Goal: Allow advanced extensibility.
 
+Status: In progress. The core work already exists on the
+`phase-16-plugins-and-ecosystem` branch (commit `c977c4c`): versioned JSON
+Schemas for export/pack/profile with Ajv conformance tests, a check-plugins
+system (Node loader, safe runner with id/output validation and evidence
+clipping, official reference pack), CLI gating flags (`--fail-under`,
+`--require-check`, `--plugins`, `--profile`, `--allow-plugins`), and a pure
+gating evaluator.
+
+Remaining outputs:
+
+- rebase the branch onto current `main` and merge locally
+- resolve conflicts with the Phase 15 AI-assist changes if any
+- plugin authoring guide (`docs/plugins.md`) and gating docs in `docs/cli.md`
+- link `docs/json-schema.md` from the README documentation list
+- organization/team profile examples beyond the reference pack
+- changelog entry and green quality gates on merged `main`
+
+Post-push steps:
+
+- push merged `main` via bundle; verify `lint-and-test` passes on GitHub
+
+### Phase 17: Ship v0.1.0 for real
+
+Goal: Produce the first actual tagged release. The changelog describes a
+v0.1.0 release, but no tag or GitHub Release exists yet and the release
+workflow has never run.
+
 Possible outputs:
 
-- custom check definitions
-- community check packs
-- organization/team profiles
-- GitHub Action integration
-- reusable JSON schema
+- screenshots in the README (replace "Coming soon")
+- decide the release version: fold the Unreleased changelog section
+  (Phases 12–16) into the release notes and pick `v0.1.0` or `v0.2.0`
+- run `scripts/bump-version.mjs` so `package.json`, `tauri.conf.json` and
+  `Cargo.toml` agree
+- verify the release builds locally: `pnpm build`, `pnpm build:cli`,
+  `pnpm tauri build` on this machine's platform
+- create the annotated tag locally
+- prepare the transfer bundle including the tag
+
+Post-push steps:
+
+- push tag; let `release.yml` build macOS/Windows/Linux bundles — expect
+  first-run failures and budget one fix iteration
+- close issue #12 (already fixed by `fa5946f`)
+
+### Phase 18: CI gate and GitHub Action
+
+Goal: Let any project enforce OpenReady scores in CI, building on the
+Phase 16 gating evaluator. This is the widest-reach feature: it requires no
+install and feeds adoption.
+
+Possible outputs:
+
+- composite GitHub Action wrapping the CLI (`analyze` + gating flags),
+  developed and unit-tested locally
+- score badge generation from the schema-validated JSON export
+  (shields.io-compatible endpoint JSON or static SVG)
+- example workflows (`gate on PR`, `badge refresh on push`)
+- `docs/github-action.md` with inputs/outputs reference
+
+Post-push steps:
+
+- publish the action (same repo or `openready-action`); optional Marketplace
+  listing
+
+### Phase 19: Distribution hardening
+
+Goal: Make installing, trusting and updating OpenReady realistic for
+strangers.
+
+Possible outputs:
+
+- npm packaging of the CLI: split or un-private the package, `files`/`exports`
+  fields, `npx openready` flow verified against the local bundle
+- `tauri-plugin-updater` groundwork behind a config flag (endpoints can stay
+  unset until releases are signed)
+- signing/notarization checklist expanded in `docs/signing.md` (macOS
+  notarization first)
+- `cargo clippy` and `cargo test` steps added to `lint-and-test.yml`; first
+  Rust-side tests for the keyring/fs commands in `src-tauri/src/lib.rs`
+- one end-to-end smoke test: app boots, analyzes a mocked profile (MSW
+  fixtures), dashboard renders — via tauri-driver/WebdriverIO or Playwright
+  against `pnpm dev`
+
+Post-push steps:
+
+- `npm publish` the CLI package
+- CI must confirm the new Rust steps pass on all three OS runners
+
+### Phase 20: GitHub client efficiency and organization support
+
+Goal: Reduce rate-limit pressure (60 req/h unauthenticated) and widen the
+audience beyond personal profiles.
+
+Possible outputs:
+
+- conditional requests with ETags so refreshes of unchanged repos cost no
+  rate-limit budget
+- visible request-budget indicator during analysis
+- optional GraphQL path that batches repo metadata + README + tree info
+- analyze organizations, not just users (near-identical API shape)
+- smarter refresh: re-analyze only repos whose `pushed_at` changed
+
+### Phase 21: History and trends
+
+Goal: Show improvement over time — the retention feature the local snapshot
+cache already almost supports.
+
+Possible outputs:
+
+- retain a bounded history of snapshots per profile (cache schema v4)
+- score deltas since last analysis ("+13 pts since June")
+- per-repository trend view and dashboard sparklines
+- exportable progress report (Markdown)
+- deterministic, local-only; no telemetry
+
+### Phase 22: Local AI providers
+
+Goal: Extend Phase 15's opt-in AI assist to zero-cloud setups, matching the
+project's privacy identity.
+
+Possible outputs:
+
+- verify and document Ollama's OpenAI-compatible endpoint
+  (`localhost:11434/v1`) against the existing ai-adapter
+- provider presets (OpenAI-compatible cloud vs. local) with a model picker
+- "local model — nothing leaves this machine" badge distinct from the cloud
+  AI badge
+- graceful capability degradation for small local models
+- `docs/ai-expansion.md` update covering the local path
 
 ---
 
