@@ -45,6 +45,16 @@ openready --version
 - **JSON**: identical to the desktop's "Export → JSON" output (`openready.export.v1`).
 - **Markdown**: identical to the desktop's "Export → Markdown" output.
 
+### Custom checks and CI gating (Phase 16)
+
+Phase 16 adds flags for loading [check packs](./plugins.md) and gating CI runs:
+`--plugins`, `--allow-plugins`, `--profile`, `--fail-under`, and `--require-check`.
+They are parsed and validated today (`--plugins` without `--allow-plugins` is
+rejected, `--fail-under` must be 0–100), but `analyze` does not yet execute plugins
+or enforce the gate — that wiring is the remaining Phase 16 work. See
+[Custom checks, packs, and profiles](./plugins.md) for the flag reference and the
+gating contract.
+
 ### Exit codes
 
 | Code | Meaning                                                           |

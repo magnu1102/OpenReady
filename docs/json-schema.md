@@ -28,7 +28,7 @@ explicit-trust model documented in the check-plugins README.
 
 ## `openready.profile.v1`
 
-A shareable [team profile](./profiles.md): `categoryWeights`, optional score
+A shareable [team profile](./plugins.md#profiles): `categoryWeights`, optional score
 `thresholds.failUnder`, an optional target `role`, and the `enabledPacks` names a team
 wants on. Imported in the desktop app and consumed by the CLI's `--profile` flag.
 
