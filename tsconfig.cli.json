@@ -15,6 +15,9 @@
     "src/modules/recommendation-engine/**/*",
     "src/modules/export-engine/**/*",
     "src/modules/github-client/**/*",
-    "src/types/**/*"
+    "src/modules/check-plugins/**/*",
+    "src/modules/profiles/**/*",
+    "src/types/**/*",
+    "schemas/**/*"
   ]
 }
