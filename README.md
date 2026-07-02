@@ -11,7 +11,15 @@ OpenReady is designed to be useful without AI, accounts or cloud setup. Optional
 
 ## Screenshots
 
-_Coming soon._
+![Dashboard — deterministic health scores for every public repository](docs/screenshots/dashboard-dark.png)
+
+|                                          Repository detail                                           |                                     Portfolio mode                                     |
+| :--------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------: |
+| ![Score breakdown, signals and evidence per repository](docs/screenshots/repository-detail-dark.png) | ![Role-targeted featured projects with CV export](docs/screenshots/portfolio-dark.png) |
+
+|                           Light theme                            |                                 Welcome screen                                 |
+| :--------------------------------------------------------------: | :----------------------------------------------------------------------------: |
+| ![Dashboard in light mode](docs/screenshots/dashboard-light.png) | ![Welcome screen with local cache restore](docs/screenshots/welcome-light.png) |
 
 ## Quickstart
 

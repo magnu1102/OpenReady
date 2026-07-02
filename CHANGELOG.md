@@ -14,6 +14,9 @@ _No changes yet._
 
 ### Added
 
+- README screenshots: dashboard (dark and light), repository detail, portfolio
+  mode, and the welcome screen, captured from a real analysis and stored under
+  `docs/screenshots/`.
 - CLI gating and plugins wired end to end: `openready analyze` now loads check
   packs (`--plugins` + `--allow-plugins`), runs custom checks per repository,
   includes their results as `customChecks` in the JSON export, applies
