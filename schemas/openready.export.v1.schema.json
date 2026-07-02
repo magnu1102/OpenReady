@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openready.dev/schemas/openready.export.v1.schema.json",
+  "title": "OpenReady export (v1)",
+  "description": "Deterministic JSON produced by OpenReady's `openready analyze --format json` and the desktop JSON export. Stable contract identified by the top-level `schema` field.",
+  "type": "object",
+  "required": ["schema", "generatedAt", "username", "repositoryCount", "repositories"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "openready.export.v1" },
+    "generatedAt": { "type": "string" },
+    "username": { "type": "string" },
+    "repositoryCount": { "type": "integer", "minimum": 0 },
+    "repositories": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/repositorySummary" }
+    }
+  },
+  "$defs": {
+    "checkStatus": {
+      "type": "string",
+      "enum": ["passed", "failed", "not-applicable", "unknown"]
+    },
+    "checkCategory": {
+      "type": "string",
+      "enum": [
+        "metadata",
+        "activity",
+        "status",
+        "documentation",
+        "buildability",
+        "ci",
+        "tests",
+        "containerization",
+        "infrastructure",
+        "security"
+      ]
+    },
+    "scoreCategory": {
+      "type": "string",
+      "enum": [
+        "documentation",
+        "presentation",
+        "buildability",
+        "maintainability",
+        "testing-ci",
+        "deployment-operations",
+        "metadata-discoverability",
+        "security"
+      ]
+    },
+    "healthLabel": {
+      "type": "string",
+      "enum": [
+        "Portfolio-ready",
+        "Almost ready",
+        "Needs work",
+        "Experimental",
+        "Stale",
+        "Archived",
+        "Fork",
+        "Analyzing"
+      ]
+    },
+    "checkResult": {
+      "type": "object",
+      "required": ["id", "label", "category", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "category": { "$ref": "#/$defs/checkCategory" },
+        "status": { "$ref": "#/$defs/checkStatus" },
+        "evidence": { "type": "string" }
+      }
+    },
+    "customCheckResult": {
+      "type": "object",
+      "required": ["id", "label", "category", "status", "source", "pluginId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "category": {
+          "anyOf": [{ "$ref": "#/$defs/checkCategory" }, { "const": "custom" }]
+        },
+        "status": { "$ref": "#/$defs/checkStatus" },
+        "evidence": { "type": "string" },
+        "source": { "const": "plugin" },
+        "pluginId": { "type": "string" }
+      }
+    },
+    "categoryScore": {
+      "type": "object",
+      "required": [
+        "category",
+        "label",
+        "score",
+        "passed",
+        "failed",
+        "applicable",
+        "weight",
+        "contributingCheckIds"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "category": { "$ref": "#/$defs/scoreCategory" },
+        "label": { "type": "string" },
+        "score": { "type": ["number", "null"] },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "applicable": { "type": "integer", "minimum": 0 },
+        "weight": { "type": "number" },
+        "contributingCheckIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "repositoryScore": {
+      "type": "object",
+      "required": ["total", "categories", "weakestCategory", "strongestCategory"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": ["number", "null"] },
+        "categories": { "type": "array", "items": { "$ref": "#/$defs/categoryScore" } },
+        "weakestCategory": {
+          "anyOf": [{ "$ref": "#/$defs/scoreCategory" }, { "type": "null" }]
+        },
+        "strongestCategory": {
+          "anyOf": [{ "$ref": "#/$defs/scoreCategory" }, { "type": "null" }]
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["id", "checkId", "title", "description", "priority", "category", "scoreImpact"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "checkId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+        "category": {
+          "anyOf": [{ "$ref": "#/$defs/scoreCategory" }, { "type": "null" }]
+        },
+        "scoreImpact": { "type": "number" }
+      }
+    },
+    "repositorySummary": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "fullName",
+        "url",
+        "homepageUrl",
+        "description",
+        "language",
+        "topics",
+        "stars",
+        "forks",
+        "archived",
+        "fork",
+        "updatedAt",
+        "pushedAt",
+        "healthLabel",
+        "score",
+        "passedCount",
+        "failedCount",
+        "unknownCount",
+        "missingSignals",
+        "failedChecks",
+        "unknownChecks",
+        "recommendations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "fullName": { "type": "string" },
+        "url": { "type": "string" },
+        "homepageUrl": { "type": ["string", "null"] },
+        "description": { "type": ["string", "null"] },
+        "language": { "type": ["string", "null"] },
+        "topics": { "type": "array", "items": { "type": "string" } },
+        "stars": { "type": "integer", "minimum": 0 },
+        "forks": { "type": "integer", "minimum": 0 },
+        "archived": { "type": "boolean" },
+        "fork": { "type": "boolean" },
+        "updatedAt": { "type": "string" },
+        "pushedAt": { "type": ["string", "null"] },
+        "healthLabel": { "$ref": "#/$defs/healthLabel" },
+        "score": { "$ref": "#/$defs/repositoryScore" },
+        "passedCount": { "type": "integer", "minimum": 0 },
+        "failedCount": { "type": "integer", "minimum": 0 },
+        "unknownCount": { "type": "integer", "minimum": 0 },
+        "missingSignals": { "type": "array", "items": { "type": "string" } },
+        "failedChecks": { "type": "array", "items": { "$ref": "#/$defs/checkResult" } },
+        "unknownChecks": { "type": "array", "items": { "$ref": "#/$defs/checkResult" } },
+        "recommendations": { "type": "array", "items": { "$ref": "#/$defs/recommendation" } }
+      }
+    }
+  }
+}
