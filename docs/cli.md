@@ -48,21 +48,38 @@ openready --version
 ### Custom checks and CI gating (Phase 16)
 
 Phase 16 adds flags for loading [check packs](./plugins.md) and gating CI runs:
-`--plugins`, `--allow-plugins`, `--profile`, `--fail-under`, and `--require-check`.
-They are parsed and validated today (`--plugins` without `--allow-plugins` is
-rejected, `--fail-under` must be 0–100), but `analyze` does not yet execute plugins
-or enforce the gate — that wiring is the remaining Phase 16 work. See
-[Custom checks, packs, and profiles](./plugins.md) for the flag reference and the
-gating contract.
+
+| Flag                   | Default | Notes                                                                                                                                                                                                                            |
+| ---------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--profile <path>`     | —       | Apply an `openready.profile.v1` JSON file. Category weights multiply into scoring exactly like the desktop Settings weights; `thresholds.failUnder` is the default score gate. `role` and `enabledPacks` are ignored by the CLI. |
+| `--plugins <path>`     | —       | Load a check pack from a JS/MJS file or a pack directory. Repeatable. Refused without `--allow-plugins`.                                                                                                                         |
+| `--allow-plugins`      | off     | Explicit consent to execute third-party pack code.                                                                                                                                                                               |
+| `--fail-under <n>`     | —       | Exit `4` if any analyzed repository scores below `n` (0–100). Overrides the profile threshold. Repositories with a `null` score never trip this gate.                                                                            |
+| `--require-check <id>` | —       | Exit `4` unless custom check `id` exists **and** passes for every repository. Repeatable.                                                                                                                                        |
+
+Profile and pack inputs are resolved before any GitHub request, so a bad path or
+manifest fails fast (exit `2`) without burning rate limit. When packs run, each
+repository in the JSON output gains an additive `customChecks` array; table and
+Markdown output are unchanged. Gate violations are written to stderr
+(`openready: gate: …`), one per line, after the rendered output is emitted — so a
+`--out` file or piped JSON is still produced even when the gate fails. See
+[Custom checks, packs, and profiles](./plugins.md) for the authoring guide.
+
+```bash
+# Fail CI when any repository drops below 70 or ships without a changelog
+openready analyze octocat --fail-under 70 \
+  --plugins ./acme-pack --allow-plugins --require-check acme/has-changelog
+```
 
 ### Exit codes
 
-| Code | Meaning                                                           |
-| ---- | ----------------------------------------------------------------- |
-| 0    | Success, including the "user has no public repositories" case.    |
-| 1    | Generic failure (network, rate limit, GitHub error, write error). |
-| 2    | Invalid command-line usage.                                       |
-| 3    | `--repo` was supplied but no repository matched.                  |
+| Code | Meaning                                                                       |
+| ---- | ----------------------------------------------------------------------------- |
+| 0    | Success, including the "user has no public repositories" case.                |
+| 1    | Generic failure (network, rate limit, GitHub error, write error).             |
+| 2    | Invalid command-line usage, including a bad `--profile` or `--plugins` input. |
+| 3    | `--repo` was supplied but no repository matched.                              |
+| 4    | The CI gate failed (`--fail-under` or `--require-check`).                     |
 
 ## Examples
 

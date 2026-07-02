@@ -53,7 +53,12 @@ async function loadPack(path: string): Promise<CheckPack> {
 }
 
 async function importChecks(file: string): Promise<CheckPlugin[]> {
-  const module = (await import(pathToFileURL(file).href)) as Record<string, unknown>;
+  // @vite-ignore keeps this a native runtime import: pack files live outside the
+  // bundle, so Vite/Vitest must not try to resolve them at transform time.
+  const module = (await import(/* @vite-ignore */ pathToFileURL(file).href)) as Record<
+    string,
+    unknown
+  >;
   const candidate = module.default ?? module.pack ?? module;
 
   if (isPack(candidate)) return candidate.checks;

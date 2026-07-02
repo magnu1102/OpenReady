@@ -5,12 +5,9 @@ checks** bundled into **check packs**, plus shareable **team profiles**. Custom 
 are informational — they render in their own surface and never alter the built-in
 0–100 score, so the core stays transparent and reproducible.
 
-> **Status.** The plugin module, pack loader, profiles parser, and gating evaluator
-> shipped in Phase 16 and are covered by unit tests. The CLI already parses the flags
-> documented below, but `analyze` does not yet execute plugins or enforce the gate —
-> that wiring is the remaining Phase 16 work, and the desktop app does not load packs
-> yet either. This page documents the stable authoring API; the "CLI integration"
-> section describes the contract that wiring will follow.
+> **Status.** Fully wired in the CLI: `analyze` loads packs, runs custom checks, and
+> enforces the gate as documented below. The desktop app does not load packs yet;
+> desktop pack import is planned follow-up work.
 
 ## Trust model (read this first)
 
@@ -146,9 +143,6 @@ parsed and normalized by [`src/modules/profiles/index.ts`](../src/modules/profil
 
 ## CLI integration and CI gating
 
-> Parsed today, enforced once the Phase 16 CLI wiring lands — see the status note at
-> the top.
-
 | Flag                   | Purpose                                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------- |
 | `--plugins <path>`     | Load a pack from a file or directory. Repeatable. Requires `--allow-plugins`.                 |
@@ -166,9 +160,22 @@ The gate itself is a pure evaluator
   other than `passed`.
 - Every violation produces a human-readable reason naming the repository.
 
+Behavior details:
+
+- Profile and pack inputs are resolved **before any GitHub request**; a bad path,
+  manifest, or profile fails fast with exit `2` and costs no rate limit.
+- Profile `categoryWeights` are applied as multipliers on top of the project-type
+  weights — the same mechanism as the desktop Settings weights. `role` and
+  `enabledPacks` are ignored by the CLI (packs are always given explicitly via
+  `--plugins`).
+- An explicit `--fail-under` overrides the profile's `thresholds.failUnder`.
+- Gate violations print to stderr (`openready: gate: …`) after the rendered output
+  is emitted, and the process exits with code `4` — a `--out` file or piped JSON is
+  still produced even when the gate fails.
+
 When custom checks run, each repository in the JSON export
 (`openready.export.v1`) gains an additive `customChecks` array — existing consumers
-are unaffected.
+are unaffected. Table and Markdown output are unchanged.
 
 ## Implementation pointers
 

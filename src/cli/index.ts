@@ -25,11 +25,22 @@ Options (analyze):
                                    OPENREADY_GITHUB_TOKEN, then GITHUB_TOKEN)
   --no-readme                      Skip README fetches
   --no-tree                        Skip file-tree fetches
+  --profile <path>                 Apply an openready.profile.v1 JSON file
+                                   (category weights, failUnder threshold)
+  --plugins <path>                 Load a check pack (file or directory).
+                                   Repeatable. Requires --allow-plugins
+  --allow-plugins                  Consent to run third-party pack code
+  --fail-under <n>                 Exit 4 if any repository scores below n
+  --require-check <id>             Exit 4 unless the custom check passes for
+                                   every repository. Repeatable
 
 Examples:
   openready analyze octocat
   openready analyze octocat --format json --out report.json
   openready analyze octocat --repo Hello-World --no-tree
+  openready analyze octocat --fail-under 70 --profile team.json
+  openready analyze octocat --plugins ./acme-pack --allow-plugins \\
+    --require-check acme/has-changelog
 `;
 
 function readVersion(): string {

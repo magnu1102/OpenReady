@@ -10,6 +10,14 @@ relevant section.
 
 ### Added
 
+- CLI gating and plugins wired end to end: `openready analyze` now loads check
+  packs (`--plugins` + `--allow-plugins`), runs custom checks per repository,
+  includes their results as `customChecks` in the JSON export, applies
+  `--profile` files (category weights multiply into scoring like the desktop
+  Settings weights; `thresholds.failUnder` acts as the default score gate), and
+  enforces the CI gate — `--fail-under` / `--require-check` violations print to
+  stderr and exit with the new code `4`. Invalid profile or plugin inputs fail
+  fast with exit `2` before any GitHub request.
 - Plugin and ecosystem foundation (Phase 16): versioned JSON Schema documents
   for the JSON export, check packs, and profiles under `schemas/` (with an
   Ajv-backed conformance test), a check-plugins system (Node plugin loader,
