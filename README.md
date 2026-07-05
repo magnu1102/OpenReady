@@ -81,6 +81,20 @@ Common flags:
 
 Token resolution order: `--token`, then `OPENREADY_GITHUB_TOKEN`, then `GITHUB_TOKEN`. Without a token GitHub limits unauthenticated requests to ~60/hour. Output respects [`NO_COLOR`](https://no-color.org/) and falls back to plain text when stdout isn't a TTY.
 
+### Use in CI
+
+The repo doubles as a composite GitHub Action: gate pull requests on your OpenReady score and publish a score badge, with zero install.
+
+```yaml
+- uses: magnu1102/OpenReady@v0.3.0
+  with:
+    username: OWNER
+    repo: REPO
+    fail-under: 70
+```
+
+See [docs/github-action.md](docs/github-action.md) for the inputs/outputs reference, badge setup, and copy-pasteable example workflows.
+
 ### Useful scripts
 
 ```bash
@@ -125,6 +139,7 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 - [Project classification](docs/classification.md)
 - [Tech-stack detection](docs/tech-stack-detection.md)
 - [CLI](docs/cli.md)
+- [GitHub Action](docs/github-action.md)
 - [JSON schemas](docs/json-schema.md)
 - [Custom checks and profiles](docs/plugins.md)
 - [Portfolio mode](docs/portfolio.md)
