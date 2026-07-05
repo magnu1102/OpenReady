@@ -8,7 +8,26 @@ relevant section.
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+
+- CI gate and GitHub Action (Phase 18): a composite GitHub Action (`action.yml`
+  at the repo root, `uses: magnu1102/OpenReady@<tag>`) wrapping `analyze` with
+  the gating flags and badge generation. Inputs mirror the CLI (`fail-under`,
+  `require-checks`, `profile`, `repo`, `limit`, …); outputs expose `score`,
+  `color`, `gate-passed`, and artifact paths. A gate failure still produces the
+  report, badges, and outputs before the action fails. Example workflows
+  (`gate on PR`, `badge refresh on push`) live under `docs/examples/`, with a
+  full reference in `docs/github-action.md`, and an `action-smoke` workflow
+  integration-tests the action against this repository on every push and PR.
+- `openready badge` subcommand: turns an `openready.export.v1` JSON report into
+  a score badge as shields.io endpoint JSON or a deterministic static SVG
+  (`--from`, `--repo`, `--format`, `--label`, `--out`). Without `--repo` the
+  badge shows the rounded average across scored repositories; colors follow the
+  health tiers; a score-less report renders `unavailable` and still exits 0.
+- The CLI bundle `dist-cli/openready.mjs` is now committed so the action runs
+  with zero install, protected by a "CLI bundle is up to date" drift guard in
+  the lint-and-test workflow, ESLint/Prettier ignores, and a `.gitattributes`
+  rule pinning its LF line endings.
 
 ## [0.2.0] — 2026-07-02
 

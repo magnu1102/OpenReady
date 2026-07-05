@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# The committed CLI bundle must keep esbuild's LF bytes on every platform, or
+# autocrlf checkouts would break the "CLI bundle is up to date" drift guard.
+dist-cli/*.mjs text eol=lf

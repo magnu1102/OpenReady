@@ -19,13 +19,26 @@ export interface AnalyzeArgs {
   allowPlugins: boolean;
 }
 
+export type BadgeFormat = "endpoint" | "svg";
+
+export interface BadgeArgs {
+  kind: "badge";
+  from: string;
+  repo: string | null;
+  format: BadgeFormat;
+  out: string | null;
+  label: string | null;
+}
+
 export type ParsedCommand =
   | AnalyzeArgs
+  | BadgeArgs
   | { kind: "help" }
   | { kind: "version" }
   | { kind: "error"; message: string };
 
 const VALID_FORMATS: OutputFormat[] = ["table", "json", "markdown"];
+const VALID_BADGE_FORMATS: BadgeFormat[] = ["endpoint", "svg"];
 
 export function parseCliArgs(argv: string[]): ParsedCommand {
   // Package managers forward a literal `--` separator (e.g. `pnpm cli -- analyze
@@ -40,6 +53,9 @@ export function parseCliArgs(argv: string[]): ParsedCommand {
 
   const [command, ...rest] = args;
 
+  if (command === "badge") {
+    return parseBadgeArgs(rest);
+  }
   if (command !== "analyze") {
     return { kind: "error", message: `Unknown command: ${command}. Try \`openready --help\`.` };
   }
@@ -139,5 +155,58 @@ export function parseCliArgs(argv: string[]): ParsedCommand {
     plugins,
     profile: (parsed.values.profile as string | undefined) ?? null,
     allowPlugins,
+  };
+}
+
+function parseBadgeArgs(rest: string[]): ParsedCommand {
+  let parsed: ReturnType<typeof parseArgs>;
+  try {
+    parsed = parseArgs({
+      args: rest,
+      options: {
+        from: { type: "string" },
+        repo: { type: "string" },
+        format: { type: "string" },
+        out: { type: "string" },
+        label: { type: "string" },
+      },
+      allowPositionals: true,
+      strict: true,
+    });
+  } catch (error) {
+    return { kind: "error", message: error instanceof Error ? error.message : String(error) };
+  }
+
+  if (parsed.positionals.length > 0) {
+    return {
+      kind: "error",
+      message: `Unexpected extra arguments: ${parsed.positionals.join(" ")}`,
+    };
+  }
+
+  const from = parsed.values.from as string | undefined;
+  if (!from) {
+    return {
+      kind: "error",
+      message:
+        "badge requires --from <report.json> (produced by `openready analyze --format json`).",
+    };
+  }
+
+  const format = (parsed.values.format as string | undefined) ?? "endpoint";
+  if (!VALID_BADGE_FORMATS.includes(format as BadgeFormat)) {
+    return {
+      kind: "error",
+      message: `Unknown --format value: ${format}. Expected one of ${VALID_BADGE_FORMATS.join(", ")}.`,
+    };
+  }
+
+  return {
+    kind: "badge",
+    from,
+    repo: (parsed.values.repo as string | undefined) ?? null,
+    format: format as BadgeFormat,
+    out: (parsed.values.out as string | undefined) ?? null,
+    label: (parsed.values.label as string | undefined) ?? null,
   };
 }

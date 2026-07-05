@@ -1,0 +1,52 @@
+name: action-smoke
+
+# Integration test for the composite action (action.yml): runs `uses: ./`
+# against this repository. Report-only — no fail-under — so unrelated PRs
+# never break on score drift.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: action-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  action-smoke:
+    name: Run the OpenReady action against this repo
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run OpenReady
+        id: openready
+        uses: ./
+        with:
+          username: magnu1102
+          repo: OpenReady
+          badge: "true"
+
+      - name: Assert outputs and badge files
+        env:
+          SCORE: ${{ steps.openready.outputs.score }}
+          COLOR: ${{ steps.openready.outputs.color }}
+          GATE_PASSED: ${{ steps.openready.outputs.gate-passed }}
+          REPORT_PATH: ${{ steps.openready.outputs.report-path }}
+          BADGE_ENDPOINT: ${{ steps.openready.outputs.badge-endpoint-path }}
+          BADGE_SVG: ${{ steps.openready.outputs.badge-svg-path }}
+        run: |
+          echo "score=$SCORE color=$COLOR gate-passed=$GATE_PASSED"
+          test -n "$SCORE" || (echo "::error::score output is empty" && exit 1)
+          test "$GATE_PASSED" = "true" || (echo "::error::gate-passed should be true (no gate configured)" && exit 1)
+          test -f "$REPORT_PATH" || (echo "::error::report file missing" && exit 1)
+          test -f "$BADGE_ENDPOINT" || (echo "::error::endpoint badge missing" && exit 1)
+          test -f "$BADGE_SVG" || (echo "::error::SVG badge missing" && exit 1)
+          grep -q '"schemaVersion": 1' "$BADGE_ENDPOINT"
+          grep -q "<svg" "$BADGE_SVG"

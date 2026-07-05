@@ -1,0 +1,23 @@
+# Fail pull requests when the repository's OpenReady score drops below 70.
+# Copy to .github/workflows/openready-gate.yml in your repository and adjust
+# `username`, `repo`, and `fail-under`.
+
+name: openready-gate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate on the OpenReady score
+        uses: magnu1102/OpenReady@v0.3.0
+        with:
+          username: OWNER # ← your GitHub username
+          repo: REPO # ← this repository's name
+          fail-under: 70

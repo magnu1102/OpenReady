@@ -52,3 +52,8 @@ jobs:
 
       - name: CLI bundle
         run: pnpm build:cli
+
+      # The bundle is committed so the composite action (action.yml) can run it
+      # with zero install. Rebuild and diff to catch a stale artifact.
+      - name: CLI bundle is up to date
+        run: git diff --exit-code -- dist-cli/ || (echo "dist-cli/ is stale — run 'pnpm build:cli' and commit the result." && exit 1)

@@ -42,6 +42,10 @@ pnpm build:cli      # esbuild CLI bundle
 
 `pnpm format` applies Prettier. A pre-commit hook runs ESLint/Prettier on staged files.
 
+The CLI bundle `dist-cli/openready.mjs` is committed (the GitHub Action runs it with zero
+install). When a change touches CLI sources or bumps esbuild, run `pnpm build:cli` and commit
+the rebuilt bundle — CI fails on a stale artifact.
+
 ## Pull requests
 
 1. Branch off `main` (e.g. `fix/cli-arg-parsing`).
