@@ -93,4 +93,53 @@ describe("parseCliArgs", () => {
   it("rejects extra positionals", () => {
     expect(parseCliArgs(["analyze", "octocat", "extra"]).kind).toBe("error");
   });
+
+  it("parses badge with default options", () => {
+    expect(parseCliArgs(["badge", "--from", "report.json"])).toEqual({
+      kind: "badge",
+      from: "report.json",
+      repo: null,
+      format: "endpoint",
+      out: null,
+      label: null,
+    });
+  });
+
+  it("parses badge options end-to-end", () => {
+    expect(
+      parseCliArgs([
+        "badge",
+        "--from",
+        "report.json",
+        "--repo",
+        "Hello-World",
+        "--format",
+        "svg",
+        "--label",
+        "my score",
+        "--out",
+        "badge.svg",
+      ]),
+    ).toEqual({
+      kind: "badge",
+      from: "report.json",
+      repo: "Hello-World",
+      format: "svg",
+      out: "badge.svg",
+      label: "my score",
+    });
+  });
+
+  it("rejects badge without --from", () => {
+    expect(parseCliArgs(["badge"]).kind).toBe("error");
+  });
+
+  it("rejects unknown badge formats", () => {
+    expect(parseCliArgs(["badge", "--from", "r.json", "--format", "png"]).kind).toBe("error");
+  });
+
+  it("rejects badge positionals and unknown flags", () => {
+    expect(parseCliArgs(["badge", "extra", "--from", "r.json"]).kind).toBe("error");
+    expect(parseCliArgs(["badge", "--from", "r.json", "--limit", "5"]).kind).toBe("error");
+  });
 });

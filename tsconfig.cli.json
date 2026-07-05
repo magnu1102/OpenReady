@@ -14,6 +14,7 @@
     "src/modules/project-classifier/**/*",
     "src/modules/recommendation-engine/**/*",
     "src/modules/export-engine/**/*",
+    "src/modules/badge/**/*",
     "src/modules/github-client/**/*",
     "src/modules/check-plugins/**/*",
     "src/modules/profiles/**/*",

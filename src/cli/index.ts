@@ -8,11 +8,13 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { parseCliArgs } from "./args";
 import { runAnalyze } from "./run";
+import { runBadge } from "./badge";
 
 const HELP = `openready — deterministic GitHub repository analysis
 
 Usage:
   openready analyze <username> [options]
+  openready badge --from <report.json> [options]
   openready --help
   openready --version
 
@@ -34,6 +36,15 @@ Options (analyze):
   --require-check <id>             Exit 4 unless the custom check passes for
                                    every repository. Repeatable
 
+Options (badge):
+  --from <path>                    JSON report from \`analyze --format json\`
+  --repo <name>                    Badge a single repository from the report
+                                   (default: average across repositories)
+  --format <endpoint|svg>          shields.io endpoint JSON or a static SVG
+                                   (default: endpoint)
+  --label <text>                   Badge label text (default: openready)
+  --out <path>                     Write the badge to a file instead of stdout
+
 Examples:
   openready analyze octocat
   openready analyze octocat --format json --out report.json
@@ -41,6 +52,7 @@ Examples:
   openready analyze octocat --fail-under 70 --profile team.json
   openready analyze octocat --plugins ./acme-pack --allow-plugins \\
     --require-check acme/has-changelog
+  openready badge --from report.json --format svg --out badge.svg
 `;
 
 function readVersion(): string {
@@ -79,6 +91,10 @@ async function main(argv: string[]): Promise<number> {
       return 2;
     case "analyze": {
       const { exitCode } = await runAnalyze(command);
+      return exitCode;
+    }
+    case "badge": {
+      const { exitCode } = await runBadge(command);
       return exitCode;
     }
   }

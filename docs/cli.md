@@ -71,6 +71,59 @@ openready analyze octocat --fail-under 70 \
   --plugins ./acme-pack --allow-plugins --require-check acme/has-changelog
 ```
 
+### Badge generation (Phase 18)
+
+`openready badge` turns a JSON report from `analyze --format json` into a score
+badge — either shields.io [endpoint JSON](https://shields.io/badges/endpoint-badge)
+or a self-contained static SVG. It reads a local file and never touches the
+network, so it is fully deterministic. The [GitHub Action](./github-action.md)
+wraps it for CI badge refresh.
+
+```
+openready badge --from <report.json> [options]
+```
+
+| Flag                       | Default     | Notes                                                                                           |
+| -------------------------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| `--from <path>`            | (required)  | An `openready.export.v1` JSON report. Anything else exits `2`.                                  |
+| `--repo <name>`            | —           | Badge a single repository (case-insensitive match on name or full name). Exits `3` on no match. |
+| `--format <endpoint\|svg>` | `endpoint`  | shields.io endpoint JSON or a static SVG.                                                       |
+| `--label <text>`           | `openready` | Badge label text.                                                                               |
+| `--out <path>`             | —           | Write the badge to a file instead of stdout.                                                    |
+
+Without `--repo`, the badge shows the rounded average of all repositories with a
+numeric score — the same "Average score" the Markdown report prints. When no
+repository has a score yet, the badge reads `unavailable` in `lightgrey` and the
+command still exits `0`: a badge is a snapshot, not a gate (use `--fail-under`
+for gating).
+
+Colors follow the health tiers:
+
+| Score       | Color         |
+| ----------- | ------------- |
+| ≥ 85        | `brightgreen` |
+| 70–84       | `green`       |
+| 50–69       | `yellow`      |
+| < 50        | `red`         |
+| unavailable | `lightgrey`   |
+
+Endpoint JSON output:
+
+```json
+{
+  "schemaVersion": 1,
+  "label": "openready",
+  "message": "87/100",
+  "color": "brightgreen"
+}
+```
+
+```bash
+openready analyze octocat --format json --out report.json
+openready badge --from report.json --out badge.json
+openready badge --from report.json --repo Hello-World --format svg --out badge.svg
+```
+
 ### Exit codes
 
 | Code | Meaning                                                                       |
@@ -103,5 +156,7 @@ pnpm cli -- analyze octocat --format json | jq '.repositories[] | {name, score: 
 - `src/cli/args.ts` — `node:util parseArgs` wrapper returning a tagged union
 - `src/cli/auth.ts` — token chain helper
 - `src/cli/run.ts` — orchestrates fetch → classify → analyze → render
+- `src/cli/badge.ts` — badge runner (file I/O around the badge module)
+- `src/modules/badge/` — pure badge generation (score selection, colors, renderers)
 - `src/cli/renderers/{table,color}.ts` — terminal table + ANSI helper
 - `scripts/build-cli.mjs` — esbuild bundle to `dist-cli/openready.mjs`
