@@ -6,7 +6,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 
 export default tseslint.config(
-  { ignores: ["dist", "src-tauri", "node_modules", "coverage"] },
+  { ignores: ["dist", "dist-cli", "src-tauri", "node_modules", "coverage"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

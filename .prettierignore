@@ -1,0 +1,7 @@
+# The committed CLI bundle is a build artifact; formatting it would break the
+# "CLI bundle is up to date" drift guard in CI. Prettier follows .gitignore for
+# the other build dirs, but dist-cli is tracked, so it must be excluded here.
+dist-cli/
+dist/
+src-tauri/target/
+coverage/
