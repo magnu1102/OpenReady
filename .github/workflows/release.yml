@@ -45,10 +45,9 @@ jobs:
           # for the tag-push trigger.
           ref: ${{ github.event.inputs.tag || github.ref }}
 
+      # Version comes from package.json#packageManager
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Install Node.js
         uses: actions/setup-node@v4
