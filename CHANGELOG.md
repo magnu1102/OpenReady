@@ -10,6 +10,14 @@ relevant section.
 
 ### Changed
 
+- New brand identity (Phase 19, PR 5 of 5): the "readiness dial" mark — a gauge
+  arc stopped at 85, the portfolio-ready threshold — on the Aurora violet-blue
+  gradient tile. Master SVG and light/dark wordmarks under `public/brand/`, a
+  regenerated Tauri icon set (`src-tauri/icons/`), an SVG favicon, and the
+  in-app `Logo` redrawn to the same geometry. README restructured around the
+  wordmark hero with a feature overview in the project voice; product
+  principle 9 and the architecture doc now point at the Aurora design-system
+  and voice guides, and CONTRIBUTING links both for new contributions.
 - Aurora foundations (Phase 19, PR 1 of 5): new glass token layer (translucent
   surfaces, backdrop blur on shell surfaces, violet-blue accent, gradient
   glow) with full light/dark parity and a solid-surface fallback when

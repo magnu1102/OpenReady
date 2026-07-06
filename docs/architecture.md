@@ -12,7 +12,9 @@ OpenReady
   │   ├── store/                             — Zustand slices (theme, navigation, repository, tour)
   │   ├── modules/                           — internal package boundaries (see below)
   │   ├── lib/                               — small hooks/utilities (useCountUp, useReducedMotion, useFocusTrap, …)
-  │   └── styles/                            — design tokens + globals
+  │   │                                        plus copy.ts (every user-facing string; see docs/voice-and-tone.md)
+  │   │                                        and motion.ts (shared framer-motion choreography; see docs/design-system.md)
+  │   └── styles/                            — Aurora design tokens + glass utilities (docs/design-system.md)
   ├── Node CLI                                — src/cli/
   │   ├── index.ts                           — entry, help/version, dispatch
   │   ├── args.ts                            — node:util parseArgs wrapper

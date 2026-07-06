@@ -1,13 +1,23 @@
-# OpenReady
+<div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/brand/openready-wordmark-dark.svg">
+  <img src="public/brand/openready-wordmark-light.svg" alt="OpenReady" width="320">
+</picture>
+
+**Know which repositories are ready to show.**
+
+[![Release](https://img.shields.io/github/v/release/magnu1102/OpenReady)](https://github.com/magnu1102/OpenReady/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![lint-and-test](https://github.com/magnu1102/OpenReady/actions/workflows/lint-and-test.yml/badge.svg)](https://github.com/magnu1102/OpenReady/actions/workflows/lint-and-test.yml)
 
-OpenReady is an open-source desktop app that analyzes GitHub repositories and helps developers understand which projects are clear, healthy and ready to share. It checks public repositories for documentation, setup instructions, licensing, CI, technology signals, presentation quality and other practical indicators, then turns the findings into transparent scores and actionable improvement suggestions.
+</div>
 
-OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
+OpenReady is an open-source desktop app that analyzes public GitHub repositories and turns documentation, licensing, CI, build and presentation signals into transparent scores and prioritized next steps. Enter a username; get a clear answer to one question: _which of these projects are ready to show someone, and what should each one fix first?_
 
-> **Status:** v0.3.0 released; `main` is at `0.4.0-dev` — Phase 19, the Aurora visual and text revamp, in progress. The deterministic core covers analysis, scoring, recommendations, hidden-gem detection, repository comparison, and a role-targeted **Portfolio** mode with CV and talking-point exports. Recent phases added an optional, opt-in AI assist (bring your own key; never required), custom check packs, shareable team profiles, versioned JSON Schemas, CI gating in the CLI (`--fail-under`, `--require-check`), a composite [GitHub Action](docs/github-action.md), and an `openready badge` subcommand. See the [roadmap](docs/roadmap.md).
+Every check is deterministic and runs on your machine. No account, no cloud, no AI required — an opt-in AI assist exists, but the core never depends on it.
+
+> **Status:** v0.4.0 — Phase 19, the Aurora visual and text revamp, complete: glass design language, full motion choreography, a rewritten voice, new brand identity. Next up: Phase 20, distribution hardening. See the [roadmap](docs/roadmap.md).
 
 ## Screenshots
 
@@ -21,12 +31,24 @@ OpenReady is designed to be useful without AI, accounts or cloud setup. Optional
 | :--------------------------------------------------------------: | :----------------------------------------------------------------------------: |
 | ![Dashboard in light mode](docs/screenshots/dashboard-light.png) | ![Welcome screen with local cache restore](docs/screenshots/welcome-light.png) |
 
+## Features
+
+- **Deterministic scoring** — eight weighted categories per repository, every score backed by a visible list of passed and failed checks. Same repository, same result.
+- **Project-aware expectations** — a CLI is judged like a CLI, a library like a library. Classification is automatic, with manual overrides.
+- **Prioritized recommendations** — ranked by score impact, so the first item on the list is always the highest-leverage fix.
+- **Hidden-gem detection** — strong repositories with weak discoverability get flagged instead of buried.
+- **Portfolio mode** — role-targeted featured projects with CV bullets and interview talking points, exportable as Markdown.
+- **Comparison** — up to three repositories side by side, per-category.
+- **Exports** — Markdown reports, `openready.export.v1` JSON, and homepage project cards, saved only where you choose.
+- **CI gating** — the same analyzer as a CLI and a composite GitHub Action (`--fail-under`, `--require-check`, score badges).
+- **Extensible** — custom check packs and shareable team profiles with versioned JSON Schemas.
+
 ## Quickstart
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) 20+
-- [pnpm](https://pnpm.io/) 9+
+- [pnpm](https://pnpm.io/) 10+
 - [Rust](https://rustup.rs/) (stable toolchain, MSVC on Windows)
 - WebView2 (ships with Windows 11)
 
@@ -45,19 +67,19 @@ pnpm dev
 
 This opens OpenReady in your browser without compiling the Rust shell.
 
-### Current app flow
+### First analysis
 
-1. Enter a public GitHub user account on the Welcome screen.
-2. OpenReady calls GitHub's public REST API, optionally using a locally stored token for higher rate limits.
-3. The Dashboard shows public repository metadata, health labels, scores and key missing signals.
-4. Open a repository to review score breakdowns, detected stack, documentation checks, build/test checks, presentation signals and prioritized recommendations.
-5. Reopen a recent local analysis, refresh it on demand, or export it as Markdown, JSON or homepage-card Markdown from the Dashboard.
+1. Enter a public GitHub username on the Welcome screen.
+2. OpenReady fetches public repository metadata — optionally with a locally stored token for higher rate limits.
+3. The Dashboard shows health labels, scores and the key missing signal per repository.
+4. Open a repository for score breakdowns, detected stack, per-category checks and prioritized recommendations.
+5. Export the analysis as Markdown, JSON or homepage cards; recent analyses reopen instantly from the local cache.
 
-Phase 8 caches recent public analysis snapshots locally, stores optional GitHub tokens in the operating system credential store, and saves export files only to locations selected through the desktop save dialog.
+Tokens live in the operating system credential store, never in browser storage. Export files are written only to locations picked through the save dialog.
 
 ### Run the CLI
 
-OpenReady ships a Node CLI that runs the same deterministic analyzer outside the desktop shell — useful in scripts, CI, or a quick terminal check.
+The CLI runs the same deterministic analyzer outside the desktop shell — for scripts, CI, or a quick terminal check.
 
 ```bash
 # Dev runs via tsx
@@ -104,22 +126,7 @@ pnpm test        # Vitest
 pnpm format      # Prettier write
 ```
 
-## What OpenReady checks
-
-- README presence and section coverage
-- Repository description, topics, homepage/demo URL and license metadata
-- Recent activity, archived status and fork status
-- Setup, usage, screenshots/demo, tech stack, testing and roadmap README sections
-- Setup, build and dependency manifests
-- CI workflows and test detection
-- Docker / deployment signals
-- Screenshots, demo links and presentation quality
-- Repository metadata (description, topics, homepage, activity)
-- Prioritized per-repository recommendations
-- Markdown, JSON and homepage-card exports
-- Local cache restore and explicit refresh
-
-## What OpenReady does **not** do
+## What OpenReady does not do
 
 - Send repository contents to any third party
 - Require a GitHub account or login
@@ -127,13 +134,11 @@ pnpm format      # Prettier write
 - Persist anything to a remote database
 - Store GitHub tokens in browser local storage
 
-## Roadmap
-
-See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openready_master_plan.md) for the full long-form plan.
-
 ## Documentation
 
 - [Product principles](docs/product-principles.md)
+- [Design system (Aurora)](docs/design-system.md)
+- [Voice and tone](docs/voice-and-tone.md)
 - [Architecture](docs/architecture.md)
 - [Scoring model](docs/scoring-model.md)
 - [Project classification](docs/classification.md)
@@ -151,12 +156,13 @@ See [docs/roadmap.md](docs/roadmap.md) and [`openready_master_plan.md`](openread
 - [Roadmap](docs/roadmap.md)
 - [Changelog](CHANGELOG.md)
 
+## Roadmap
+
+See [docs/roadmap.md](docs/roadmap.md) for the phase outline and [`openready_master_plan.md`](openready_master_plan.md) for the full long-form plan.
+
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the quality
-gates, and the pull-request flow, and our [Code of Conduct](CODE_OF_CONDUCT.md). To report a
-vulnerability, see [SECURITY.md](SECURITY.md) — please don't open a public issue for security
-problems.
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the quality gates, and the pull-request flow — UI copy follows the [voice and tone guide](docs/voice-and-tone.md) — plus our [Code of Conduct](CODE_OF_CONDUCT.md). To report a vulnerability, see [SECURITY.md](SECURITY.md); please don't open a public issue for security problems.
 
 ## License
 
