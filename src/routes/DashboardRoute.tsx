@@ -441,7 +441,7 @@ function RepositoryGrid({ children }: { children: ReactNode }) {
       initial="hidden"
       animate="visible"
       variants={staggerContainer(0.035)}
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
       {children}
     </motion.div>
@@ -451,7 +451,7 @@ function RepositoryGrid({ children }: { children: ReactNode }) {
 function RepositoryLoadingGrid() {
   return (
     <div
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       aria-label={copy.dashboard.repoSection.loading}
     >
       {[0, 1, 2].map((i) => (
@@ -494,9 +494,10 @@ function RepositoryCard({
       role="listitem"
       data-tour-anchor={tourAnchor}
       variants={tourAnchor ? fadeIn : fadeUp}
+      className="min-w-0"
       {...motionProps}
     >
-      <Card className="flex h-full min-h-[252px] flex-col gap-4">
+      <Card className="flex h-full min-h-[252px] min-w-0 flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <Link

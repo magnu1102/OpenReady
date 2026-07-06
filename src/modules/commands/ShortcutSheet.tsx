@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Kbd } from "@/components/ui/Kbd";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import { copy } from "@/lib/copy";
 import type { Command } from "./types";
 import { COMMAND_GROUP_LABELS } from "./types";
 import { formatShortcut } from "./shortcuts";
@@ -63,18 +64,18 @@ export function ShortcutSheet({ open, commands, onClose }: ShortcutSheetProps) {
       >
         <div className="flex items-center justify-between gap-2 pb-3">
           <h2 id="shortcut-sheet-title" className="text-md font-semibold text-text-primary">
-            Keyboard shortcuts
+            {copy.commands.shortcuts.title}
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="text-xs text-text-muted hover:text-text-primary"
           >
-            Close
+            {copy.common.close}
           </button>
         </div>
         {grouped.length === 0 ? (
-          <p className="text-sm text-text-muted">No registered shortcuts yet.</p>
+          <p className="text-sm text-text-muted">{copy.commands.shortcuts.empty}</p>
         ) : (
           <div className="flex flex-col gap-4">
             {grouped.map(([label, items]) => (

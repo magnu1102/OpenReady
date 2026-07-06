@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -17,6 +17,19 @@ export function AppShell() {
   useTourAutoStart();
   useResponsiveSidebar();
   const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    if (typeof main.scrollTo === "function") {
+      main.scrollTo({ top: 0, left: 0 });
+      return;
+    }
+    main.scrollTop = 0;
+    main.scrollLeft = 0;
+  }, [pathname]);
+
   return (
     <MotionConfig reducedMotion="user">
       <TooltipProvider>
@@ -28,6 +41,7 @@ export function AppShell() {
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <TopBar />
             <main
+              ref={mainRef}
               id="main"
               tabIndex={-1}
               className="scrollbar-thin min-h-0 flex-1 overflow-y-auto focus-visible:outline-none"
@@ -39,7 +53,7 @@ export function AppShell() {
                 variants={routeVariants}
                 initial="hidden"
                 animate="visible"
-                className="mx-auto w-full max-w-[1200px] px-6 py-6"
+                className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6 sm:py-6"
               >
                 <Outlet />
               </motion.div>

@@ -1,18 +1,25 @@
 import { describe, expect, it } from "vitest";
+import { copy } from "@/lib/copy";
 import type { Command } from "./types";
 import { filterCommands } from "./useCommands";
 
 const sample: Command[] = [
-  { id: "a", label: "Go to Dashboard", group: "navigate", run: () => {} },
-  { id: "b", label: "Open Settings", hint: "Theme and token", group: "navigate", run: () => {} },
+  { id: "a", label: copy.commands.navigate.dashboard.label, group: "navigate", run: () => {} },
+  {
+    id: "b",
+    label: copy.commands.navigate.settings.label,
+    hint: copy.commands.navigate.settings.hint,
+    group: "navigate",
+    run: () => {},
+  },
   {
     id: "c",
-    label: "Open repo: openready",
+    label: copy.commands.repositories.open("openready"),
     hint: "octocat/openready",
     group: "repository",
     run: () => {},
   },
-  { id: "d", label: "Switch theme (current: dark)", group: "view", run: () => {} },
+  { id: "d", label: copy.commands.view.cycleTheme("dark"), group: "view", run: () => {} },
 ];
 
 describe("filterCommands", () => {
@@ -36,6 +43,6 @@ describe("filterCommands", () => {
   });
 
   it("is case-insensitive", () => {
-    expect(filterCommands(sample, "THEME")).toHaveLength(2);
+    expect(filterCommands(sample, "THEME")).toHaveLength(1);
   });
 });
