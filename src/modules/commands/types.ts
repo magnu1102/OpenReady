@@ -1,3 +1,5 @@
+import { copy } from "@/lib/copy";
+
 export type CommandGroup = "navigate" | "repository" | "action" | "view";
 
 export interface CommandShortcut {
@@ -18,8 +20,8 @@ export interface Command {
 }
 
 export const COMMAND_GROUP_LABELS: Record<CommandGroup, string> = {
-  navigate: "Navigation",
-  repository: "Repositories",
-  action: "Actions",
-  view: "View",
+  navigate: copy.commands.groups.navigate,
+  repository: copy.commands.groups.repository,
+  action: copy.commands.groups.action,
+  view: copy.commands.groups.view,
 };

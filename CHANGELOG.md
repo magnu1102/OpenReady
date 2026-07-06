@@ -40,6 +40,13 @@ relevant section.
   glass/motion patterns, swapped dashboard export completion and failure
   feedback to toasts, added focused Compare route coverage, and fixed clipped
   score-ring and empty-state SVG glows.
+- Aurora detail, portfolio, and settings (Phase 19, PR 4 of 5): moved the
+  repository detail, Portfolio, Settings, command palette, theme, AI
+  suggestion, and not-found copy into `src/lib/copy.ts`; restyled detail
+  recommendations, Portfolio highlights, Settings sections, command surfaces,
+  and AI panels with Aurora glass/motion patterns; replaced export, copy,
+  credential, and cache completion messages with toasts; and added focused
+  tests around the new copy/toast behavior.
 
 ## [0.3.0] — 2026-07-06
 

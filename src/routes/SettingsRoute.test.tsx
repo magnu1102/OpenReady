@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { clearAnalysisCache } from "@/lib/analysisCache";
+import { copy } from "@/lib/copy";
 import {
   deleteGitHubToken,
   getGitHubTokenStatus,
   validateAndStoreGitHubToken,
 } from "@/lib/githubAuth";
 import { useRepositoryStore } from "@/store/repositoryStore";
+import { useToastStore } from "@/store/toastStore";
 import { SettingsRoute } from "./SettingsRoute";
 
 vi.mock("@/lib/githubAuth", () => ({
@@ -23,6 +25,7 @@ const deleteGitHubTokenMock = vi.mocked(deleteGitHubToken);
 beforeEach(async () => {
   await clearAnalysisCache();
   useRepositoryStore.getState().reset();
+  useToastStore.getState().clear();
   getGitHubTokenStatusMock.mockReset();
   getGitHubTokenStatusMock.mockResolvedValue({ configured: false, available: true });
   validateAndStoreGitHubTokenMock.mockReset();
@@ -37,12 +40,17 @@ describe("SettingsRoute", () => {
 
     render(<SettingsRoute />);
 
-    expect(await screen.findByText("No token is configured.")).toBeInTheDocument();
+    expect(await screen.findByText(copy.settings.github.notConfigured)).toBeInTheDocument();
     await user.type(screen.getByPlaceholderText(/github_pat/i), "ghp_test");
-    await user.click(screen.getByRole("button", { name: /save token/i }));
+    await user.click(screen.getByRole("button", { name: copy.settings.github.save }));
 
     expect(validateAndStoreGitHubTokenMock).toHaveBeenCalledWith("ghp_test");
-    expect(await screen.findByText("GitHub token saved.")).toBeInTheDocument();
+    expect(await screen.findByText(copy.settings.github.configured)).toBeInTheDocument();
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: copy.toasts.tokenSaved, tone: "success" }),
+      ]),
+    );
   });
 
   it("removes an existing GitHub token", async () => {
@@ -51,20 +59,23 @@ describe("SettingsRoute", () => {
 
     render(<SettingsRoute />);
 
-    expect(
-      await screen.findByText("A token is configured in the operating system credential store."),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /remove token/i }));
+    expect(await screen.findByText(copy.settings.github.configured)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: copy.settings.github.remove }));
 
     expect(deleteGitHubTokenMock).toHaveBeenCalledOnce();
-    expect(await screen.findByText("GitHub token removed.")).toBeInTheDocument();
+    expect(await screen.findByText(copy.settings.github.notConfigured)).toBeInTheDocument();
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: copy.toasts.tokenRemoved, tone: "success" }),
+      ]),
+    );
   });
 
   it("clears the local analysis cache", async () => {
     const user = userEvent.setup();
     render(<SettingsRoute />);
 
-    await screen.findByText("Empty");
+    await screen.findByText(copy.settings.statuses.empty);
     act(() => {
       useRepositoryStore.setState({
         cachedAnalyses: [
@@ -78,9 +89,14 @@ describe("SettingsRoute", () => {
         ],
       });
     });
-    expect(await screen.findByText("1 saved")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /clear cache/i }));
+    expect(await screen.findByText(copy.settings.statuses.saved(1))).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: copy.settings.cache.clear }));
 
-    expect(screen.getByText("Empty")).toBeInTheDocument();
+    expect(screen.getByText(copy.settings.statuses.empty)).toBeInTheDocument();
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: copy.toasts.cacheCleared, tone: "success" }),
+      ]),
+    );
   });
 });

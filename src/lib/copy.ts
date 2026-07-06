@@ -207,6 +207,340 @@ export const copy = {
     },
   },
 
+  repoDetail: {
+    backToDashboard: "Back to Dashboard",
+    noDescription: "No repository description provided.",
+    github: "GitHub",
+    fork: "Fork",
+    archived: "Archived",
+    scoreLabel: "Score",
+    scoreCaption:
+      "Weighted mean of eight category scores, adjusted by project type and your settings.",
+    unavailable: {
+      title: "Repository details unavailable",
+      description:
+        "Repository details live in memory. Fetch a GitHub username again to reopen this view.",
+      action: "Analyze a username",
+    },
+    tabs: {
+      overview: {
+        label: "Overview",
+        title: "Overview",
+        body: "Summary, score breakdown and headline signals. Populated once analysis runs.",
+      },
+      documentation: {
+        label: "Documentation",
+        title: "Documentation checks",
+        body: "README presence, section coverage and dedicated docs-folder detection.",
+      },
+      build: {
+        label: "Build & Tests",
+        title: "Build and tests",
+        body: "Package manifests, lockfiles, Docker, CI workflows, test directories and infrastructure-as-code signals from the repository file tree.",
+      },
+      security: {
+        label: "Security",
+        title: "Security hygiene",
+        body: "SECURITY.md and example environment-file checks from the repository file tree.",
+      },
+      presentation: {
+        label: "Presentation",
+        title: "Presentation checks",
+        body: "Screenshots, demo links, badges and architecture diagrams: the signals that help a reader grasp a project quickly.",
+      },
+      recommendations: {
+        label: "Recommendations",
+        title: "Suggested improvements",
+        body: "Prioritized next steps generated from failed deterministic checks.",
+      },
+    },
+    overview: {
+      signalsTitle: "Repository signals",
+      signalsDescription: "Metadata, activity and repository status checks.",
+      projectSummaryTitle: "Project summary",
+      projectSummaryDescription:
+        "Sends this repository's description, topics and detected signals to your provider to draft a short plain-English summary.",
+      projectSummaryGenerate: "Draft summary",
+    },
+    documentation: {
+      checksDescription:
+        "README presence and section checks for the first 30 fetched repositories.",
+      critiqueTitle: "README critique",
+      critiqueDescription:
+        "Sends the README text and the gaps OpenReady already detected to your provider for prioritized, constructive suggestions.",
+      critiqueGenerate: "Critique README",
+    },
+    build: {
+      title: "Build, CI and infrastructure",
+      description:
+        "Detected from the recursive repository file tree. Package manifests, lockfiles, Docker, GitHub Actions, tests, docs and infrastructure-as-code.",
+    },
+    security: {
+      title: "Security hygiene",
+      description: "Lightweight public-repository hygiene checks detected from committed files.",
+    },
+    presentation: {
+      title: "Presentation checks",
+      description: "README screenshot and demo signals.",
+    },
+    recommendations: {
+      unavailableTitle: "Recommendations unavailable",
+      unavailableDescription: "Run analysis again to generate improvement suggestions.",
+      emptyTitle: "No major gaps detected",
+      emptyDescription:
+        "OpenReady did not find major missing signals for this repository. Keep the evidence fresh as the project changes.",
+      high: "High priority",
+      medium: "Medium priority",
+      low: "Low priority",
+      scoreImpactTitle: "Projected increase to the total score if resolved",
+      scoreImpact: (points: number) => `+${points} pts`,
+    },
+    checks: {
+      unavailableTitle: "Checks unavailable",
+      unavailableDescription: "Run analysis again.",
+      emptyTitle: "No checks in this section",
+      emptyDescription:
+        "This repository does not have any applicable checks for the selected section.",
+    },
+    techStack: {
+      title: "Detected stack",
+      truncated:
+        "Detected from a partial file tree. GitHub truncated the response for this large repository.",
+      detected: "Detected from filenames in the recursive Git tree.",
+      loading: "Fetching the repository file tree. Detection appears here once it completes.",
+      unavailable:
+        "File-tree detection is unavailable for this repository. OpenReady checks the first 30 fetched repositories to stay within GitHub rate limits.",
+      empty: "Repository is empty; nothing to detect.",
+      none: "No recognised manifests, CI, container, infra or test signals were found in this tree.",
+    },
+    summary: {
+      heading: "Score breakdown",
+      onlyCategory: (label: string, score: number) =>
+        `${label} is the only category with applicable checks (${score}/100).`,
+      strongestWeakest: (
+        strongest: string,
+        strongestScore: number,
+        weakest: string,
+        weakestScore: number,
+      ) => `Strongest: ${strongest} (${strongestScore}). Weakest: ${weakest} (${weakestScore}).`,
+      inProgress: "Analysis is still in progress; scores appear as data resolves.",
+      categoryValue: (score: number, passed: number, applicable: number) =>
+        `${score} · ${passed}/${applicable}`,
+      notApplicable: "N/A",
+      weight: (value: number) => `x${value}`,
+    },
+    classification: {
+      overridden: "overridden",
+      confidence: (confidence: string) => `${confidence} confidence`,
+      label: "Project type",
+      autoDetect: (label: string) => `Auto-detect (${label})`,
+    },
+  },
+
+  portfolio: {
+    title: "Portfolio",
+    subtitle: (owner: string) =>
+      `A role-targeted view of ${owner} strongest work, with CV bullets and interview prep generated from the analysis.`,
+    fallbackOwner: "your",
+    empty: {
+      title: "No analysis to build a portfolio from",
+      description:
+        "Analyze a GitHub username first. Portfolio mode turns those results into a role-targeted highlight reel, CV bullets, and interview prep.",
+      action: "Go to dashboard",
+    },
+    role: {
+      label: "Target role",
+      auto: "Auto",
+      autoDetected: (role: string) => `Auto-detected: ${role}`,
+    },
+    featured: {
+      heading: "Featured projects",
+      empty:
+        "No repositories match this role yet. Pin repositories below or pick a different role.",
+      pinned: "Pinned",
+      auto: "Auto",
+    },
+    cv: {
+      heading: "CV bullet points",
+      empty: "Feature a repository to generate CV bullets.",
+      aiTitle: "Refine wording",
+      aiDescription:
+        "Sends these deterministic bullets to your provider for a tighter rewrite. The bullets above stay as the source of truth.",
+      aiGenerate: "Refine",
+    },
+    talking: {
+      heading: "Interview talking points",
+      highlights: "Highlights",
+      questions: "Likely questions",
+      gaps: "Gaps to own",
+      noGaps: "No major gaps detected.",
+    },
+    exports: {
+      heading: "Exports",
+      description: (role: string) =>
+        `Save the ${role} portfolio, CV bullets, or interview prep as Markdown.`,
+      portfolio: "Portfolio",
+      cv: "CV bullets",
+      talkingPoints: "Talking points",
+      error: "OpenReady could not save the export. Choose a writable location and retry.",
+    },
+  },
+
+  settings: {
+    title: "Settings",
+    subtitle: "Configure how OpenReady looks and behaves.",
+    statuses: {
+      available: "Available",
+      completed: "Completed",
+      configured: "Configured",
+      optional: "Optional",
+      empty: "Empty",
+      saved: (count: number) => `${count} saved`,
+      customized: "Customized",
+      default: "Default",
+      keyNeeded: "Key needed",
+      off: "Off",
+      enabled: "Enabled",
+    },
+    appearance: {
+      title: "Appearance",
+      themeLabel: "Theme",
+      themeHint: "Switch between light, dark, and matching your system.",
+    },
+    onboarding: {
+      title: "Onboarding",
+      productTourLabel: "Product tour",
+      productTourHint:
+        "A four-step walkthrough covering the welcome screen, dashboard, exports, and settings.",
+      replay: "Replay tour",
+    },
+    github: {
+      title: "GitHub",
+      tokenLabel: "Personal access token",
+      tokenHint:
+        "Optional token raises GitHub API rate limits. It is stored in the operating system credential store, not browser local storage.",
+      tokenPlaceholder: "ghp_... or github_pat_...",
+      save: "Save token",
+      remove: "Remove token",
+      configured: "A token is configured in the operating system credential store.",
+      notConfigured: "No token is configured.",
+      unavailable: "Token storage is available in the desktop app.",
+      validating: "Validating token with GitHub...",
+      fallbackError: "OpenReady could not update GitHub token settings.",
+    },
+    cache: {
+      title: "Cache",
+      label: "Local analysis cache",
+      hint: "Recent analysis snapshots are cached locally to avoid re-fetching repositories on every open.",
+      clear: "Clear cache",
+    },
+    weights: {
+      title: "Scoring weights",
+      heading: "Tune how much each category counts",
+      description: (defaultWeight: number | string, minWeight: number | string) =>
+        `These multipliers layer on top of the project-type weights, so a CLI is still judged like a CLI. Changes re-score every repository immediately and persist locally. Leave a category at ${defaultWeight}x to keep its default weight; set it to ${minWeight}x to ignore it.`,
+      reset: "Reset to defaults",
+      value: (value: number | string) => `${value}x`,
+    },
+    ai: {
+      title: "AI features",
+      label: "AI-assisted suggestions",
+      hint: "OpenReady is deterministic by design. AI suggestions are opt-in, bring-your-own-key, and never replace the core checks. When enabled, you trigger each suggestion manually.",
+      switchLabel: "Enable AI features",
+      baseUrlLabel: "Provider base URL",
+      baseUrlHint:
+        "Any OpenAI-compatible endpoint: OpenAI, Groq, OpenRouter, or a local model such as Ollama.",
+      baseUrlPlaceholder: "https://api.openai.com/v1",
+      modelLabel: "Model",
+      modelHint: "The model name to request, e.g. gpt-4o-mini or llama3.",
+      modelPlaceholder: "gpt-4o-mini",
+      keyLabel: "API key",
+      keyHint:
+        "Stored in the operating system credential store, never in browser storage and never sent anywhere except your chosen provider. Optional for keyless local models.",
+      keyPlaceholder: "sk-...",
+      storedFallback: "Key stored",
+      storedBadge: "Stored",
+      verify: "Verify",
+      delete: "Delete key",
+      save: "Save key",
+      configured: "An API key is stored in the operating system credential store.",
+      notConfigured: "No API key is configured.",
+      unavailable: "AI features are available in the desktop app.",
+      saving: "Saving API key...",
+      verifying: "Verifying with the provider...",
+      disclosure:
+        "When you generate a suggestion, OpenReady sends the relevant repository text to your provider after redacting secret-looking strings. Costs are billed by your provider.",
+    },
+  },
+
+  aiSuggestion: {
+    badge: "AI suggestion (beta)",
+    defaultGenerate: "Generate",
+    generating: "Generating",
+    disabledTitle: "Enable AI features in Settings",
+    disabledMessage:
+      "Turn on AI features in Settings to use this. OpenReady stays fully usable without it.",
+    metadata: (model: string, chars: number) => `${model} · ${chars} characters sent`,
+    fallbackError: "OpenReady could not generate an AI suggestion.",
+  },
+
+  commands: {
+    groups: {
+      navigate: "Navigation",
+      repository: "Repositories",
+      action: "Actions",
+      view: "View",
+    },
+    navigate: {
+      welcome: { label: "Go to Welcome", hint: "Return to the start screen" },
+      dashboard: { label: "Go to Dashboard", hint: "Repository portfolio overview" },
+      portfolio: { label: "Open Portfolio", hint: "Role-targeted project highlights" },
+      settings: { label: "Open Settings", hint: "Appearance, tour, GitHub token, cache" },
+    },
+    view: {
+      toggleSidebar: "Toggle sidebar",
+      cycleTheme: (mode: string) => `Switch theme (current: ${mode})`,
+      palette: "Open command palette",
+      shortcuts: "Show keyboard shortcuts",
+    },
+    actions: {
+      replayTour: { label: "Replay product tour", hint: "Restart the four-step walkthrough" },
+      refresh: (username: string) => ({
+        label: `Refresh analysis for ${username}`,
+        hint: "Re-fetch repositories from GitHub",
+      }),
+    },
+    repositories: {
+      open: (name: string) => `Open repo: ${name}`,
+    },
+    palette: {
+      ariaLabel: "Command palette",
+      placeholder: "Type a command, navigate, or open a repo...",
+      inputLabel: "Filter commands",
+      empty: "No matching commands.",
+      move: "to move",
+      run: "to run",
+      count: (count: number) => `${count} commands`,
+    },
+    shortcuts: {
+      title: "Keyboard shortcuts",
+      empty: "No registered shortcuts yet.",
+    },
+  },
+
+  theme: {
+    ariaLabel: "Theme",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+  },
+
+  notFound: {
+    title: "Page not found",
+    description: "The route you tried to open does not exist.",
+    action: "Back to Welcome",
+  },
+
   tour: {
     controls: {
       progress: (current: number, total: number) => `Step ${current} of ${total}`,

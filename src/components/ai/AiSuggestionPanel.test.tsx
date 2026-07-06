@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AiSuggestionPanel } from "./AiSuggestionPanel";
+import { copy } from "@/lib/copy";
 import { useAiStore } from "@/store/aiStore";
+import { useToastStore } from "@/store/toastStore";
 import type { AiSuggestion } from "@/modules/ai-adapter";
 
 const suggestion: AiSuggestion = {
@@ -13,6 +15,7 @@ const suggestion: AiSuggestion = {
 
 afterEach(() => {
   useAiStore.setState({ enabled: false });
+  useToastStore.getState().clear();
 });
 
 describe("AiSuggestionPanel", () => {
@@ -26,10 +29,10 @@ describe("AiSuggestionPanel", () => {
       />,
     );
 
-    const button = screen.getByRole("button", { name: /generate/i });
+    const button = screen.getByRole("button", { name: copy.aiSuggestion.defaultGenerate });
     expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("title", expect.stringMatching(/enable ai features/i));
-    expect(screen.getByText(/turn on ai features in settings/i)).toBeInTheDocument();
+    expect(button).toHaveAttribute("title", copy.aiSuggestion.disabledTitle);
+    expect(screen.getByText(copy.aiSuggestion.disabledMessage)).toBeInTheDocument();
   });
 
   it("renders the returned text and a Copy button after generating", async () => {
@@ -43,13 +46,18 @@ describe("AiSuggestionPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /generate/i }));
+    await user.click(screen.getByRole("button", { name: copy.aiSuggestion.defaultGenerate }));
 
     await waitFor(() => {
       expect(screen.getByText(suggestion.text)).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: /copy/i })).toBeInTheDocument();
-    expect(screen.getByText(/128 characters sent/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: copy.common.copy }));
+    expect(screen.getByText(copy.aiSuggestion.metadata("gpt-4o-mini", 128))).toBeInTheDocument();
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ message: copy.toasts.copied, tone: "success" }),
+      ]),
+    );
   });
 
   it("surfaces a friendly error when generation fails", async () => {
@@ -63,7 +71,7 @@ describe("AiSuggestionPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /generate/i }));
+    await user.click(screen.getByRole("button", { name: copy.aiSuggestion.defaultGenerate }));
 
     await waitFor(() => {
       expect(screen.getByText(/provider rejected the api key/i)).toBeInTheDocument();

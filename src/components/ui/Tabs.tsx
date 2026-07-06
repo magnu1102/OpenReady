@@ -9,7 +9,7 @@ export function TabsList({ className, ...props }: React.ComponentProps<typeof Ta
   return (
     <TabsPrimitive.List
       className={cn(
-        "bg-subtle/60 inline-flex items-center gap-1 rounded-lg border border-glass-border p-1",
+        "bg-subtle/60 inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-glass-border p-1",
         className,
       )}
       {...props}
@@ -24,7 +24,7 @@ export function TabsTrigger({
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        "relative h-8 rounded-md px-3 text-sm font-medium text-text-secondary",
+        "relative h-8 rounded-md px-2 text-xs font-medium text-text-secondary sm:px-3 sm:text-sm",
         "transition-colors duration-micro ease-soft",
         "hover:text-text-primary",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",

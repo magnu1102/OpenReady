@@ -4,6 +4,7 @@ import { useRepositoryStore } from "@/store/repositoryStore";
 import { useThemeStore } from "@/store/themeStore";
 import { useTourStore } from "@/modules/tour";
 import { useNavigationStore } from "@/store/navigationStore";
+import { copy } from "@/lib/copy";
 import type { Command } from "./types";
 
 export interface CommandOptions {
@@ -30,22 +31,29 @@ export function useCommands(options: CommandOptions): Command[] {
     const navigateCommands: Command[] = [
       {
         id: "nav:welcome",
-        label: "Go to Welcome",
-        hint: "Return to the start screen",
+        label: copy.commands.navigate.welcome.label,
+        hint: copy.commands.navigate.welcome.hint,
         group: "navigate",
         run: () => navigate("/"),
       },
       {
         id: "nav:dashboard",
-        label: "Go to Dashboard",
-        hint: "Repository portfolio overview",
+        label: copy.commands.navigate.dashboard.label,
+        hint: copy.commands.navigate.dashboard.hint,
         group: "navigate",
         run: () => navigate("/dashboard"),
       },
       {
+        id: "nav:portfolio",
+        label: copy.commands.navigate.portfolio.label,
+        hint: copy.commands.navigate.portfolio.hint,
+        group: "navigate",
+        run: () => navigate("/portfolio"),
+      },
+      {
         id: "nav:settings",
-        label: "Open Settings",
-        hint: "Appearance, tour, GitHub token, cache",
+        label: copy.commands.navigate.settings.label,
+        hint: copy.commands.navigate.settings.hint,
         group: "navigate",
         shortcut: { key: ",", meta: true },
         run: () => navigate("/settings"),
@@ -55,14 +63,14 @@ export function useCommands(options: CommandOptions): Command[] {
     const viewCommands: Command[] = [
       {
         id: "view:toggle-sidebar",
-        label: "Toggle sidebar",
+        label: copy.commands.view.toggleSidebar,
         group: "view",
         shortcut: { key: "b", meta: true },
         run: () => toggleSidebar(),
       },
       {
         id: "view:cycle-theme",
-        label: `Switch theme (current: ${themeMode})`,
+        label: copy.commands.view.cycleTheme(themeMode),
         group: "view",
         run: () => {
           const next = themeMode === "light" ? "dark" : themeMode === "dark" ? "system" : "light";
@@ -71,14 +79,14 @@ export function useCommands(options: CommandOptions): Command[] {
       },
       {
         id: "view:palette",
-        label: "Open command palette",
+        label: copy.commands.view.palette,
         group: "view",
         shortcut: { key: "k", meta: true },
         run: () => options.openPalette(),
       },
       {
         id: "view:shortcuts",
-        label: "Show keyboard shortcuts",
+        label: copy.commands.view.shortcuts,
         group: "view",
         shortcut: { key: "/", meta: true },
         run: () => options.openShortcuts(),
@@ -88,8 +96,8 @@ export function useCommands(options: CommandOptions): Command[] {
     const actionCommands: Command[] = [
       {
         id: "action:replay-tour",
-        label: "Replay product tour",
-        hint: "Restart the four-step walkthrough",
+        label: copy.commands.actions.replayTour.label,
+        hint: copy.commands.actions.replayTour.hint,
         group: "action",
         run: () => {
           restartTour();
@@ -98,10 +106,11 @@ export function useCommands(options: CommandOptions): Command[] {
       },
     ];
     if (username) {
+      const refreshCopy = copy.commands.actions.refresh(username);
       actionCommands.push({
         id: "action:refresh",
-        label: `Refresh analysis for ${username}`,
-        hint: "Re-fetch repositories from GitHub",
+        label: refreshCopy.label,
+        hint: refreshCopy.hint,
         group: "action",
         run: async () => {
           try {
@@ -116,7 +125,7 @@ export function useCommands(options: CommandOptions): Command[] {
 
     const repositoryCommands: Command[] = repositories.slice(0, 50).map((repository) => ({
       id: `repo:${repository.id}`,
-      label: `Open repo: ${repository.name}`,
+      label: copy.commands.repositories.open(repository.name),
       hint: repository.fullName,
       group: "repository",
       run: () => navigate(`/dashboard/repo/${encodeURIComponent(repository.id)}`),
