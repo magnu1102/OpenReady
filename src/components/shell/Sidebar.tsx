@@ -7,16 +7,17 @@ import {
   PanelLeft,
 } from "lucide-react";
 import { useNavigationStore } from "@/store/navigationStore";
-import { APP_NAME, APP_PHASE } from "@/lib/env";
+import { APP_NAME, APP_VERSION } from "@/lib/env";
+import { copy } from "@/lib/copy";
 import { Logo } from "./Logo";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/cn";
 
 const items = [
-  { to: "/", label: "Welcome", icon: Sparkles, end: true },
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: false },
-  { to: "/portfolio", label: "Portfolio", icon: Briefcase, end: false },
-  { to: "/settings", label: "Settings", icon: SettingsIcon, end: false },
+  { to: "/", label: copy.shell.nav.welcome, icon: Sparkles, end: true },
+  { to: "/dashboard", label: copy.shell.nav.dashboard, icon: LayoutDashboard, end: false },
+  { to: "/portfolio", label: copy.shell.nav.portfolio, icon: Briefcase, end: false },
+  { to: "/settings", label: copy.shell.nav.settings, icon: SettingsIcon, end: false },
 ];
 
 export function Sidebar() {
@@ -26,13 +27,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col border-r border-border-subtle bg-surface transition-[width] duration-soft ease-soft",
+        "glass-panel flex shrink-0 flex-col rounded-xl transition-[width] duration-soft ease-soft",
         w,
       )}
     >
       <div
         className={cn(
-          "flex h-14 items-center border-b border-border-subtle px-3",
+          "flex h-14 items-center border-b border-glass-border px-3",
           sidebarCollapsed ? "justify-center" : "justify-between",
         )}
       >
@@ -41,17 +42,17 @@ export function Sidebar() {
           {!sidebarCollapsed && (
             <div className="flex min-w-0 flex-col leading-tight">
               <span className="text-sm font-semibold text-text-primary">{APP_NAME}</span>
-              <span className="truncate text-[10px] uppercase tracking-wider text-text-muted">
-                {APP_PHASE}
+              <span className="truncate font-mono text-[10px] text-text-muted">
+                {copy.app.versionBadge(APP_VERSION)}
               </span>
             </div>
           )}
         </div>
         {!sidebarCollapsed && (
-          <Tooltip content="Collapse sidebar">
+          <Tooltip content={copy.shell.sidebar.collapse}>
             <button
               onClick={toggleSidebar}
-              aria-label="Collapse sidebar"
+              aria-label={copy.shell.sidebar.collapse}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-subtle hover:text-text-primary"
             >
               <PanelLeft className="h-4 w-4" />
@@ -87,11 +88,11 @@ export function Sidebar() {
       </nav>
 
       {sidebarCollapsed && (
-        <div className="flex justify-center border-t border-border-subtle p-2">
-          <Tooltip content="Expand sidebar" side="right">
+        <div className="flex justify-center border-t border-glass-border p-2">
+          <Tooltip content={copy.shell.sidebar.expand} side="right">
             <button
               onClick={toggleSidebar}
-              aria-label="Expand sidebar"
+              aria-label={copy.shell.sidebar.expand}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-subtle hover:text-text-primary"
             >
               <PanelLeft className="h-4 w-4 rotate-180" />

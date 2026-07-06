@@ -9,6 +9,7 @@ import {
   GitHubClientError,
 } from "@/modules/github-client";
 import { clearAnalysisCache } from "@/lib/analysisCache";
+import { copy } from "@/lib/copy";
 import { saveExportFile } from "@/lib/exportFiles";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import type { Repository } from "@/types";
@@ -72,7 +73,7 @@ beforeEach(async () => {
 describe("App", () => {
   it("renders the Welcome route at the initial entry", () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: /understand and improve/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: copy.welcome.heading })).toBeInTheDocument();
   });
 
   it("renders the sidebar with primary navigation", () => {
