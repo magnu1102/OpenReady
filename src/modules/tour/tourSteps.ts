@@ -1,36 +1,39 @@
 import type { TourStep } from "./types";
+import { copy } from "@/lib/copy";
 
+// Structure (routes, anchors, placement) lives here; the step text lives in
+// the central copy module alongside every other user-facing string.
 export const tourSteps: TourStep[] = [
   {
     id: "welcome-cta",
     route: "/",
     anchorId: "welcome-cta",
-    title: "Start with a GitHub username",
-    body: "OpenReady runs deterministic checks on public repositories. Enter any GitHub username on this screen to begin — results are cached locally.",
+    title: copy.tour.steps[0].title,
+    body: copy.tour.steps[0].body,
     placement: "bottom",
   },
   {
     id: "dashboard-first-card",
     route: "/dashboard",
     anchorId: "dashboard-first-card",
-    title: "Browse your repository portfolio",
-    body: "Each card shows a health label, a project-type classification, and a score. Click in to drill down into the evidence.",
+    title: copy.tour.steps[1].title,
+    body: copy.tour.steps[1].body,
     placement: "bottom",
   },
   {
     id: "export-panel",
     route: "/dashboard",
     anchorId: "export-panel",
-    title: "Export your analysis",
-    body: "Save the in-memory analysis as Markdown, JSON, or homepage cards. These exports stay local — nothing leaves your machine.",
+    title: copy.tour.steps[2].title,
+    body: copy.tour.steps[2].body,
     placement: "top",
   },
   {
     id: "settings-replay",
     route: "/settings",
     anchorId: "settings-replay",
-    title: "Replay this tour anytime",
-    body: "Found this useful? Replay the tour from Settings whenever you want, manage your cache, and add an optional GitHub token for higher rate limits.",
+    title: copy.tour.steps[3].title,
+    body: copy.tour.steps[3].body,
     placement: "bottom",
   },
 ];

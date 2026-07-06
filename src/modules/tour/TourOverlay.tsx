@@ -6,6 +6,7 @@ import { tourSteps } from "./tourSteps";
 import type { TourPlacement } from "./types";
 import { Button } from "@/components/ui/Button";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import { copy } from "@/lib/copy";
 
 const POPOVER_WIDTH = 320;
 const GAP = 12;
@@ -71,12 +72,17 @@ export function TourOverlay() {
     window.addEventListener("scroll", measure, true);
     window.addEventListener("resize", measure);
     const retry = window.setTimeout(measure, 80);
+    // Re-measure after the route entrance animation settles (320ms) —
+    // getBoundingClientRect includes in-flight transforms, so a measurement
+    // taken mid-entrance would park the cutout at the wrong place.
+    const settle = window.setTimeout(() => requestAnimationFrame(measure), 360);
 
     return () => {
       observer?.disconnect();
       window.removeEventListener("scroll", measure, true);
       window.removeEventListener("resize", measure);
       window.clearTimeout(retry);
+      window.clearTimeout(settle);
     };
   }, [step, location.pathname]);
 
@@ -132,7 +138,7 @@ export function TourOverlay() {
       <div
         ref={popoverRef}
         tabIndex={-1}
-        className="absolute flex flex-col gap-3 rounded-lg border border-border-default bg-surface p-4 shadow-xl focus-visible:outline-none"
+        className="glass-overlay absolute flex flex-col gap-3 rounded-lg p-4 focus-visible:outline-none"
         style={{
           width: POPOVER_WIDTH,
           top: popoverPosition.top,
@@ -141,14 +147,14 @@ export function TourOverlay() {
       >
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
-            Step {activeStep + 1} of {TOUR_STEP_COUNT}
+            {copy.tour.controls.progress(activeStep + 1, TOUR_STEP_COUNT)}
           </span>
           <button
             type="button"
             onClick={skip}
             className="text-xs text-text-muted hover:text-text-primary"
           >
-            Skip tour
+            {copy.tour.controls.skip}
           </button>
         </div>
         <h2 id="tour-title" className="text-md font-semibold text-text-primary">
@@ -158,11 +164,11 @@ export function TourOverlay() {
         <div className="mt-1 flex items-center justify-end gap-2">
           {!isFirst ? (
             <Button type="button" variant="ghost" size="sm" onClick={prev}>
-              Back
+              {copy.tour.controls.back}
             </Button>
           ) : null}
           <Button type="button" variant="primary" size="sm" onClick={next}>
-            {isLast ? "Done" : "Next"}
+            {isLast ? copy.tour.controls.done : copy.tour.controls.next}
           </Button>
         </div>
       </div>

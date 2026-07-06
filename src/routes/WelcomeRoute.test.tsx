@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/Tooltip";
+import { copy } from "@/lib/copy";
 import { WelcomeRoute } from "./WelcomeRoute";
 
 function renderWelcome() {
@@ -18,7 +19,7 @@ function renderWelcome() {
 describe("WelcomeRoute", () => {
   it("renders the hero copy", () => {
     renderWelcome();
-    expect(screen.getByRole("heading", { name: /understand and improve/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: copy.welcome.heading })).toBeInTheDocument();
   });
 
   it("renders the GitHub username input", () => {
