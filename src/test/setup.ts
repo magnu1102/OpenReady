@@ -10,11 +10,13 @@ afterEach(async () => {
   // zustand persist middleware initializes.
   const { useTourStore } = await import("@/modules/tour");
   const { useRepositoryStore } = await import("@/store/repositoryStore");
+  const { useToastStore } = await import("@/store/toastStore");
   // Default: pretend the tour has been seen so auto-start does not
   // intercept other route-level integration tests. Tour-specific tests
   // override this via setState in their own setup.
   useTourStore.setState({ seen: true, activeStep: null });
   useRepositoryStore.getState().reset();
+  useToastStore.getState().clear();
 });
 
 const testStorage = new Map<string, string>();
