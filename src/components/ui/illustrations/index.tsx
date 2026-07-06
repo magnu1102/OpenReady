@@ -18,7 +18,7 @@ function Disc({ className, children, ...props }: IllustrationProps) {
       height={96}
       fill="none"
       aria-hidden="true"
-      className={cn("drop-shadow-[0_0_18px_var(--accent-subtle)]", className)}
+      className={cn("overflow-visible drop-shadow-[0_0_18px_var(--accent-subtle)]", className)}
       {...props}
     >
       <circle cx="48" cy="48" r="46" fill="var(--accent-subtle)" opacity="0.5" />

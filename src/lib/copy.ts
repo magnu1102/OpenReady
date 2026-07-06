@@ -94,6 +94,119 @@ export const copy = {
     notAvailable: "—",
   },
 
+  dashboard: {
+    title: "Dashboard",
+    subtitle: (username: string) =>
+      `Public repositories for ${username}. Every check runs locally and deterministically.`,
+    subtitleNoUser: "Enter a GitHub username to fetch public repositories.",
+    cacheStale: "Cached snapshot is older than 24 hours.",
+    cacheFresh: "Loaded locally.",
+    cacheFetched: (date: string) => `Last fetched ${date}.`,
+    refresh: "Refresh",
+    stats: {
+      repositories: {
+        label: "Repositories",
+        hint: "Public repositories fetched from GitHub.",
+        sub: "Fetched public metadata",
+      },
+      portfolioReady: {
+        label: "Portfolio-ready",
+        hint: "Repositories scoring at least 85 across the eight categories.",
+        sub: "From category scores",
+      },
+      needsWork: {
+        label: "Needs work",
+        hint: "Repositories in the Needs work or Experimental tiers.",
+        sub: "From category scores",
+      },
+      hiddenGems: {
+        label: "Hidden gems",
+        hint: "Repositories scoring at least 70 with few stars and missing discoverability signals — strong work that deserves more visibility.",
+        sub: "From category scores",
+      },
+      avgScore: {
+        label: "Avg score",
+        hint: "Mean total score across repositories with at least one resolved category.",
+        sub: "From category scores",
+      },
+    },
+    repoSection: {
+      heading: "Repositories",
+      count: (n: number) => `${n} fetched`,
+      pending: "Public fetch",
+      loading: "Loading repositories",
+    },
+    errors: {
+      notFound: "GitHub user not found",
+      rateLimit: "GitHub rate limit reached",
+      network: "Network connection failed",
+      generic: "Repository fetch failed",
+      changeUsername: "Change username",
+      tryAgain: "Try again",
+    },
+    empty: {
+      noReposTitle: "No public repositories found",
+      noReposBody: "GitHub found that user, but there are no public repositories to show.",
+      noReposAction: "Analyze another username",
+      idleTitle: "No analysis yet",
+      idleBody:
+        "Start with a public GitHub username. OpenReady fetches repository metadata and keeps it on this machine.",
+      idleAction: "Back to Welcome",
+    },
+    card: {
+      noDescription: "No repository description provided.",
+      scoreLabel: "Score",
+      scorePending: "Score pending",
+      scoreSummary: (score: number, label: string) => `Score ${score} · ${label}`,
+      noGaps: "No critical gaps detected.",
+      updated: (date: string) => `Updated ${date}`,
+      github: "GitHub",
+      homepage: "Homepage",
+      hiddenGem: "Hidden gem",
+      fork: "Fork",
+      archived: "Archived",
+      compare: "Compare",
+      compareSelected: "Selected",
+      compareLimit: (max: number) => `Compare up to ${max} repositories at once`,
+    },
+    compareBar: {
+      selected: (n: number) => `${n} selected to compare`,
+      compare: "Compare",
+      clear: "Clear",
+    },
+    exportPanel: {
+      heading: "Exports",
+      description:
+        "Save the current analysis as a report, a machine-readable summary, or homepage project cards.",
+      preparing: "Preparing export...",
+      markdown: "Markdown",
+      json: "JSON",
+      homepageCards: "Homepage cards",
+      exportError: "OpenReady could not save the export. Choose a writable location and retry.",
+    },
+  },
+
+  compare: {
+    title: "Compare repositories",
+    subtitle: "Side-by-side scores, classification, and gaps for up to three repositories.",
+    backToDashboard: "Back to dashboard",
+    clearSelection: "Clear selection",
+    empty: {
+      title: "Select at least two repositories",
+      description:
+        "Use the Compare toggle on repository cards in the dashboard to add up to three repositories here.",
+      action: "Go to dashboard",
+    },
+    column: {
+      remove: (name: string) => `Remove ${name} from comparison`,
+      scoreLabel: "Score",
+      topGaps: "Top gaps",
+      noGaps: "No critical gaps detected.",
+      hiddenGem: "Hidden gem",
+      weight: (value: number) => `x${value}`,
+    },
+  },
+
   tour: {
     controls: {
       progress: (current: number, total: number) => `Step ${current} of ${total}`,

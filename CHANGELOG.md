@@ -21,6 +21,17 @@ relevant section.
   tests assert against the same constants). New docs: `docs/design-system.md`
   and `docs/voice-and-tone.md`. Roadmap renumbered — the visual revamp is
   Phase 19; distribution hardening and later phases shift to 20–23.
+- Aurora shell and welcome (Phase 19, PR 2 of 5): added the glass toast system,
+  mounted the app-wide toast viewport, moved shell and welcome copy into
+  `src/lib/copy.ts`, restyled the shell as a floating glass rail with a glass
+  top bar and version badge, refreshed the OpenReady logo treatment, and
+  hardened guided-tour re-measurement around route and welcome animations.
+- Aurora dashboard and compare (Phase 19, PR 3 of 5): moved Dashboard and
+  Compare text into the typed copy module, restyled dashboard stats,
+  repository cards, exports, comparison columns, and empty states with Aurora
+  glass/motion patterns, swapped dashboard export completion and failure
+  feedback to toasts, added focused Compare route coverage, and fixed clipped
+  score-ring and empty-state SVG glows.
 
 ## [0.3.0] — 2026-07-06
 

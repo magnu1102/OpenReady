@@ -11,11 +11,13 @@ afterEach(async () => {
   const { useTourStore } = await import("@/modules/tour");
   const { useRepositoryStore } = await import("@/store/repositoryStore");
   const { useToastStore } = await import("@/store/toastStore");
+  const { useComparisonStore } = await import("@/store/comparisonStore");
   // Default: pretend the tour has been seen so auto-start does not
   // intercept other route-level integration tests. Tour-specific tests
   // override this via setState in their own setup.
   useTourStore.setState({ seen: true, activeStep: null });
   useRepositoryStore.getState().reset();
+  useComparisonStore.getState().clear();
   useToastStore.getState().clear();
 });
 
