@@ -22,15 +22,32 @@ const config: Config = {
         success: "var(--success)",
         warn: "var(--warn)",
         danger: "var(--danger)",
+        glass: {
+          surface: "var(--glass-surface)",
+          strong: "var(--glass-surface-strong)",
+          border: "var(--glass-border)",
+          highlight: "var(--glass-highlight)",
+        },
       },
       borderRadius: {
         sm: "var(--radius-sm)",
         md: "var(--radius-md)",
         lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
       },
       boxShadow: {
         subtle: "var(--shadow-subtle)",
         elevated: "var(--shadow-elevated)",
+        glass: "var(--shadow-glass)",
+        glow: "var(--shadow-glow)",
+      },
+      backdropBlur: {
+        glass: "var(--blur-glass)",
+        "glass-strong": "var(--blur-glass-strong)",
+      },
+      backgroundImage: {
+        "accent-gradient":
+          "linear-gradient(135deg, var(--gradient-accent-from), var(--gradient-accent-to))",
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
