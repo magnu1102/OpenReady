@@ -53,6 +53,11 @@ Examples:
   openready analyze octocat --plugins ./acme-pack --allow-plugins \\
     --require-check acme/has-changelog
   openready badge --from report.json --format svg --out badge.svg
+
+Running from a source checkout (the openready binary is registered on
+install once the package ships to npm; until then use one of):
+  pnpm cli -- analyze octocat
+  node dist-cli/openready.mjs analyze octocat
 `;
 
 function readVersion(): string {

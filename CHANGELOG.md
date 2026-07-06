@@ -29,6 +29,14 @@ relevant section.
   the lint-and-test workflow, ESLint/Prettier ignores, and a `.gitattributes`
   rule pinning its LF line endings.
 
+### Fixed
+
+- CLI help output now documents how to run the CLI from a source checkout
+  (`pnpm cli -- …` or `node dist-cli/openready.mjs …`), since the `openready`
+  binary is only registered when the package is installed from npm ([#12]).
+
+[#12]: https://github.com/magnu1102/OpenReady/issues/12
+
 ## [0.2.0] — 2026-07-02
 
 ### Added
