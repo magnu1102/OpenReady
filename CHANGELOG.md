@@ -8,7 +8,19 @@ relevant section.
 
 ## [Unreleased]
 
-_No changes yet._
+### Changed
+
+- Aurora foundations (Phase 19, PR 1 of 5): new glass token layer (translucent
+  surfaces, backdrop blur on shell surfaces, violet-blue accent, gradient
+  glow) with full light/dark parity and a solid-surface fallback when
+  `backdrop-filter` is unavailable; every UI primitive restyled (gradient
+  primary buttons, glass cards and tooltips, segmented tabs, tier-gradient
+  score rings with glow, glow empty-state discs with geometric spot
+  illustrations). New shared modules: `src/lib/motion.ts` (choreography
+  constants, reduced-motion gated) and `src/lib/copy.ts` (central typed copy,
+  tests assert against the same constants). New docs: `docs/design-system.md`
+  and `docs/voice-and-tone.md`. Roadmap renumbered — the visual revamp is
+  Phase 19; distribution hardening and later phases shift to 20–23.
 
 ## [0.3.0] — 2026-07-06
 
