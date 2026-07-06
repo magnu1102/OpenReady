@@ -4,24 +4,35 @@ import { cn } from "@/lib/cn";
 
 interface EmptyStateProps {
   icon?: LucideIcon;
+  /** Aurora spot illustration; takes precedence over `icon` when provided. */
+  illustration?: ReactNode;
   title: string;
   description?: string;
   action?: ReactNode;
   className?: string;
 }
 
-export function EmptyState({ icon: Icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  illustration,
+  title,
+  description,
+  action,
+  className,
+}: EmptyStateProps) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-lg border border-dashed border-border-default",
-        "bg-surface/50 px-8 py-12 text-center",
+        "glass-card flex flex-col items-center justify-center rounded-xl",
+        "px-8 py-12 text-center",
         className,
       )}
     >
-      {Icon ? (
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-subtle">
-          <Icon className="h-5 w-5 text-text-muted" strokeWidth={1.75} />
+      {illustration ? (
+        <div className="mb-4">{illustration}</div>
+      ) : Icon ? (
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent-subtle shadow-glow">
+          <Icon className="h-6 w-6 text-accent" strokeWidth={1.5} />
         </div>
       ) : null}
       <h3 className="text-md font-semibold text-text-primary">{title}</h3>

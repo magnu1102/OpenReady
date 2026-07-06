@@ -19,9 +19,10 @@ const base =
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-accent text-white hover:bg-accent-hover active:translate-y-px shadow-subtle",
+    "bg-accent-gradient text-white shadow-subtle transition-[box-shadow,filter] " +
+    "hover:shadow-glow hover:brightness-110 active:translate-y-px",
   secondary:
-    "bg-surface text-text-primary border border-border-default hover:bg-subtle",
+    "bg-glass-surface text-text-primary border border-glass-border shadow-subtle hover:bg-subtle",
   ghost: "bg-transparent text-text-secondary hover:bg-subtle hover:text-text-primary",
   danger: "bg-danger text-white hover:opacity-90 active:translate-y-px",
 };
@@ -36,11 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "secondary", size = "md", asChild, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     return (
-      <Comp
-        ref={ref}
-        className={cn(base, variants[variant], sizes[size], className)}
-        {...props}
-      />
+      <Comp ref={ref} className={cn(base, variants[variant], sizes[size], className)} {...props} />
     );
   },
 );
