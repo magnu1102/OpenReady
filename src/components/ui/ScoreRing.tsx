@@ -50,7 +50,7 @@ export function ScoreRing({
       role="img"
       aria-label={`${label}: ${displayValue}`}
     >
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90 overflow-visible">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={stroke} stopOpacity="1" />

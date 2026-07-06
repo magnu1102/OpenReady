@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import {
@@ -91,7 +91,7 @@ describe("App", () => {
     await user.type(screen.getByLabelText(/github username/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
-    expect(await screen.findByRole("heading", { name: /dashboard/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: copy.dashboard.title })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "openready" })).toBeInTheDocument();
     expect(screen.getByText("octocat/openready")).toBeInTheDocument();
     expect(screen.getByText("TypeScript")).toBeInTheDocument();
@@ -107,8 +107,10 @@ describe("App", () => {
     await user.type(screen.getByLabelText(/github username/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
-    expect(await screen.findByRole("heading", { name: /exports/i })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /^markdown$/i }));
+    expect(
+      await screen.findByRole("heading", { name: copy.dashboard.exportPanel.heading }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: copy.dashboard.exportPanel.markdown }));
 
     expect(saveExportFileMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -117,7 +119,9 @@ describe("App", () => {
         content: expect.stringContaining("# OpenReady report for octocat"),
       }),
     );
-    expect(await screen.findByText("Export saved.")).toBeInTheDocument();
+    expect(
+      await within(screen.getByRole("status")).findByText(copy.toasts.exportSaved),
+    ).toBeInTheDocument();
   });
 
   it("restores a recent cached analysis from the Welcome screen", async () => {
@@ -138,7 +142,7 @@ describe("App", () => {
     expect(await screen.findByText(/recent cache/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /open cached/i }));
 
-    expect(await screen.findByRole("heading", { name: /dashboard/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: copy.dashboard.title })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "openready" })).toBeInTheDocument();
   });
 
@@ -151,7 +155,7 @@ describe("App", () => {
     await user.type(screen.getByLabelText(/github username/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
-    expect(await screen.findByText(/no public repositories found/i)).toBeInTheDocument();
+    expect(await screen.findByText(copy.dashboard.empty.noReposTitle)).toBeInTheDocument();
   });
 
   it("shows an actionable dashboard error when the GitHub client fails", async () => {
@@ -165,9 +169,13 @@ describe("App", () => {
     await user.type(screen.getByLabelText(/github username/i), "does-not-exist");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
-    expect(await screen.findByText(/github user not found/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /change username/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+    expect(await screen.findByText(copy.dashboard.errors.notFound)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: copy.dashboard.errors.changeUsername }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: copy.dashboard.errors.tryAgain }),
+    ).toBeInTheDocument();
   });
 
   it("renders deterministic labels and repository check details", async () => {
