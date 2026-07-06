@@ -1,10 +1,4 @@
-import {
-  Provider,
-  Root,
-  Trigger,
-  Content,
-  Portal,
-} from "@radix-ui/react-tooltip";
+import { Provider, Root, Trigger, Content, Portal } from "@radix-ui/react-tooltip";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -27,8 +21,8 @@ export function Tooltip({ content, children, side = "top" }: TooltipProps) {
           side={side}
           sideOffset={6}
           className={cn(
-            "z-50 max-w-xs rounded-md border border-border-subtle bg-surface px-2.5 py-1.5",
-            "text-xs text-text-primary shadow-elevated",
+            "glass-overlay z-50 max-w-xs rounded-md px-2.5 py-1.5",
+            "text-xs text-text-primary",
             "data-[state=delayed-open]:animate-in data-[state=closed]:animate-out",
           )}
         >

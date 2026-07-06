@@ -1,25 +1,51 @@
+/*
+ * Aurora design language — token layer.
+ *
+ * Semantic variables only; components never hardcode colors. The glass
+ * variables assume the backdrop is always the app's own tinted canvas, so
+ * contrast is verified against the composited color (glass fill alpha-blended
+ * over --bg-canvas): light ≈ #eeedf6, dark ≈ #12121b. Keep glass fill opacity
+ * at or above 0.65 (light) / 0.60 (dark) or those guarantees break — see
+ * docs/design-system.md.
+ */
 :root {
-  --bg-canvas: #fafaf9;
+  --bg-canvas: #f7f7fb;
   --bg-surface: #ffffff;
-  --bg-subtle: #f4f4f2;
-  --border-subtle: #e0ddd6;
-  --border-default: #cecbc4;
-  --text-primary: #1a1a1a;
-  --text-secondary: #525252;
-  --text-muted: #8a8a85;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-subtle: rgba(59, 130, 246, 0.1);
+  --bg-subtle: #f1f1f7;
+  --border-subtle: #e2e1ec;
+  --border-default: #cccbd9;
+  --text-primary: #1b1b22;
+  --text-secondary: #50505c;
+  --text-muted: #86868f;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-subtle: rgba(79, 70, 229, 0.1);
   --success: #16a34a;
   --warn: #d97706;
   --danger: #dc2626;
 
+  --glass-surface: rgba(255, 255, 255, 0.65);
+  --glass-surface-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(120, 118, 160, 0.22);
+  --glass-highlight: rgba(255, 255, 255, 0.75);
+  --blur-glass: 14px;
+  --blur-glass-strong: 22px;
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  --radius-xl: 20px;
 
-  --shadow-subtle: 0 1px 2px rgba(15, 15, 15, 0.07), 0 1px 3px rgba(15, 15, 15, 0.05);
-  --shadow-elevated: 0 4px 12px rgba(15, 15, 15, 0.1), 0 2px 4px rgba(15, 15, 15, 0.05);
+  --shadow-subtle: 0 1px 2px rgba(20, 18, 40, 0.06), 0 1px 3px rgba(20, 18, 40, 0.05);
+  --shadow-elevated: 0 4px 12px rgba(20, 18, 40, 0.1), 0 2px 4px rgba(20, 18, 40, 0.05);
+  --shadow-glass: 0 8px 28px rgba(84, 74, 181, 0.14), 0 2px 8px rgba(84, 74, 181, 0.08);
+  --shadow-glow: 0 0 0 1px var(--accent-subtle), 0 4px 20px rgba(79, 70, 229, 0.25);
+
+  --gradient-accent-from: #4f46e5;
+  --gradient-accent-to: #6d5ff0;
+  --gradient-canvas:
+    radial-gradient(1200px 700px at 15% -10%, rgba(109, 95, 240, 0.08), transparent 60%),
+    radial-gradient(900px 600px at 110% 15%, rgba(79, 70, 229, 0.06), transparent 55%);
 
   --space-sidebar: 240px;
   --space-sidebar-collapsed: 64px;
@@ -29,23 +55,49 @@
 }
 
 .dark {
-  --bg-canvas: #0e0e10;
-  --bg-surface: #17171a;
-  --bg-subtle: #1f1f24;
-  --border-subtle: #27272d;
-  --border-default: #36363d;
-  --text-primary: #f5f5f4;
-  --text-secondary: #b5b5b0;
-  --text-muted: #7a7a75;
-  --accent: #60a5fa;
-  --accent-hover: #93c5fd;
-  --accent-subtle: rgba(96, 165, 250, 0.14);
+  --bg-canvas: #0d0d14;
+  --bg-surface: #15151e;
+  --bg-subtle: #1d1d28;
+  --border-subtle: #282836;
+  --border-default: #38384a;
+  --text-primary: #f4f4f7;
+  --text-secondary: #b3b3bf;
+  --text-muted: #7c7c89;
+  --accent: #8b8df9;
+  --accent-hover: #a5a7fb;
+  --accent-subtle: rgba(139, 141, 249, 0.14);
   --success: #4ade80;
   --warn: #fbbf24;
   --danger: #f87171;
 
+  --glass-surface: rgba(21, 21, 30, 0.6);
+  --glass-surface-strong: rgba(24, 24, 34, 0.85);
+  --glass-border: rgba(139, 141, 249, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+
   --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
   --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-glass: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(139, 141, 249, 0.05);
+  --shadow-glow: 0 0 24px rgba(139, 141, 249, 0.3);
+
+  --gradient-accent-from: #7b7df6;
+  --gradient-accent-to: #9d8bfa;
+  --gradient-canvas:
+    radial-gradient(1200px 700px at 15% -10%, rgba(123, 125, 246, 0.1), transparent 60%),
+    radial-gradient(900px 600px at 110% 15%, rgba(157, 139, 250, 0.07), transparent 55%);
 
   color-scheme: dark;
+}
+
+/*
+ * Glass degrades to solid surfaces when backdrop-filter is unavailable.
+ * Deleting backdrop-filter support in devtools exercises this path — it also
+ * serves as the manual kill-switch if blur ever causes jank in WebView2.
+ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  .dark {
+    --glass-surface: var(--bg-surface);
+    --glass-surface-strong: var(--bg-surface);
+  }
 }

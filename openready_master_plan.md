@@ -1301,7 +1301,33 @@ Post-push steps:
 - publish the action (same repo or `openready-action`); optional Marketplace
   listing
 
-### Phase 19: Distribution hardening
+### Phase 19: Aurora — visual and text revamp
+
+Goal: Give the whole product a modern premium feel. The app is itself the
+portfolio piece; its presentation quality is the product's best advertisement
+(principle: presentation matters).
+
+Planned outputs (5 sequential PRs):
+
+- Aurora design language: glass token layer (translucent surfaces, backdrop
+  blur on static shell surfaces only, violet-blue accent, gradient glow),
+  full light/dark parity, WCAG AA verified against composited glass colors
+- full framer-motion choreography from a shared `src/lib/motion.ts`
+  (entrance-only, reduced-motion gated, tour anchors animate opacity-only)
+- complete copy rewrite in a confident-and-precise voice; all strings in a
+  typed `src/lib/copy.ts`; `docs/voice-and-tone.md` and
+  `docs/design-system.md` document the rules
+- glass toast system (aria-live) replacing scattered inline status text
+- floating glass sidebar rail; phase badge replaced by a version badge
+- tier-gradient score rings, glow empty-state discs, geometric line-art spot
+  illustrations
+- new geometric SVG brand mark + wordmark, regenerated Tauri icon set,
+  restructured README with five fresh screenshots
+
+Ships as v0.4.0. (v0.3.0 was tagged from main first so the GitHub Action has
+a stable ref while the revamp lands.)
+
+### Phase 20: Distribution hardening
 
 Goal: Make installing, trusting and updating OpenReady realistic for
 strangers.
@@ -1325,7 +1351,7 @@ Post-push steps:
 - `npm publish` the CLI package
 - CI must confirm the new Rust steps pass on all three OS runners
 
-### Phase 20: GitHub client efficiency and organization support
+### Phase 21: GitHub client efficiency and organization support
 
 Goal: Reduce rate-limit pressure (60 req/h unauthenticated) and widen the
 audience beyond personal profiles.
@@ -1339,7 +1365,7 @@ Possible outputs:
 - analyze organizations, not just users (near-identical API shape)
 - smarter refresh: re-analyze only repos whose `pushed_at` changed
 
-### Phase 21: History and trends
+### Phase 22: History and trends
 
 Goal: Show improvement over time — the retention feature the local snapshot
 cache already almost supports.
@@ -1352,7 +1378,7 @@ Possible outputs:
 - exportable progress report (Markdown)
 - deterministic, local-only; no telemetry
 
-### Phase 22: Local AI providers
+### Phase 23: Local AI providers
 
 Goal: Extend Phase 15's opt-in AI assist to zero-cloud setups, matching the
 project's privacy identity.
@@ -1413,21 +1439,24 @@ OpenReady can combine all three by separating modes/areas:
 
 ### 14.4 Motion and polish
 
-Use motion carefully:
+Phase 19 codified this as the **Aurora design language** (see
+`docs/design-system.md`): layered glass surfaces, a violet-blue accent with
+gradient glow, and full choreographed motion from a shared motion module —
+executed calmly. Purposeful choreography:
 
-- dashboard card entrance
-- score count-up animation
-- expanding score breakdowns
-- smooth filtering/sorting transitions
-- subtle hover/focus states
+- staggered dashboard card entrances (capped under ~600ms total)
+- score count-up and ring-draw reveals
+- entrance-only route and tab transitions
+- transform-only hover lifts and subtle focus states
 - skeleton loading states
 
-Avoid:
+Still avoid:
 
-- excessive animation
-- distracting effects
+- decorative or blocking animation
+- distracting effects (motion never competes with data)
 - generic template look
-- motion that conflicts with accessibility
+- motion that conflicts with accessibility — everything is gated behind
+  `prefers-reduced-motion`, and tour-anchored elements animate opacity-only
 
 ---
 
