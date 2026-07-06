@@ -10,4 +10,4 @@ Distilled from the master plan (§3). These guide every implementation phase.
 6. **Helpful, not judgmental.** OpenReady is a coach, not a linter. Suggestions are calm, constructive and prioritized.
 7. **General health first, job-market mode later.** Documentation, presentation and maintainability come before role-specific or recruiter-facing features.
 8. **Designed for many personas.** Students, juniors, seniors, maintainers, teachers and small teams should all get value without friction.
-9. **Presentation matters.** OpenReady should itself feel portfolio-ready.
+9. **Presentation matters.** OpenReady should itself feel portfolio-ready. Since Phase 19 this is codified as the [Aurora design language](design-system.md) — glass surfaces, choreographed motion, and a written [voice](voice-and-tone.md) — so "portfolio-ready" is a checkable standard, not a vibe.

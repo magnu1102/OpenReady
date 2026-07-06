@@ -52,8 +52,11 @@ the rebuilt bundle — CI fails on a stale artifact.
 2. Keep commits focused; write clear, imperative commit subjects (the history loosely follows
    [Conventional Commits](https://www.conventionalcommits.org/): `fix:`, `feat:`, `docs:`, …).
 3. Add or update tests for behavior changes, and a `CHANGELOG.md` entry under `[Unreleased]`.
-4. Make sure all quality gates above pass locally.
-5. Open a PR against `main` and fill in the template.
+4. User-facing strings live in `src/lib/copy.ts` and follow the
+   [voice and tone guide](docs/voice-and-tone.md); visual changes follow the
+   [Aurora design system](docs/design-system.md).
+5. Make sure all quality gates above pass locally.
+6. Open a PR against `main` and fill in the template.
 
 ## Reporting bugs and requesting features
 
