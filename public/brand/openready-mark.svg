@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <!--
+    OpenReady mark — the "readiness dial".
+    A gauge arc stopped at 85%, the portfolio-ready threshold, on the Aurora
+    violet-blue gradient tile. Keep geometry in sync with Logo.tsx.
+  -->
+  <defs>
+    <linearGradient id="or-tile" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#8b8df9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#or-tile)"/>
+  <!-- Track: full circle, faint -->
+  <circle cx="512" cy="512" r="300" stroke="#ffffff" stroke-opacity="0.28" stroke-width="88"/>
+  <!-- Dial: 85% arc (circumference 2π·300 ≈ 1885; 85% ≈ 1602), from 12 o'clock -->
+  <circle cx="512" cy="512" r="300" stroke="#ffffff" stroke-width="88" stroke-linecap="round"
+          stroke-dasharray="1602 283" transform="rotate(-90 512 512)"/>
+  <!-- Center dot anchors the gauge -->
+  <circle cx="512" cy="512" r="64" fill="#ffffff"/>
+</svg>

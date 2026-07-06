@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 64" fill="none">
+  <!-- Wordmark for light backgrounds. Dark-background variant: openready-wordmark-dark.svg -->
+  <defs>
+    <linearGradient id="orw-tile" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#8b8df9"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14.5" fill="url(#orw-tile)"/>
+  <circle cx="32" cy="32" r="18.75" stroke="#ffffff" stroke-opacity="0.28" stroke-width="5.5"/>
+  <circle cx="32" cy="32" r="18.75" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round"
+          stroke-dasharray="100.1 17.7" transform="rotate(-90 32 32)"/>
+  <circle cx="32" cy="32" r="4" fill="#ffffff"/>
+  <text x="82" y="44" font-family="Inter, -apple-system, 'Segoe UI', system-ui, sans-serif"
+        font-size="38" font-weight="600" letter-spacing="-0.5" fill="#1b1b22">OpenReady</text>
+</svg>
