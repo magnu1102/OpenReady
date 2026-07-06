@@ -1,25 +1,29 @@
 import { useLocation, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { copy } from "@/lib/copy";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const labels: Record<string, string> = {
-  "": "Welcome",
-  dashboard: "Dashboard",
-  repo: "Repository",
-  compare: "Compare",
-  portfolio: "Portfolio",
-  settings: "Settings",
+  "": copy.shell.topBar.welcome,
+  dashboard: copy.shell.topBar.dashboard,
+  repo: copy.shell.topBar.repository,
+  compare: copy.shell.topBar.compare,
+  portfolio: copy.shell.topBar.portfolio,
+  settings: copy.shell.topBar.settings,
 };
 
 export function TopBar() {
   const { pathname } = useLocation();
   const segments = pathname.split("/").filter(Boolean);
-  const crumbs = segments.length === 0 ? [{ href: "/", label: "Welcome" }] : buildCrumbs(segments);
+  const crumbs =
+    segments.length === 0
+      ? [{ href: "/", label: copy.shell.topBar.welcome }]
+      : buildCrumbs(segments);
 
   return (
     <header
-      className="flex h-12 shrink-0 items-center justify-between border-b border-border-subtle bg-surface px-5"
+      className="glass-panel flex h-12 shrink-0 items-center justify-between rounded-xl px-5"
       aria-label="Breadcrumbs and actions"
     >
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">

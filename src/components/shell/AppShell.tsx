@@ -1,40 +1,56 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { MotionConfig, motion } from "framer-motion";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { TooltipProvider } from "@/components/ui/Tooltip";
+import { ToastViewport } from "@/components/ui/ToastViewport";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import { useNavigationStore } from "@/store/navigationStore";
 import { useMediaQuery } from "@/lib/useMediaQuery";
+import { routeVariants } from "@/lib/motion";
+import { copy } from "@/lib/copy";
 import { TourOverlay, tourSteps, useTourStore } from "@/modules/tour";
 import { CommandsRoot } from "@/modules/commands";
 
 export function AppShell() {
   useTourAutoStart();
   useResponsiveSidebar();
+  const { pathname } = useLocation();
   return (
-    <TooltipProvider>
-      <a href="#main" className="skip-link">
-        Skip to main content
-      </a>
-      <div className="flex h-full min-h-0 bg-canvas">
-        <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar />
-          <main
-            id="main"
-            tabIndex={-1}
-            className="scrollbar-thin flex-1 overflow-y-auto focus-visible:outline-none"
-          >
-            <div className="mx-auto w-full max-w-[1200px] px-8 py-8">
-              <Outlet />
-            </div>
-          </main>
+    <MotionConfig reducedMotion="user">
+      <TooltipProvider>
+        <a href="#main" className="skip-link">
+          {copy.shell.skipLink}
+        </a>
+        <div className="flex h-full min-h-0 gap-3 p-3">
+          <Sidebar />
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <TopBar />
+            <main
+              id="main"
+              tabIndex={-1}
+              className="scrollbar-thin min-h-0 flex-1 overflow-y-auto focus-visible:outline-none"
+            >
+              {/* Entrance-only: exit animations would double-mount routes and
+                  break the focus traps and skip-link target. */}
+              <motion.div
+                key={pathname}
+                variants={routeVariants}
+                initial="hidden"
+                animate="visible"
+                className="mx-auto w-full max-w-[1200px] px-6 py-6"
+              >
+                <Outlet />
+              </motion.div>
+            </main>
+          </div>
         </div>
-      </div>
-      <TourOverlay />
-      <CommandsRoot />
-    </TooltipProvider>
+        <TourOverlay />
+        <CommandsRoot />
+        <ToastViewport />
+      </TooltipProvider>
+    </MotionConfig>
   );
 }
 
