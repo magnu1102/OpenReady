@@ -52,7 +52,7 @@ If the hash matches the value published with the release, the binary was not tam
 
 ## When signing will land
 
-Tracked under master plan §11 / Phase 12+. Signing will be added once:
+Tracked under master plan §13 / Phase 19 (distribution hardening), which also covers the notarization checklist groundwork. Signing will be added once:
 
 - The project has a stable home for the Apple Developer ID and Windows code-signing cert,
 - Secrets management for those keys is in place (GitHub Actions encrypted secrets + hardware-backed escrow), and

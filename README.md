@@ -7,7 +7,7 @@ OpenReady is an open-source desktop app that analyzes GitHub repositories and he
 
 OpenReady is designed to be useful without AI, accounts or cloud setup. Optional AI-assisted suggestions may be added later, but the core product is deterministic, local-first and free to use.
 
-> **Status:** v0.2.0 — Phase 16, plugins and ecosystem. The deterministic core covers analysis, scoring, recommendations, hidden-gem detection, repository comparison, and a role-targeted **Portfolio** mode with CV and talking-point exports. Phase 15 added an optional, opt-in AI assist (bring your own key; never required). Phase 16 added custom check packs, shareable team profiles, versioned JSON Schemas, and CI gating in the CLI (`--fail-under`, `--require-check`). See the [roadmap](docs/roadmap.md) for what's next.
+> **Status:** v0.2.0 released; `main` is at `0.3.0-dev` — Phase 18, CI gate and GitHub Action, complete. The deterministic core covers analysis, scoring, recommendations, hidden-gem detection, repository comparison, and a role-targeted **Portfolio** mode with CV and talking-point exports. Recent phases added an optional, opt-in AI assist (bring your own key; never required), custom check packs, shareable team profiles, versioned JSON Schemas, CI gating in the CLI (`--fail-under`, `--require-check`), a composite [GitHub Action](docs/github-action.md), and an `openready badge` subcommand. Next up: Phase 19, distribution hardening. See the [roadmap](docs/roadmap.md).
 
 ## Screenshots
 
