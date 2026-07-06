@@ -1,13 +1,16 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Download, FileText, MessageSquare, Pin, PinOff } from "lucide-react";
+import { Download, FileText, MessageSquare, Pin, PinOff } from "lucide-react";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ScoreRing } from "@/components/ui/ScoreRing";
+import { PortfolioIllustration } from "@/components/ui/illustrations";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import { usePortfolioStore } from "@/store/portfolioStore";
+import { toast } from "@/store/toastStore";
 import { collectTechSignals } from "@/modules/analyzer-core";
 import type { TechSignal } from "@/modules/analyzer-core";
 import {
@@ -31,6 +34,8 @@ import { saveExportFile } from "@/lib/exportFiles";
 import { AiSuggestionPanel } from "@/components/ai/AiSuggestionPanel";
 import { suggestWording } from "@/modules/ai-adapter";
 import { useAiStore } from "@/store/aiStore";
+import { copy } from "@/lib/copy";
+import { fadeUp, hoverLift, staggerContainer } from "@/lib/motion";
 
 export function PortfolioRoute() {
   const username = useRepositoryStore((s) => s.username);
@@ -43,10 +48,6 @@ export function PortfolioRoute() {
   const aiBaseUrl = useAiStore((s) => s.baseUrl);
   const aiModel = useAiStore((s) => s.model);
   const aiConfig = { baseUrl: aiBaseUrl, model: aiModel };
-  const [message, setMessage] = useState<{ tone: "neutral" | "error"; text: string }>({
-    tone: "neutral",
-    text: "",
-  });
 
   const signalsById = useMemo(() => {
     const map: Record<string, TechSignal[]> = {};
@@ -70,12 +71,12 @@ export function PortfolioRoute() {
   if (analyses.length === 0) {
     return (
       <EmptyState
-        icon={Briefcase}
-        title="No analysis to build a portfolio from"
-        description="Analyze a GitHub username first — Portfolio mode turns those results into a role-targeted highlight reel, CV bullets, and interview prep."
+        illustration={<PortfolioIllustration />}
+        title={copy.portfolio.empty.title}
+        description={copy.portfolio.empty.description}
         action={
           <Button asChild variant="primary" size="md">
-            <Link to="/dashboard">Go to dashboard</Link>
+            <Link to="/dashboard">{copy.portfolio.empty.action}</Link>
           </Button>
         }
       />
@@ -105,33 +106,32 @@ export function PortfolioRoute() {
         content,
         defaultPath: suggestedExportFilename(format, username),
       });
-      setMessage(
-        result.status === "saved"
-          ? { tone: "neutral", text: "Export saved." }
-          : { tone: "neutral", text: "" },
-      );
+      if (result.status === "saved") toast.success(copy.toasts.exportSaved);
     } catch {
-      setMessage({
-        tone: "error",
-        text: "OpenReady could not save the export. Choose a writable location and try again.",
-      });
+      toast.error(copy.portfolio.exports.error);
     }
   }
 
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Portfolio</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+          {copy.portfolio.title}
+        </h1>
         <p className="text-sm text-text-secondary">
-          A role-targeted view of {username ? `${username}'s` : "your"} strongest work, with CV
-          bullets and interview prep generated from the analysis.
+          {copy.portfolio.subtitle(username ? `${username}'s` : copy.portfolio.fallbackOwner)}
         </p>
       </header>
 
-      <section className="flex flex-col gap-3">
+      <motion.section
+        className="glass-card flex flex-col gap-3 rounded-xl p-5 sm:p-6"
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="flex flex-col gap-1">
           <label htmlFor="role-select" className="text-sm font-medium text-text-primary">
-            Target role
+            {copy.portfolio.role.label}
           </label>
           <p className="text-xs text-text-secondary">{preset.blurb}</p>
         </div>
@@ -140,10 +140,10 @@ export function PortfolioRoute() {
             id="role-select"
             value={role}
             onChange={(event) => setRole(event.currentTarget.value as RoleId | "auto")}
-            className="rounded-md border border-border-default bg-surface px-3 py-2 text-sm text-text-primary"
+            className="w-full min-w-0 rounded-md border border-border-default bg-surface px-3 py-2 text-sm text-text-primary sm:w-auto"
           >
             <option value="auto">
-              Auto-detected: {ROLE_LABELS[suggestRole(analyses, signalsById)]}
+              {copy.portfolio.role.autoDetected(ROLE_LABELS[suggestRole(analyses, signalsById)])}
             </option>
             {SELECTABLE_ROLES.map((id) => (
               <option key={id} value={id}>
@@ -151,73 +151,88 @@ export function PortfolioRoute() {
               </option>
             ))}
           </select>
-          {role === "auto" ? <Badge tone="accent">Auto</Badge> : null}
+          {role === "auto" ? <Badge tone="accent">{copy.portfolio.role.auto}</Badge> : null}
         </div>
-      </section>
+      </motion.section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-text-primary">Featured projects</h2>
+        <h2 className="text-lg font-semibold text-text-primary">
+          {copy.portfolio.featured.heading}
+        </h2>
         {featured.length === 0 ? (
-          <p className="text-sm text-text-secondary">
-            No repositories match this role yet. Pin repositories below or pick a different role.
-          </p>
+          <p className="text-sm text-text-secondary">{copy.portfolio.featured.empty}</p>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <motion.div
+            className="grid gap-4 lg:grid-cols-2"
+            variants={staggerContainer(0.04)}
+            initial="hidden"
+            animate="visible"
+          >
             {featured.map(({ analysis, reasons, pinned }) => (
-              <Card key={analysis.repository.id} className="flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link
-                      to={`/dashboard/repo/${encodeURIComponent(analysis.repository.id)}`}
-                      className="block truncate text-md font-semibold text-text-primary hover:text-accent"
-                    >
-                      {analysis.repository.name}
-                    </Link>
-                    <p className="truncate text-xs text-text-muted">
-                      {analysis.repository.fullName}
-                    </p>
+              <motion.div
+                key={analysis.repository.id}
+                className="min-w-0"
+                variants={fadeUp}
+                {...hoverLift}
+              >
+                <Card className="flex h-full min-w-0 flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        to={`/dashboard/repo/${encodeURIComponent(analysis.repository.id)}`}
+                        className="block truncate text-md font-semibold text-text-primary hover:text-accent"
+                      >
+                        {analysis.repository.name}
+                      </Link>
+                      <p className="truncate text-xs text-text-muted">
+                        {analysis.repository.fullName}
+                      </p>
+                    </div>
+                    <ScoreRing
+                      value={analysis.score.total}
+                      label={copy.repoDetail.scoreLabel}
+                      size={56}
+                      strokeWidth={5}
+                    />
                   </div>
-                  <ScoreRing value={analysis.score.total} label="Score" size={56} strokeWidth={5} />
-                </div>
-                {reasons.length > 0 ? (
-                  <ul className="flex flex-wrap gap-1.5">
-                    {reasons.map((reason) => (
-                      <li key={reason}>
-                        <Badge tone="neutral">{reason}</Badge>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <div className="mt-auto flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant={pinned ? "primary" : "ghost"}
-                    size="sm"
-                    onClick={() => togglePin(analysis.repository.id)}
-                  >
-                    {pinned ? (
-                      <>
-                        <Pin className="h-3.5 w-3.5" /> Pinned
-                      </>
-                    ) : (
-                      <>
-                        <PinOff className="h-3.5 w-3.5" /> Auto
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </Card>
+                  {reasons.length > 0 ? (
+                    <ul className="flex flex-wrap gap-1.5">
+                      {reasons.map((reason) => (
+                        <li key={reason} className="min-w-0 max-w-full">
+                          <Badge tone="neutral">{reason}</Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <div className="mt-auto flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant={pinned ? "primary" : "ghost"}
+                      size="sm"
+                      onClick={() => togglePin(analysis.repository.id)}
+                    >
+                      {pinned ? (
+                        <>
+                          <Pin className="h-3.5 w-3.5" /> {copy.portfolio.featured.pinned}
+                        </>
+                      ) : (
+                        <>
+                          <PinOff className="h-3.5 w-3.5" /> {copy.portfolio.featured.auto}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-text-primary">CV bullet points</h2>
+        <h2 className="text-lg font-semibold text-text-primary">{copy.portfolio.cv.heading}</h2>
         {cvEntries.length === 0 ? (
-          <p className="text-sm text-text-secondary">
-            Feature a repository to generate CV bullets.
-          </p>
+          <p className="text-sm text-text-secondary">{copy.portfolio.cv.empty}</p>
         ) : (
           <div className="flex flex-col gap-4">
             {cvEntries.map((entry) => {
@@ -227,16 +242,17 @@ export function PortfolioRoute() {
               return (
                 <Card key={entry.repoId} className="flex flex-col gap-3">
                   <h3 className="text-sm font-semibold text-text-primary">{entry.name}</h3>
-                  <ul className="flex flex-col gap-1.5 text-sm text-text-secondary">
+                  <ul className="flex list-disc flex-col gap-1.5 pl-4 text-sm text-text-secondary">
                     {entry.bullets.map((bullet) => (
-                      <li key={bullet}>• {bullet}</li>
+                      <li key={bullet}>{bullet}</li>
                     ))}
                   </ul>
                   {entryAnalysis ? (
                     <AiSuggestionPanel
-                      title="Refine wording with AI"
-                      description="Sends these deterministic bullets to your provider for a tighter rewrite. The bullets above stay as the source of truth."
-                      generateLabel="Refine"
+                      title={copy.portfolio.cv.aiTitle}
+                      description={copy.portfolio.cv.aiDescription}
+                      generateLabel={copy.portfolio.cv.aiGenerate}
+                      surface="nested"
                       generate={() =>
                         suggestWording(
                           {
@@ -257,19 +273,24 @@ export function PortfolioRoute() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-text-primary">Interview talking points</h2>
+        <h2 className="text-lg font-semibold text-text-primary">
+          {copy.portfolio.talking.heading}
+        </h2>
         <div className="flex flex-col gap-4">
           {featured.map(({ analysis }) => {
             const points = buildTalkingPoints(analysis, signalsById[analysis.repository.id] ?? []);
             return (
               <Card key={analysis.repository.id} className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-text-primary">{points.name}</h3>
-                <TalkingList title="Highlights" items={points.highlights} />
-                <TalkingList title="Likely questions" items={points.likelyQuestions} />
+                <TalkingList title={copy.portfolio.talking.highlights} items={points.highlights} />
                 <TalkingList
-                  title="Gaps to own"
+                  title={copy.portfolio.talking.questions}
+                  items={points.likelyQuestions}
+                />
+                <TalkingList
+                  title={copy.portfolio.talking.gaps}
                   items={
-                    points.gapsToOwn.length > 0 ? points.gapsToOwn : ["No major gaps detected."]
+                    points.gapsToOwn.length > 0 ? points.gapsToOwn : [copy.portfolio.talking.noGaps]
                   }
                 />
               </Card>
@@ -278,10 +299,12 @@ export function PortfolioRoute() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 border-t border-border-subtle pt-6">
-        <h2 className="text-lg font-semibold text-text-primary">Exports</h2>
+      <section className="glass-card flex flex-col gap-3 rounded-xl p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-text-primary">
+          {copy.portfolio.exports.heading}
+        </h2>
         <p className="text-sm text-text-secondary">
-          Save the {preset.label} portfolio, CV bullets, or interview prep as Markdown.
+          {copy.portfolio.exports.description(preset.label)}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -290,10 +313,10 @@ export function PortfolioRoute() {
             size="sm"
             onClick={() => runExport("portfolio")}
           >
-            <Download className="h-3.5 w-3.5" /> Portfolio
+            <Download className="h-3.5 w-3.5" /> {copy.portfolio.exports.portfolio}
           </Button>
           <Button type="button" variant="secondary" size="sm" onClick={() => runExport("cv")}>
-            <FileText className="h-3.5 w-3.5" /> CV bullets
+            <FileText className="h-3.5 w-3.5" /> {copy.portfolio.exports.cv}
           </Button>
           <Button
             type="button"
@@ -301,20 +324,9 @@ export function PortfolioRoute() {
             size="sm"
             onClick={() => runExport("talking-points")}
           >
-            <MessageSquare className="h-3.5 w-3.5" /> Talking points
+            <MessageSquare className="h-3.5 w-3.5" /> {copy.portfolio.exports.talkingPoints}
           </Button>
         </div>
-        {message.text ? (
-          <p
-            className={
-              message.tone === "error"
-                ? "text-xs font-medium text-danger"
-                : "text-xs text-text-muted"
-            }
-          >
-            {message.text}
-          </p>
-        ) : null}
       </section>
     </div>
   );
@@ -324,9 +336,9 @@ function TalkingList({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-medium uppercase tracking-wider text-text-muted">{title}</span>
-      <ul className="flex flex-col gap-1 text-sm text-text-secondary">
+      <ul className="flex list-disc flex-col gap-1 pl-4 text-sm text-text-secondary">
         {items.map((item) => (
-          <li key={item}>• {item}</li>
+          <li key={item}>{item}</li>
         ))}
       </ul>
     </div>

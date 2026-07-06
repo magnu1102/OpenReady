@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { copy } from "@/lib/copy";
 import { analyzeRepository } from "@/modules/analyzer-core";
 import { useRepositoryStore, type TreeFetchStatus } from "@/store/repositoryStore";
 import { RepositoryDetailRoute } from "./RepositoryDetailRoute";
@@ -95,8 +96,8 @@ describe("RepositoryDetailRoute", () => {
 
     expect(screen.getByRole("heading", { name: "openready" })).toBeInTheDocument();
     expect(screen.getByText("Repository health desktop app")).toBeInTheDocument();
-    expect(screen.getByText("Score breakdown")).toBeInTheDocument();
-    expect(screen.getByText("Detected stack")).toBeInTheDocument();
+    expect(screen.getByText(copy.repoDetail.summary.heading)).toBeInTheDocument();
+    expect(screen.getByText(copy.repoDetail.techStack.title)).toBeInTheDocument();
     expect(screen.getByText("Node.js")).toBeInTheDocument();
   });
 
@@ -106,22 +107,22 @@ describe("RepositoryDetailRoute", () => {
 
     renderDetailRoute();
 
-    await user.click(screen.getByRole("tab", { name: /documentation/i }));
+    await user.click(screen.getByRole("tab", { name: copy.repoDetail.tabs.documentation.label }));
     expect(screen.getByText("README exists")).toBeInTheDocument();
     expect(screen.getByText("Repository ships a dedicated docs/ folder")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /build/i }));
+    await user.click(screen.getByRole("tab", { name: copy.repoDetail.tabs.build.label }));
     expect(screen.getByText("Repository declares a build manifest")).toBeInTheDocument();
     expect(screen.getByText("GitHub Actions workflows are configured")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /security/i }));
+    await user.click(screen.getByRole("tab", { name: copy.repoDetail.tabs.security.label }));
     expect(screen.getByText("Repository ships a SECURITY.md")).toBeInTheDocument();
     expect(screen.getByText("Repository ships an example env file")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /presentation/i }));
+    await user.click(screen.getByRole("tab", { name: copy.repoDetail.tabs.presentation.label }));
     expect(screen.getByText("README includes screenshots or demo")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /recommendations/i }));
+    await user.click(screen.getByRole("tab", { name: copy.repoDetail.tabs.recommendations.label }));
     expect(screen.getByText("Add a license")).toBeInTheDocument();
     expect(screen.getByText("Link to a homepage or demo")).toBeInTheDocument();
   });
@@ -129,8 +130,10 @@ describe("RepositoryDetailRoute", () => {
   it("shows a recovery state when repository details are no longer in memory", () => {
     renderDetailRoute("missing");
 
-    expect(screen.getByText("Repository details unavailable")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /analyze a username/i })).toBeInTheDocument();
+    expect(screen.getByText(copy.repoDetail.unavailable.title)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: copy.repoDetail.unavailable.action }),
+    ).toBeInTheDocument();
   });
 
   it("renders README and tree unavailable states clearly", async () => {
@@ -143,11 +146,9 @@ describe("RepositoryDetailRoute", () => {
 
     renderDetailRoute();
 
-    expect(
-      screen.getByText(/File-tree detection is unavailable for this repository/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(copy.repoDetail.techStack.unavailable)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /documentation/i }));
+    await user.click(screen.getByRole("tab", { name: copy.repoDetail.tabs.documentation.label }));
     expect(screen.getAllByText("GitHub rate limit reached.").length).toBeGreaterThan(0);
   });
 
@@ -157,9 +158,9 @@ describe("RepositoryDetailRoute", () => {
 
     renderDetailRoute();
 
-    expect(screen.getByText("Repository is empty - nothing to detect.")).toBeInTheDocument();
+    expect(screen.getByText(copy.repoDetail.techStack.empty)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /documentation/i }));
+    await user.click(screen.getByRole("tab", { name: copy.repoDetail.tabs.documentation.label }));
     expect(screen.getByText("No README found")).toBeInTheDocument();
   });
 });

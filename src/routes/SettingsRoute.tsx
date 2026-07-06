@@ -12,12 +12,13 @@ import {
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Separator } from "@/components/ui/Separator";
 import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { toast } from "@/store/toastStore";
 import {
   deleteGitHubToken,
   getGitHubTokenStatus,
@@ -42,6 +43,8 @@ import {
 } from "@/store/preferencesStore";
 import { SCORE_CATEGORIES, type ScoreCategory } from "@/modules/scoring-engine";
 import { useTourStore } from "@/modules/tour";
+import { copy } from "@/lib/copy";
+import { fadeIn } from "@/lib/motion";
 
 export function SettingsRoute() {
   const [token, setToken] = useState("");
@@ -72,6 +75,7 @@ export function SettingsRoute() {
     resetWeights();
     void recomputeAnalyses();
   }
+
   const restartTour = useTourStore((s) => s.restart);
   const tourSeen = useTourStore((s) => s.seen);
 
@@ -97,9 +101,9 @@ export function SettingsRoute() {
       setAiMessage(
         status.available
           ? status.configured
-            ? "An API key is stored in the operating system credential store."
-            : "No API key is configured."
-          : "AI features are available in the desktop app.",
+            ? copy.settings.ai.configured
+            : copy.settings.ai.notConfigured
+          : copy.settings.ai.unavailable,
       );
     } catch (error) {
       setAiStatus({ configured: false, available: false });
@@ -110,13 +114,14 @@ export function SettingsRoute() {
   async function saveAiKey() {
     setAiBusy(true);
     setAiTone("neutral");
-    setAiMessage("Saving API key...");
+    setAiMessage(copy.settings.ai.saving);
     try {
       const status = await validateAndStoreAiConfig(aiKey);
       setAiKey("");
       setAiStatus(status);
       setAiTone("success");
-      setAiMessage("API key saved. Use Verify to confirm it works with your provider.");
+      setAiMessage(copy.settings.ai.configured);
+      toast.success(copy.toasts.aiKeySaved);
     } catch (error) {
       setAiTone("error");
       setAiMessage(errorMessage(error));
@@ -131,7 +136,8 @@ export function SettingsRoute() {
       const status = await deleteAiConfig();
       setAiStatus(status);
       setAiTone("neutral");
-      setAiMessage("API key removed.");
+      setAiMessage(copy.settings.ai.notConfigured);
+      toast.success(copy.toasts.aiKeyRemoved);
     } catch (error) {
       setAiTone("error");
       setAiMessage(errorMessage(error));
@@ -143,11 +149,16 @@ export function SettingsRoute() {
   async function verifyAiKey() {
     setAiBusy(true);
     setAiTone("neutral");
-    setAiMessage("Verifying with the provider...");
+    setAiMessage(copy.settings.ai.verifying);
     try {
       const result = await verifyAiConfig(aiBaseUrl);
       setAiTone(result.ok ? "success" : "error");
       setAiMessage(result.message);
+      if (result.ok) {
+        toast.success(copy.toasts.aiKeyVerified);
+      } else {
+        toast.error(copy.toasts.aiKeyVerifyFailed(result.message));
+      }
     } catch (error) {
       setAiTone("error");
       setAiMessage(errorMessage(error));
@@ -163,9 +174,9 @@ export function SettingsRoute() {
       setTokenMessage(
         status.available
           ? status.configured
-            ? "A token is configured in the operating system credential store."
-            : "No token is configured."
-          : "Token storage is available in the desktop app.",
+            ? copy.settings.github.configured
+            : copy.settings.github.notConfigured
+          : copy.settings.github.unavailable,
       );
     } catch (error) {
       setTokenStatus({ configured: false, available: false });
@@ -184,12 +195,13 @@ export function SettingsRoute() {
 
   async function saveToken() {
     setTokenBusy(true);
-    setTokenMessage("Validating token with GitHub...");
+    setTokenMessage(copy.settings.github.validating);
     try {
       const status = await validateAndStoreGitHubToken(token);
       setToken("");
       setTokenStatus(status);
-      setTokenMessage("GitHub token saved.");
+      setTokenMessage(copy.settings.github.configured);
+      toast.success(copy.toasts.tokenSaved);
     } catch (error) {
       setTokenMessage(errorMessage(error));
     } finally {
@@ -202,7 +214,8 @@ export function SettingsRoute() {
     try {
       const status = await deleteGitHubToken();
       setTokenStatus(status);
-      setTokenMessage("GitHub token removed.");
+      setTokenMessage(copy.settings.github.notConfigured);
+      toast.success(copy.toasts.tokenRemoved);
     } catch (error) {
       setTokenMessage(errorMessage(error));
     } finally {
@@ -212,34 +225,37 @@ export function SettingsRoute() {
 
   async function clearCache() {
     await clearRepositoryCache();
+    toast.success(copy.toasts.cacheCleared);
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Settings</h1>
-        <p className="text-sm text-text-secondary">
-          Configure how OpenReady looks and behaves. Most settings unlock as later phases land.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+          {copy.settings.title}
+        </h1>
+        <p className="text-sm text-text-secondary">{copy.settings.subtitle}</p>
       </header>
 
-      <Section icon={<Palette className="h-4 w-4" />} title="Appearance" status="Available">
-        <Row label="Theme" hint="Switch between light, dark, and matching your system.">
+      <Section
+        icon={<Palette className="h-4 w-4" />}
+        title={copy.settings.appearance.title}
+        status={copy.settings.statuses.available}
+      >
+        <Row label={copy.settings.appearance.themeLabel} hint={copy.settings.appearance.themeHint}>
           <ThemeToggle />
         </Row>
       </Section>
 
-      <Separator />
-
       <Section
         icon={<Compass className="h-4 w-4" />}
-        title="Onboarding"
-        status={tourSeen ? "Completed" : "Available"}
+        title={copy.settings.onboarding.title}
+        status={tourSeen ? copy.settings.statuses.completed : copy.settings.statuses.available}
         statusTone={tourSeen ? "success" : "neutral"}
       >
         <Row
-          label="Product tour"
-          hint="A four-step walkthrough covering the welcome screen, dashboard, exports, and settings."
+          label={copy.settings.onboarding.productTourLabel}
+          hint={copy.settings.onboarding.productTourHint}
         >
           <Button
             type="button"
@@ -249,29 +265,28 @@ export function SettingsRoute() {
             data-tour-anchor="settings-replay"
           >
             <Compass className="h-3.5 w-3.5" />
-            Replay tour
+            {copy.settings.onboarding.replay}
           </Button>
         </Row>
       </Section>
 
-      <Separator />
-
       <Section
         icon={<Github className="h-4 w-4" />}
-        title="GitHub"
-        status={tokenStatus.configured ? "Configured" : "Optional"}
+        title={copy.settings.github.title}
+        status={
+          tokenStatus.configured
+            ? copy.settings.statuses.configured
+            : copy.settings.statuses.optional
+        }
         statusTone={tokenStatus.configured ? "success" : "neutral"}
       >
-        <Row
-          label="Personal access token"
-          hint="Optional token raises GitHub API rate limits. It is stored in the operating system credential store, not browser local storage."
-        >
+        <Row label={copy.settings.github.tokenLabel} hint={copy.settings.github.tokenHint}>
           <div className="flex w-full flex-col gap-2 sm:w-[360px]">
             <Input
               type="password"
               value={token}
               onChange={(event) => setToken(event.currentTarget.value)}
-              placeholder="ghp_... or github_pat_..."
+              placeholder={copy.settings.github.tokenPlaceholder}
               disabled={!tokenStatus.available || tokenBusy}
               aria-disabled={!tokenStatus.available || tokenBusy}
             />
@@ -283,7 +298,7 @@ export function SettingsRoute() {
                 disabled={!tokenStatus.available || tokenBusy || token.trim().length === 0}
                 onClick={saveToken}
               >
-                <CheckCircle2 className="h-3.5 w-3.5" /> Save token
+                <CheckCircle2 className="h-3.5 w-3.5" /> {copy.settings.github.save}
               </Button>
               <Button
                 type="button"
@@ -292,7 +307,7 @@ export function SettingsRoute() {
                 disabled={!tokenStatus.available || tokenBusy || !tokenStatus.configured}
                 onClick={removeToken}
               >
-                <Trash2 className="h-3.5 w-3.5" /> Remove token
+                <Trash2 className="h-3.5 w-3.5" /> {copy.settings.github.remove}
               </Button>
             </div>
             {tokenMessage ? <p className="text-xs text-text-muted">{tokenMessage}</p> : null}
@@ -300,18 +315,15 @@ export function SettingsRoute() {
         </Row>
       </Section>
 
-      <Separator />
-
       <Section
         icon={<Database className="h-4 w-4" />}
-        title="Cache"
-        status={cacheCount > 0 ? `${cacheCount} saved` : "Empty"}
+        title={copy.settings.cache.title}
+        status={
+          cacheCount > 0 ? copy.settings.statuses.saved(cacheCount) : copy.settings.statuses.empty
+        }
         statusTone={cacheCount > 0 ? "success" : "neutral"}
       >
-        <Row
-          label="Local analysis cache"
-          hint="Recent analysis snapshots are cached locally to avoid re-fetching repositories on every open."
-        >
+        <Row label={copy.settings.cache.label} hint={copy.settings.cache.hint}>
           <Button
             type="button"
             variant="secondary"
@@ -321,29 +333,29 @@ export function SettingsRoute() {
             onClick={clearCache}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Clear cache
+            {copy.settings.cache.clear}
           </Button>
         </Row>
       </Section>
 
-      <Separator />
-
       <Section
         icon={<SlidersHorizontal className="h-4 w-4" />}
-        title="Scoring weights"
-        status={weightsCustomized ? "Customized" : "Default"}
+        title={copy.settings.weights.title}
+        status={
+          weightsCustomized ? copy.settings.statuses.customized : copy.settings.statuses.default
+        }
         statusTone={weightsCustomized ? "accent" : "neutral"}
       >
         <div className="flex flex-col gap-5">
           <div className="flex max-w-xl flex-col gap-1">
             <span className="text-sm font-medium text-text-primary">
-              Tune how much each category counts
+              {copy.settings.weights.heading}
             </span>
             <span className="text-xs text-text-secondary">
-              These multipliers layer on top of the project-type weights, so a CLI is still judged
-              like a CLI. Changes re-score every repository immediately and persist locally. Leave a
-              category at {DEFAULT_CATEGORY_WEIGHT.toFixed(1)}× to keep its default weight; set it
-              to {MIN_CATEGORY_WEIGHT.toFixed(1)}× to ignore it.
+              {copy.settings.weights.description(
+                DEFAULT_CATEGORY_WEIGHT.toFixed(1),
+                MIN_CATEGORY_WEIGHT.toFixed(1),
+              )}
             </span>
           </div>
           <div className="flex flex-col divide-y divide-border-subtle">
@@ -365,36 +377,38 @@ export function SettingsRoute() {
               aria-disabled={!weightsCustomized}
               onClick={resetAllWeights}
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Reset to defaults
+              <RotateCcw className="h-3.5 w-3.5" /> {copy.settings.weights.reset}
             </Button>
           </div>
         </div>
       </Section>
 
-      <Separator />
-
       <Section
         icon={<Cpu className="h-4 w-4" />}
-        title="AI features"
-        status={aiEnabled ? (aiStatus.configured ? "Enabled" : "Key needed") : "Off"}
+        title={copy.settings.ai.title}
+        status={
+          aiEnabled
+            ? aiStatus.configured
+              ? copy.settings.statuses.enabled
+              : copy.settings.statuses.keyNeeded
+            : copy.settings.statuses.off
+        }
         statusTone={aiEnabled ? (aiStatus.configured ? "success" : "warn") : "neutral"}
       >
         <div className="flex flex-col gap-5">
-          <Row
-            label="AI-assisted suggestions"
-            hint="OpenReady is deterministic by design. AI suggestions are opt-in, bring-your-own-key, and never replace the core checks. When enabled, you trigger each suggestion manually."
-          >
-            <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} label="Enable AI features" />
+          <Row label={copy.settings.ai.label} hint={copy.settings.ai.hint}>
+            <Switch
+              checked={aiEnabled}
+              onCheckedChange={setAiEnabled}
+              label={copy.settings.ai.switchLabel}
+            />
           </Row>
 
-          <Row
-            label="Provider base URL"
-            hint="Any OpenAI-compatible endpoint — OpenAI, Groq, OpenRouter, or a local model such as Ollama (http://localhost:11434/v1)."
-          >
+          <Row label={copy.settings.ai.baseUrlLabel} hint={copy.settings.ai.baseUrlHint}>
             <Input
               value={aiBaseUrl}
               onChange={(event) => setAiBaseUrl(event.currentTarget.value)}
-              placeholder="https://api.openai.com/v1"
+              placeholder={copy.settings.ai.baseUrlPlaceholder}
               spellCheck={false}
               disabled={!aiEnabled}
               aria-disabled={!aiEnabled}
@@ -402,11 +416,11 @@ export function SettingsRoute() {
             />
           </Row>
 
-          <Row label="Model" hint="The model name to request, e.g. gpt-4o-mini or llama3.">
+          <Row label={copy.settings.ai.modelLabel} hint={copy.settings.ai.modelHint}>
             <Input
               value={aiModel}
               onChange={(event) => setAiModel(event.currentTarget.value)}
-              placeholder="gpt-4o-mini"
+              placeholder={copy.settings.ai.modelPlaceholder}
               spellCheck={false}
               disabled={!aiEnabled}
               aria-disabled={!aiEnabled}
@@ -414,20 +428,17 @@ export function SettingsRoute() {
             />
           </Row>
 
-          <Row
-            label="API key"
-            hint="Stored in the operating system credential store, never in browser storage and never sent anywhere except your chosen provider. Optional for keyless local models."
-          >
+          <Row label={copy.settings.ai.keyLabel} hint={copy.settings.ai.keyHint}>
             <div className="flex w-full flex-col gap-2 sm:w-[360px]">
               {aiStatus.configured ? (
-                <div className="bg-subtle/40 flex flex-col gap-3 rounded-lg border border-border-default p-3">
+                <div className="bg-subtle/60 flex flex-col gap-3 rounded-lg border border-glass-border p-3">
                   <div className="flex items-center gap-2">
                     <KeyRound className="h-4 w-4 shrink-0 text-text-muted" />
                     <code className="min-w-0 truncate font-mono text-sm text-text-primary">
-                      {aiStatus.keyPreview ?? "Key stored"}
+                      {aiStatus.keyPreview ?? copy.settings.ai.storedFallback}
                     </code>
                     <Badge tone="success" className="ml-auto shrink-0">
-                      Stored
+                      {copy.settings.ai.storedBadge}
                     </Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -439,7 +450,7 @@ export function SettingsRoute() {
                       disabled={!aiEnabled || !aiStatus.available || aiBusy}
                       onClick={verifyAiKey}
                     >
-                      <ShieldCheck className="h-3.5 w-3.5" /> Verify
+                      <ShieldCheck className="h-3.5 w-3.5" /> {copy.settings.ai.verify}
                     </Button>
                     <Button
                       type="button"
@@ -449,7 +460,7 @@ export function SettingsRoute() {
                       disabled={!aiStatus.available || aiBusy}
                       onClick={removeAiKey}
                     >
-                      <Trash2 className="h-3.5 w-3.5" /> Delete key
+                      <Trash2 className="h-3.5 w-3.5" /> {copy.settings.ai.delete}
                     </Button>
                   </div>
                 </div>
@@ -459,7 +470,7 @@ export function SettingsRoute() {
                     type="password"
                     value={aiKey}
                     onChange={(event) => setAiKey(event.currentTarget.value)}
-                    placeholder="sk-..."
+                    placeholder={copy.settings.ai.keyPlaceholder}
                     spellCheck={false}
                     disabled={!aiEnabled || !aiStatus.available || aiBusy}
                     aria-disabled={!aiEnabled || !aiStatus.available || aiBusy}
@@ -475,7 +486,7 @@ export function SettingsRoute() {
                       }
                       onClick={saveAiKey}
                     >
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Save key
+                      <CheckCircle2 className="h-3.5 w-3.5" /> {copy.settings.ai.save}
                     </Button>
                   </div>
                 </>
@@ -497,11 +508,7 @@ export function SettingsRoute() {
             </div>
           </Row>
 
-          <p className="text-xs text-text-muted">
-            When you generate a suggestion, OpenReady sends the relevant repository text (such as
-            the README and detected gaps) to your provider. Secret-looking strings are redacted
-            first. Costs are billed by your provider.
-          </p>
+          <p className="max-w-2xl text-xs text-text-muted">{copy.settings.ai.disclosure}</p>
         </div>
       </Section>
     </div>
@@ -511,7 +518,7 @@ export function SettingsRoute() {
 function errorMessage(error: unknown): string {
   if (typeof error === "string") return error;
   if (error instanceof Error) return error.message;
-  return "OpenReady could not update GitHub token settings.";
+  return copy.settings.github.fallbackError;
 }
 
 function Section({
@@ -528,18 +535,20 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-subtle text-text-secondary">
-            {icon}
-          </span>
-          <h2 className="text-md font-semibold text-text-primary">{title}</h2>
+    <motion.section className="flex flex-col" variants={fadeIn} initial="hidden" animate="visible">
+      <Card className="flex flex-col gap-4 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-subtle text-text-secondary">
+              {icon}
+            </span>
+            <h2 className="truncate text-md font-semibold text-text-primary">{title}</h2>
+          </div>
+          <Badge tone={statusTone}>{status}</Badge>
         </div>
-        <Badge tone={statusTone}>{status}</Badge>
-      </div>
-      <Card>{children}</Card>
-    </section>
+        <div className="flex flex-col gap-4">{children}</div>
+      </Card>
+    </motion.section>
   );
 }
 
@@ -554,11 +563,11 @@ function WeightRow({
 }) {
   const inputId = `weight-${label.replace(/\s+/g, "-").toLowerCase()}`;
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
+    <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <label htmlFor={inputId} className="text-sm text-text-primary">
         {label}
       </label>
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <input
           id={inputId}
           type="range"
@@ -567,10 +576,10 @@ function WeightRow({
           step={0.25}
           value={value}
           onChange={(event) => onChange(Number(event.currentTarget.value))}
-          className="w-40 accent-accent"
+          className="min-w-0 flex-1 accent-accent sm:w-40 sm:flex-none"
         />
         <span className="w-12 text-right text-sm font-medium tabular-nums text-text-secondary">
-          {value.toFixed(2)}×
+          {copy.settings.weights.value(value.toFixed(2))}
         </span>
       </div>
     </div>
@@ -596,7 +605,7 @@ function Switch({
       className={cn(
         "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-micro ease-soft",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
-        checked ? "border-accent bg-accent" : "border-border-default bg-subtle",
+        checked ? "border-accent bg-accent" : "bg-subtle/80 border-glass-border",
       )}
     >
       <span
@@ -624,7 +633,7 @@ function Row({
         <span className="text-sm font-medium text-text-primary">{label}</span>
         {hint ? <span className="text-xs text-text-secondary">{hint}</span> : null}
       </div>
-      <div className="flex shrink-0 items-center">{children}</div>
+      <div className="flex min-w-0 max-w-full items-center sm:shrink-0">{children}</div>
     </div>
   );
 }

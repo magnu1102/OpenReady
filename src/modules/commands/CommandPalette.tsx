@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 import { Kbd } from "@/components/ui/Kbd";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import { copy } from "@/lib/copy";
 import type { Command } from "./types";
 import { COMMAND_GROUP_LABELS } from "./types";
 import { filterCommands } from "./useCommands";
@@ -90,13 +91,13 @@ function PaletteContents({ commands, onClose }: { commands: Command[]; onClose: 
       className="fixed inset-0 z-[90] flex items-start justify-center bg-black/40 p-[10vh]"
       role="dialog"
       aria-modal="true"
-      aria-label="Command palette"
+      aria-label={copy.commands.palette.ariaLabel}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
       onKeyDown={onKeyDown}
     >
-      <div className="w-full max-w-xl overflow-hidden rounded-lg border border-border-default bg-surface shadow-xl">
+      <div className="glass-overlay w-full max-w-xl overflow-hidden rounded-lg">
         <div className="flex items-center gap-2 border-b border-border-subtle px-3 py-2.5">
           <Search className="h-4 w-4 text-text-muted" />
           <input
@@ -106,9 +107,9 @@ function PaletteContents({ commands, onClose }: { commands: Command[]; onClose: 
               setQuery(event.currentTarget.value);
               setActiveIndex(0);
             }}
-            placeholder="Type a command, navigate, or open a repo..."
+            placeholder={copy.commands.palette.placeholder}
             className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted"
-            aria-label="Filter commands"
+            aria-label={copy.commands.palette.inputLabel}
             autoComplete="off"
             spellCheck={false}
           />
@@ -121,7 +122,9 @@ function PaletteContents({ commands, onClose }: { commands: Command[]; onClose: 
           aria-label="Commands"
         >
           {filtered.length === 0 ? (
-            <li className="px-4 py-6 text-center text-sm text-text-muted">No matching commands.</li>
+            <li className="px-4 py-6 text-center text-sm text-text-muted">
+              {copy.commands.palette.empty}
+            </li>
           ) : null}
           {grouped.map(({ label, items }) => (
             <li key={label}>
@@ -168,12 +171,12 @@ function PaletteContents({ commands, onClose }: { commands: Command[]; onClose: 
           <span className="flex items-center gap-2">
             <Kbd>↑</Kbd>
             <Kbd>↓</Kbd>
-            to move
+            {copy.commands.palette.move}
             <span className="ml-2 inline-flex items-center gap-1">
-              <Kbd>↵</Kbd> to run
+              <Kbd>↵</Kbd> {copy.commands.palette.run}
             </span>
           </span>
-          <span>{filtered.length} commands</span>
+          <span>{copy.commands.palette.count(filtered.length)}</span>
         </div>
       </div>
     </div>,

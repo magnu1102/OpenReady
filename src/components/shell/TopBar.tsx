@@ -23,10 +23,10 @@ export function TopBar() {
 
   return (
     <header
-      className="glass-panel flex h-12 shrink-0 items-center justify-between rounded-xl px-5"
+      className="glass-panel flex h-12 shrink-0 items-center justify-end rounded-xl px-3 sm:justify-between sm:px-5"
       aria-label="Breadcrumbs and actions"
     >
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
+      <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-sm sm:flex">
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;
           return (
