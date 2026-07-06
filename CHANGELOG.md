@@ -8,6 +8,10 @@ relevant section.
 
 ## [Unreleased]
 
+_No changes yet._
+
+## [0.3.0] — 2026-07-06
+
 ### Added
 
 - CI gate and GitHub Action (Phase 18): a composite GitHub Action (`action.yml`
@@ -162,5 +166,6 @@ CLI. Includes everything that landed in Phases 1–11.
   `OPENREADY_GITHUB_TOKEN` → `GITHUB_TOKEN`. esbuild bundle at
   `dist-cli/openready.mjs`.
 
-[Unreleased]: https://github.com/magnu1102/OpenReady/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/magnu1102/OpenReady/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/magnu1102/OpenReady/releases/tag/v0.3.0
 [0.2.0]: https://github.com/magnu1102/OpenReady/releases/tag/v0.2.0

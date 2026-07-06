@@ -2378,7 +2378,7 @@ dependencies = [
 
 [[package]]
 name = "openready"
-version = "0.3.0-dev"
+version = "0.3.0"
 dependencies = [
  "keyring",
  "reqwest 0.12.28",

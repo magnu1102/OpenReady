@@ -1,7 +1,7 @@
 {
   "name": "openready",
   "private": true,
-  "version": "0.3.0-dev",
+  "version": "0.3.0",
   "license": "MIT",
   "description": "Analyze GitHub repositories for portfolio readiness — a deterministic, local-first desktop app and CLI.",
   "author": "Magnus Almås",
