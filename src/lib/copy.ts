@@ -44,7 +44,7 @@ export const copy = {
   welcome: {
     heading: "See which repositories are ready to show.",
     subheading:
-      "OpenReady analyzes public GitHub repositories and turns metadata, README, build and presentation signals into transparent scores, per-repository recommendations and exportable reports. Every check is deterministic and runs against public data only.",
+      "OpenReady turns public GitHub repositories into clear scores, practical next steps, and local exports. It checks public data only, so you can quickly see what is ready to share.",
     form: {
       label: "GitHub username",
       hint: "Enter a public GitHub account. OpenReady fetches public repository metadata only.",
@@ -69,8 +69,8 @@ export const copy = {
         body: "Analysis runs on your machine. Repository contents stay where they belong.",
       },
       {
-        title: "Deterministic",
-        body: "Every score lists the checks behind it. Same repository, same result.",
+        title: "Traceable scores",
+        body: "Every score lists the checks behind it, with the same result for the same repository.",
       },
       {
         title: "Open source",
@@ -97,9 +97,9 @@ export const copy = {
   dashboard: {
     title: "Dashboard",
     subtitle: (username: string) =>
-      `Public repositories for ${username}. Every check runs locally and deterministically.`,
+      `Public repositories for ${username}. Analysis runs locally against public GitHub data.`,
     subtitleNoUser: "Enter a GitHub username to fetch public repositories.",
-    cacheStale: "Cached snapshot is older than 24 hours.",
+    cacheStale: "Cached analysis is older than 24 hours.",
     cacheFresh: "Loaded locally.",
     cacheFetched: (date: string) => `Last fetched ${date}.`,
     refresh: "Refresh",
@@ -112,28 +112,28 @@ export const copy = {
       portfolioReady: {
         label: "Portfolio-ready",
         hint: "Repositories scoring at least 85 across the eight categories.",
-        sub: "From category scores",
+        sub: "Ready to feature",
       },
       needsWork: {
         label: "Needs work",
         hint: "Repositories in the Needs work or Experimental tiers.",
-        sub: "From category scores",
+        sub: "Highest leverage fixes",
       },
       hiddenGems: {
         label: "Hidden gems",
         hint: "Repositories scoring at least 70 with few stars and missing discoverability signals — strong work that deserves more visibility.",
-        sub: "From category scores",
+        sub: "Strong but quiet",
       },
       avgScore: {
         label: "Avg score",
         hint: "Mean total score across repositories with at least one resolved category.",
-        sub: "From category scores",
+        sub: "Resolved checks only",
       },
     },
     repoSection: {
       heading: "Repositories",
       count: (n: number) => `${n} fetched`,
-      pending: "Public fetch",
+      pending: "No repositories loaded",
       loading: "Loading repositories",
     },
     errors: {
@@ -176,8 +176,7 @@ export const copy = {
     },
     exportPanel: {
       heading: "Exports",
-      description:
-        "Save the current analysis as a report, a machine-readable summary, or homepage project cards.",
+      description: "Save the current analysis as Markdown, JSON, or homepage project cards.",
       preparing: "Preparing export...",
       markdown: "Markdown",
       json: "JSON",
@@ -214,12 +213,10 @@ export const copy = {
     fork: "Fork",
     archived: "Archived",
     scoreLabel: "Score",
-    scoreCaption:
-      "Weighted mean of eight category scores, adjusted by project type and your settings.",
+    scoreCaption: "Overall score across the checks that apply to this project type.",
     unavailable: {
       title: "Repository details unavailable",
-      description:
-        "Repository details live in memory. Fetch a GitHub username again to reopen this view.",
+      description: "Analyze a GitHub username again to reopen this repository detail view.",
       action: "Analyze a username",
     },
     tabs: {
@@ -251,7 +248,7 @@ export const copy = {
       recommendations: {
         label: "Recommendations",
         title: "Suggested improvements",
-        body: "Prioritized next steps generated from failed deterministic checks.",
+        body: "Prioritized next steps based on missing or incomplete signals.",
       },
     },
     overview: {
@@ -259,7 +256,7 @@ export const copy = {
       signalsDescription: "Metadata, activity and repository status checks.",
       projectSummaryTitle: "Project summary",
       projectSummaryDescription:
-        "Sends this repository's description, topics and detected signals to your provider to draft a short plain-English summary.",
+        "Uses this repository's description, topics, and detected signals to draft a short plain-English summary with your configured AI service.",
       projectSummaryGenerate: "Draft summary",
     },
     documentation: {
@@ -267,13 +264,13 @@ export const copy = {
         "README presence and section checks for the first 30 fetched repositories.",
       critiqueTitle: "README critique",
       critiqueDescription:
-        "Sends the README text and the gaps OpenReady already detected to your provider for prioritized, constructive suggestions.",
+        "Uses the README text and detected gaps to draft prioritized suggestions with your configured AI service.",
       critiqueGenerate: "Critique README",
     },
     build: {
       title: "Build, CI and infrastructure",
       description:
-        "Detected from the recursive repository file tree. Package manifests, lockfiles, Docker, GitHub Actions, tests, docs and infrastructure-as-code.",
+        "Detected from repository files: package manifests, lockfiles, Docker, GitHub Actions, tests, docs, and infrastructure-as-code.",
     },
     security: {
       title: "Security hygiene",
@@ -306,7 +303,7 @@ export const copy = {
       title: "Detected stack",
       truncated:
         "Detected from a partial file tree. GitHub truncated the response for this large repository.",
-      detected: "Detected from filenames in the recursive Git tree.",
+      detected: "Detected from repository files.",
       loading: "Fetching the repository file tree. Detection appears here once it completes.",
       unavailable:
         "File-tree detection is unavailable for this repository. OpenReady checks the first 30 fetched repositories to stay within GitHub rate limits.",
@@ -325,9 +322,12 @@ export const copy = {
       ) => `Strongest: ${strongest} (${strongestScore}). Weakest: ${weakest} (${weakestScore}).`,
       inProgress: "Analysis is still in progress; scores appear as data resolves.",
       categoryValue: (score: number, passed: number, applicable: number) =>
-        `${score} · ${passed}/${applicable}`,
+        `${score} score · ${passed}/${applicable} checks`,
       notApplicable: "N/A",
       weight: (value: number) => `x${value}`,
+      weightTitle: (value: number) =>
+        `This category counts ${value}x for this project type and your settings.`,
+      scoringNote: "Unavailable and N/A checks do not affect the score.",
     },
     classification: {
       overridden: "overridden",
@@ -358,21 +358,21 @@ export const copy = {
       empty:
         "No repositories match this role yet. Pin repositories below or pick a different role.",
       pinned: "Pinned",
-      auto: "Auto",
+      auto: "Pin",
     },
     cv: {
       heading: "CV bullet points",
       empty: "Feature a repository to generate CV bullets.",
       aiTitle: "Refine wording",
       aiDescription:
-        "Sends these deterministic bullets to your provider for a tighter rewrite. The bullets above stay as the source of truth.",
+        "Uses these bullets to draft a tighter rewrite with your configured AI service. The original bullets remain unchanged.",
       aiGenerate: "Refine",
     },
     talking: {
       heading: "Interview talking points",
       highlights: "Highlights",
       questions: "Likely questions",
-      gaps: "Gaps to own",
+      gaps: "Gaps to explain",
       noGaps: "No major gaps detected.",
     },
     exports: {
@@ -431,7 +431,7 @@ export const copy = {
     cache: {
       title: "Cache",
       label: "Local analysis cache",
-      hint: "Recent analysis snapshots are cached locally to avoid re-fetching repositories on every open.",
+      hint: "Recent analyses are cached locally to avoid re-fetching repositories on every open.",
       clear: "Clear cache",
     },
     weights: {
@@ -445,18 +445,18 @@ export const copy = {
     ai: {
       title: "AI features",
       label: "AI-assisted suggestions",
-      hint: "OpenReady is deterministic by design. AI suggestions are opt-in, bring-your-own-key, and never replace the core checks. When enabled, you trigger each suggestion manually.",
+      hint: "AI suggestions are opt-in, bring-your-own-key, and never replace the core checks. When enabled, you trigger each suggestion manually.",
       switchLabel: "Enable AI features",
-      baseUrlLabel: "Provider base URL",
+      baseUrlLabel: "AI service URL",
       baseUrlHint:
-        "Any OpenAI-compatible endpoint: OpenAI, Groq, OpenRouter, or a local model such as Ollama.",
+        "Any OpenAI-compatible endpoint, including OpenAI, Groq, OpenRouter, or a local model such as Ollama.",
       baseUrlPlaceholder: "https://api.openai.com/v1",
       modelLabel: "Model",
       modelHint: "The model name to request, e.g. gpt-4o-mini or llama3.",
       modelPlaceholder: "gpt-4o-mini",
       keyLabel: "API key",
       keyHint:
-        "Stored in the operating system credential store, never in browser storage and never sent anywhere except your chosen provider. Optional for keyless local models.",
+        "Stored in the operating system credential store, never in browser storage, and sent only to your configured AI service. Optional for keyless local models.",
       keyPlaceholder: "sk-...",
       storedFallback: "Key stored",
       storedBadge: "Stored",
@@ -467,9 +467,9 @@ export const copy = {
       notConfigured: "No API key is configured.",
       unavailable: "AI features are available in the desktop app.",
       saving: "Saving API key...",
-      verifying: "Verifying with the provider...",
+      verifying: "Verifying with the AI service...",
       disclosure:
-        "When you generate a suggestion, OpenReady sends the relevant repository text to your provider after redacting secret-looking strings. Costs are billed by your provider.",
+        "When you generate a suggestion, OpenReady sends the relevant repository text to your configured AI service after redacting secret-looking strings. Any costs are billed by that service.",
     },
   },
 
@@ -480,7 +480,7 @@ export const copy = {
     disabledTitle: "Enable AI features in Settings",
     disabledMessage:
       "Turn on AI features in Settings to use this. OpenReady stays fully usable without it.",
-    metadata: (model: string, chars: number) => `${model} · ${chars} characters sent`,
+    metadata: (model: string, chars: number) => `AI input: ${chars} characters · ${model}`,
     fallbackError: "OpenReady could not generate an AI suggestion.",
   },
 
@@ -511,11 +511,11 @@ export const copy = {
       }),
     },
     repositories: {
-      open: (name: string) => `Open repo: ${name}`,
+      open: (name: string) => `Open repository: ${name}`,
     },
     palette: {
       ariaLabel: "Command palette",
-      placeholder: "Type a command, navigate, or open a repo...",
+      placeholder: "Type a command, navigate, or open a repository...",
       inputLabel: "Filter commands",
       empty: "No matching commands.",
       move: "to move",
@@ -537,7 +537,7 @@ export const copy = {
 
   notFound: {
     title: "Page not found",
-    description: "The route you tried to open does not exist.",
+    description: "This page does not exist.",
     action: "Back to Welcome",
   },
 
@@ -552,7 +552,7 @@ export const copy = {
     steps: [
       {
         title: "Start with a GitHub username",
-        body: "OpenReady runs deterministic checks on public repositories. Enter any GitHub username here to begin — results are cached locally.",
+        body: "OpenReady checks public repositories from any GitHub username. Results are cached locally.",
       },
       {
         title: "Read the dashboard at a glance",
@@ -577,8 +577,8 @@ export const copy = {
     tokenRemoved: "GitHub token removed.",
     aiKeySaved: "API key stored in the system credential store.",
     aiKeyRemoved: "API key removed.",
-    aiKeyVerified: "Provider connection verified.",
-    aiKeyVerifyFailed: (reason: string) => `Provider check failed: ${reason}`,
+    aiKeyVerified: "AI service connection verified.",
+    aiKeyVerifyFailed: (reason: string) => `AI service check failed: ${reason}`,
     cacheCleared: "Cached analyses cleared.",
   },
 } as const;

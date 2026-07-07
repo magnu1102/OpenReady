@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/Tooltip";
 import { copy } from "@/lib/copy";
 import { analyzeRepository } from "@/modules/analyzer-core";
 import { useRepositoryStore, type TreeFetchStatus } from "@/store/repositoryStore";
@@ -76,6 +77,7 @@ const detectedTree: RepositoryTreeState = {
       { path: "pnpm-lock.yaml", type: "blob" },
       { path: ".github/workflows/ci.yml", type: "blob" },
       { path: "src/App.test.tsx", type: "blob" },
+      { path: "src-tauri/tauri.conf.json", type: "blob" },
       { path: "Dockerfile", type: "blob" },
       { path: "docs/architecture.md", type: "blob" },
       { path: "SECURITY.md", type: "blob" },
@@ -97,6 +99,11 @@ describe("RepositoryDetailRoute", () => {
     expect(screen.getByRole("heading", { name: "openready" })).toBeInTheDocument();
     expect(screen.getByText("Repository health desktop app")).toBeInTheDocument();
     expect(screen.getByText(copy.repoDetail.summary.heading)).toBeInTheDocument();
+    expect(screen.getByText(copy.repoDetail.summary.scoringNote)).toBeInTheDocument();
+    expect(screen.getAllByText(/\d+ score . \d+\/\d+ checks/).length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("button", { name: copy.repoDetail.summary.weightTitle(1.5) }),
+    ).toBeInTheDocument();
     expect(screen.getByText(copy.repoDetail.techStack.title)).toBeInTheDocument();
     expect(screen.getByText("Node.js")).toBeInTheDocument();
   });
@@ -188,11 +195,13 @@ function seedRepositoryState(
 function renderDetailRoute(id = repository.id) {
   return render(
     <MemoryRouter initialEntries={[`/dashboard/repo/${id}`]}>
-      <Routes>
-        <Route path="/dashboard/repo/:id" element={<RepositoryDetailRoute />} />
-        <Route path="/dashboard" element={<div>Dashboard</div>} />
-        <Route path="/" element={<div>Welcome</div>} />
-      </Routes>
+      <TooltipProvider>
+        <Routes>
+          <Route path="/dashboard/repo/:id" element={<RepositoryDetailRoute />} />
+          <Route path="/dashboard" element={<div>Dashboard</div>} />
+          <Route path="/" element={<div>Welcome</div>} />
+        </Routes>
+      </TooltipProvider>
     </MemoryRouter>,
   );
 }

@@ -372,7 +372,7 @@ Add scoring.
       expect(result.checks.find((c) => c.id === "github-actions")?.status).toBe("passed");
     });
 
-    it("fails build, lockfile, docker and CI checks when nothing is detected", () => {
+    it("fails build, lockfile and CI checks when nothing is detected", () => {
       const result = analyzeRepository(
         repository(),
         foundReadme(strongReadme),
@@ -382,9 +382,47 @@ Add scoring.
 
       expect(result.checks.find((c) => c.id === "build-manifest")?.status).toBe("failed");
       expect(result.checks.find((c) => c.id === "lockfile")?.status).toBe("failed");
-      expect(result.checks.find((c) => c.id === "dockerfile")?.status).toBe("failed");
+      expect(result.checks.find((c) => c.id === "dockerfile")).toMatchObject({
+        status: "not-applicable",
+        evidence: "Container packaging is not expected for this project type.",
+      });
       expect(result.checks.find((c) => c.id === "github-actions")?.status).toBe("failed");
     });
+
+    it("does not recommend Docker for desktop projects without container files", () => {
+      const result = analyzeRepository(
+        repository(),
+        foundReadme(strongReadme),
+        foundTree(["package.json", "pnpm-lock.yaml", "src-tauri/tauri.conf.json"]),
+        now,
+        "desktop",
+      );
+
+      expect(result.checks.find((c) => c.id === "dockerfile")).toMatchObject({
+        status: "not-applicable",
+        evidence: "Container packaging is not expected for this project type.",
+      });
+      expect(result.recommendations.some((rec) => rec.checkId === "dockerfile")).toBe(false);
+    });
+
+    it.each(["backend", "full-stack"] as const)(
+      "requires Docker for %s projects",
+      (projectType) => {
+        const result = analyzeRepository(
+          repository(),
+          foundReadme(strongReadme),
+          foundTree(["package.json", "package-lock.json", "src/server.ts"]),
+          now,
+          projectType,
+        );
+
+        expect(result.checks.find((c) => c.id === "dockerfile")).toMatchObject({
+          status: "failed",
+          evidence: "No Dockerfile or docker-compose file found.",
+        });
+        expect(result.recommendations.some((rec) => rec.checkId === "dockerfile")).toBe(true);
+      },
+    );
 
     it("treats an empty repository tree as not-applicable", () => {
       const result = analyzeRepository(

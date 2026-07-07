@@ -47,6 +47,11 @@ Each type maps to a `ClassificationProfile` with two parts: category weights (de
 
 `unknown` keeps every weight at 1 — the Phase 5 behaviour.
 
+Container packaging is expected only for `backend` and `full-stack` profiles. A
+Dockerfile or Compose file is still surfaced as positive evidence for any
+project type, but missing container files are `not-applicable` for frontend,
+desktop, CLI, library and unknown projects.
+
 ### Extra checks
 
 Type profiles append additional check ids on top of the standard analyzer output. These are README-pattern checks; if no README is available, they fall through to `unknown` or `not-applicable` rather than fabricating a fail.

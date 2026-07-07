@@ -1351,7 +1351,23 @@ Post-push steps:
 - `npm publish` the CLI package
 - CI must confirm the new Rust steps pass on all three OS runners
 
-### Phase 21: GitHub client efficiency and organization support
+### Phase 21: Product trust and polish
+
+Goal: Make OpenReady's own guidance feel trustworthy, human and easier to
+understand before adding broader GitHub fetch capabilities.
+
+Possible outputs:
+
+- copy and flow polish across the main UI, command palette, AI disclosure text
+  and generated portfolio/talking-point exports
+- project-aware recommendation applicability so desktop, CLI, library,
+  frontend and unknown projects are not penalized for missing Docker packaging
+- clearer score breakdown labels, category-weight explanations and N/A scoring
+  guidance
+- targeted visual cleanup that preserves the Aurora design language while
+  removing generic decorative effects
+
+### Phase 22: GitHub client efficiency and organization support
 
 Goal: Reduce rate-limit pressure (60 req/h unauthenticated) and widen the
 audience beyond personal profiles.
@@ -1365,7 +1381,7 @@ Possible outputs:
 - analyze organizations, not just users (near-identical API shape)
 - smarter refresh: re-analyze only repos whose `pushed_at` changed
 
-### Phase 22: History and trends
+### Phase 23: History and trends
 
 Goal: Show improvement over time — the retention feature the local snapshot
 cache already almost supports.
@@ -1378,7 +1394,7 @@ Possible outputs:
 - exportable progress report (Markdown)
 - deterministic, local-only; no telemetry
 
-### Phase 23: Local AI providers
+### Phase 24: Local AI providers
 
 Goal: Extend Phase 15's opt-in AI assist to zero-cloud setups, matching the
 project's privacy identity.

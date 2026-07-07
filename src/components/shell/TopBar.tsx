@@ -30,7 +30,7 @@ export function TopBar() {
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;
           return (
-            <span key={c.href} className="flex items-center gap-1.5">
+            <span key={`${c.href}-${i}`} className="flex items-center gap-1.5">
               {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-text-muted" />}
               {last ? (
                 <span className="font-medium text-text-primary">{c.label}</span>
@@ -59,7 +59,14 @@ function buildCrumbs(segments: string[]) {
     const prev = segments[i - 1];
     let label = labels[seg] ?? seg;
     if (prev === "repo") label = decodeURIComponent(seg);
-    out.push({ href, label });
+    out.push({ href: resolveCrumbHref(segments, i, href), label });
   }
   return out;
+}
+
+function resolveCrumbHref(segments: string[], index: number, fallback: string) {
+  if (segments[index - 1] === "dashboard" && segments[index] === "repo") {
+    return "/dashboard";
+  }
+  return fallback;
 }

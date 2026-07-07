@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { Sidebar } from "./Sidebar";
@@ -16,6 +16,7 @@ import { CommandsRoot } from "@/modules/commands";
 export function AppShell() {
   useTourAutoStart();
   useResponsiveSidebar();
+  useStandardNavigationShortcuts();
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
 
@@ -66,6 +67,72 @@ export function AppShell() {
       </TooltipProvider>
     </MotionConfig>
   );
+}
+
+function useStandardNavigationShortcuts() {
+  const navigate = useNavigate();
+  const lastMouseNavigation = useRef<{ button: number; time: number } | null>(null);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented) return;
+
+      const isBack =
+        event.key === "BrowserBack" ||
+        (event.altKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey &&
+          event.key === "ArrowLeft");
+      const isForward =
+        event.key === "BrowserForward" ||
+        (event.altKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey &&
+          event.key === "ArrowRight");
+
+      if (!isBack && !isForward) return;
+
+      event.preventDefault();
+      navigate(isBack ? -1 : 1);
+    }
+
+    function onMouseDown(event: MouseEvent) {
+      if (!isMouseNavigationButton(event.button)) return;
+      event.preventDefault();
+    }
+
+    function onMouseNavigation(event: MouseEvent) {
+      if (!isMouseNavigationButton(event.button)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const now = Date.now();
+      const previous = lastMouseNavigation.current;
+      if (previous?.button === event.button && now - previous.time < 80) return;
+      lastMouseNavigation.current = { button: event.button, time: now };
+
+      navigate(event.button === 3 ? -1 : 1);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("mousedown", onMouseDown, true);
+    window.addEventListener("mouseup", onMouseNavigation, true);
+    window.addEventListener("auxclick", onMouseNavigation, true);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mousedown", onMouseDown, true);
+      window.removeEventListener("mouseup", onMouseNavigation, true);
+      window.removeEventListener("auxclick", onMouseNavigation, true);
+    };
+  }, [navigate]);
+}
+
+function isMouseNavigationButton(button: number) {
+  return button === 3 || button === 4;
 }
 
 // Below this width the full 240px sidebar squeezes content until it clips, so

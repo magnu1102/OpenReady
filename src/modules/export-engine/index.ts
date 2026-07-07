@@ -22,12 +22,7 @@ export interface ExportInput {
 }
 
 export type ExportFormat =
-  | "markdown"
-  | "json"
-  | "homepage-cards"
-  | "portfolio"
-  | "cv"
-  | "talking-points";
+  "markdown" | "json" | "homepage-cards" | "portfolio" | "cv" | "talking-points";
 
 interface JsonSummary {
   schema: "openready.export.v1";
@@ -312,7 +307,7 @@ export function exportTalkingPointsMarkdown(input: PortfolioExportInput): string
     for (const highlight of points.highlights) lines.push(`- ${highlight}`);
     lines.push("", "**Likely questions**");
     for (const question of points.likelyQuestions) lines.push(`- ${question}`);
-    lines.push("", "**Gaps to own**");
+    lines.push("", "**Gaps to explain**");
     if (points.gapsToOwn.length > 0) {
       for (const gap of points.gapsToOwn) lines.push(`- ${gap}`);
     } else {

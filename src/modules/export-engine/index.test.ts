@@ -204,7 +204,7 @@ describe("export-engine", () => {
       expect(md).toContain("Interview talking points — Frontend Engineer");
       expect(md).toContain("**Highlights**");
       expect(md).toContain("**Likely questions**");
-      expect(md).toContain("**Gaps to own**");
+      expect(md).toContain("**Gaps to explain**");
     });
 
     it("handles an empty analyses list gracefully", () => {

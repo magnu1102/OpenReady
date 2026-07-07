@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ScoreRing } from "@/components/ui/ScoreRing";
 import { ScoreBar } from "@/components/ui/ScoreBar";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NotFoundIllustration } from "@/components/ui/illustrations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
@@ -551,6 +552,7 @@ function AnalysisSummary({ analysis }: { analysis?: AnalysisResult }) {
       ) : (
         <p className="text-xs text-text-secondary">{copy.repoDetail.summary.inProgress}</p>
       )}
+      <p className="text-xs text-text-secondary">{copy.repoDetail.summary.scoringNote}</p>
       <ul className="flex flex-col gap-2">
         {score.categories.map((category) => (
           <li key={category.category} className="flex flex-col gap-1">
@@ -558,9 +560,18 @@ function AnalysisSummary({ analysis }: { analysis?: AnalysisResult }) {
               <span className="flex items-center gap-1.5 text-text-primary">
                 {category.label}
                 {category.weight !== 1 ? (
-                  <span className="rounded-sm bg-subtle px-1 font-mono text-[10px] text-text-muted">
-                    {copy.repoDetail.summary.weight(category.weight)}
-                  </span>
+                  <Tooltip
+                    content={copy.repoDetail.summary.weightTitle(category.weight)}
+                    side="left"
+                  >
+                    <button
+                      type="button"
+                      className="focus-visible:ring-accent/40 rounded-sm bg-subtle px-1 font-mono text-[10px] text-text-muted focus-visible:outline-none focus-visible:ring-2"
+                      aria-label={copy.repoDetail.summary.weightTitle(category.weight)}
+                    >
+                      {copy.repoDetail.summary.weight(category.weight)}
+                    </button>
+                  </Tooltip>
                 ) : null}
               </span>
               <span className="tabular-nums text-text-muted">

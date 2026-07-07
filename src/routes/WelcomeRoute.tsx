@@ -22,6 +22,7 @@ import { isValidGitHubUsername } from "@/modules/github-client";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import { useTourStore } from "@/modules/tour";
 import { APP_VERSION } from "@/lib/env";
+import { formatShortcut } from "@/modules/commands/shortcuts";
 
 const principleIcons = [ShieldCheck, ListChecks, BookOpen];
 
@@ -40,6 +41,7 @@ export function WelcomeRoute() {
   const tourOpen = useTourStore((s) => s.activeStep !== null);
   const isLoading = status === "loading";
   const recentAnalysis = cachedAnalyses[0];
+  const commandPaletteShortcut = formatShortcut({ key: "k", meta: true });
 
   useEffect(() => {
     void loadCachedAnalyses();
@@ -104,11 +106,6 @@ export function WelcomeRoute() {
       initial={tourOpen ? false : "hidden"}
       animate="visible"
     >
-      {/* Static hero glow — pure decoration, no animation. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-24 left-1/4 -z-10 h-72 w-96 rounded-full bg-accent-subtle blur-3xl"
-      />
       <motion.section variants={fadeUp} className="flex flex-col gap-4 pt-4">
         <Badge tone="accent" className="self-start font-mono">
           {copy.app.versionBadge(APP_VERSION)}
@@ -168,7 +165,7 @@ export function WelcomeRoute() {
             ) : null}
             <p className="text-xs text-text-muted">
               {copy.welcome.form.keyboardHint} Press <Kbd>/</Kbd> to focus this field or{" "}
-              <Kbd>⌘K</Kbd> to open the command palette.
+              <Kbd>{commandPaletteShortcut}</Kbd> to open the command palette.
             </p>
           </form>
         </Card>

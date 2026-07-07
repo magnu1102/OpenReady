@@ -1146,6 +1146,7 @@ function librarySignals(paths, tops, techSignals) {
 
 // src/modules/analyzer-core/index.ts
 var RECENT_ACTIVITY_DAYS = 365;
+var DOCKER_REQUIRED_PROJECT_TYPES = /* @__PURE__ */ new Set(["backend", "full-stack"]);
 var readmeSections = [
   {
     id: "purpose",
@@ -1253,7 +1254,7 @@ function analyzeRepository(repository, readmeState, treeState = void 0, now = /*
       evidence: repository.fork ? "Forked repositories are shown but labeled separately." : void 0
     },
     ...readmeChecks(readmeState),
-    ...buildabilityChecks(treeState, techSignals),
+    ...buildabilityChecks(treeState, techSignals, classification.type),
     ...ciChecks(treeState, techSignals),
     ...testsChecks(treeState, techSignals),
     ...infrastructureChecks(treeState, techSignals),
@@ -1447,7 +1448,7 @@ function collectTechSignals(treeState) {
   }
   return [];
 }
-function buildabilityChecks(treeState, techSignals) {
+function buildabilityChecks(treeState, techSignals, projectType) {
   const treeUnknown = isTreeUnknown(treeState);
   const treeEmpty = treeState?.status === "empty";
   const manifestSignal = ["node", "python", "rust", "go", "java-gradle"].map((id) => findTechSignal(techSignals, id)).find((signal) => Boolean(signal));
@@ -1474,17 +1475,48 @@ function buildabilityChecks(treeState, techSignals) {
       passedEvidence: lockfileEvidence ?? void 0,
       failedEvidence: "No lockfile committed \u2014 installs may not be reproducible."
     }),
-    deriveCheck({
-      id: "dockerfile",
-      label: "Repository ships a Dockerfile or Compose file",
-      category: "containerization",
-      treeUnknown,
-      treeEmpty,
-      passed: Boolean(dockerSignal),
-      passedEvidence: dockerSignal?.evidence.join(", "),
-      failedEvidence: "No Dockerfile or docker-compose file found."
-    })
+    dockerfileCheck({ dockerSignal, treeUnknown, treeEmpty, projectType })
   ];
+}
+function dockerfileCheck(input) {
+  const base = {
+    id: "dockerfile",
+    label: "Repository ships a Dockerfile or Compose file",
+    category: "containerization"
+  };
+  if (input.dockerSignal) {
+    return {
+      ...base,
+      status: "passed",
+      evidence: input.dockerSignal.evidence.join(", ")
+    };
+  }
+  if (input.treeUnknown) {
+    return {
+      ...base,
+      status: "unknown",
+      evidence: "Repository file tree was not available."
+    };
+  }
+  if (input.treeEmpty) {
+    return {
+      ...base,
+      status: "not-applicable",
+      evidence: "Repository is empty."
+    };
+  }
+  if (!DOCKER_REQUIRED_PROJECT_TYPES.has(input.projectType)) {
+    return {
+      ...base,
+      status: "not-applicable",
+      evidence: "Container packaging is not expected for this project type."
+    };
+  }
+  return {
+    ...base,
+    status: "failed",
+    evidence: "No Dockerfile or docker-compose file found."
+  };
 }
 function ciChecks(treeState, techSignals) {
   const treeUnknown = isTreeUnknown(treeState);
@@ -2783,7 +2815,7 @@ Running from a source checkout:
   node dist-cli/openready.mjs analyze octocat
 `;
 function readVersion() {
-  if (true) return "0.6.0-dev";
+  if (true) return "0.5.5";
   try {
     const here = dirname(fileURLToPath(import.meta.url));
     const pkg = JSON.parse(readFileSync(resolve2(here, "../../package.json"), "utf8"));

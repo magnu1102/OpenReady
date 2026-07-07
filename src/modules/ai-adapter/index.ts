@@ -16,7 +16,7 @@ export { redactSecrets } from "./redact";
 export interface AiSuggestion {
   text: string;
   model: string;
-  /** Total characters sent to the provider, so the UI can surface cost/visibility. */
+  /** Total input characters, so the UI can surface cost and visibility. */
   promptCharCount: number;
 }
 

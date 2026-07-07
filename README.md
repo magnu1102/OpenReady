@@ -17,7 +17,7 @@ OpenReady is an open-source desktop app that analyzes public GitHub repositories
 
 Every check is deterministic and runs on your machine. No account, no cloud, no AI required — an opt-in AI assist exists, but the core never depends on it.
 
-> **Status:** v0.5.0 — Phase 20, distribution hardening, complete: the CLI installs from npm, Rust checks run in CI on three OSes, the auto-updater is wired (gated until releases are signed), and a Playwright smoke guards the analyze flow. Next up: Phase 21, GitHub client efficiency and organization support. See the [roadmap](docs/roadmap.md).
+> **Status:** v0.5.0 — Phase 20, distribution hardening, complete: the CLI installs from npm, Rust checks run in CI on three OSes, the auto-updater is wired (gated until releases are signed), and a Playwright smoke guards the analyze flow. Next up: Phase 21, product trust and polish. See the [roadmap](docs/roadmap.md).
 
 ## Screenshots
 
@@ -43,6 +43,22 @@ Every check is deterministic and runs on your machine. No account, no cloud, no 
 - **CI gating** — the same analyzer as a CLI and a composite GitHub Action (`--fail-under`, `--require-check`, score badges).
 - **Extensible** — custom check packs and shareable team profiles with versioned JSON Schemas.
 
+## Tech stack
+
+OpenReady is built as a local-first desktop product with a shared analyzer that
+also runs from the command line and GitHub Actions.
+
+| Area             | Technologies                                                                |
+| ---------------- | --------------------------------------------------------------------------- |
+| Desktop shell    | Tauri 2, Rust, WebView2 on Windows                                          |
+| Frontend         | React 19, TypeScript, Vite                                                  |
+| UI and styling   | Tailwind CSS, Radix primitives, lucide-react, Aurora design tokens          |
+| State and motion | Zustand, Framer Motion                                                      |
+| Analyzer         | Framework-free TypeScript modules under `src/modules/`                      |
+| CLI              | Node.js 20+, esbuild-bundled ESM                                            |
+| Testing          | Vitest, Testing Library, Playwright                                         |
+| CI and releases  | GitHub Actions, composite GitHub Action, `tauri-apps/tauri-action`, npm CLI |
+
 ## Quickstart
 
 ### Prerequisites
@@ -66,6 +82,8 @@ pnpm dev
 ```
 
 This opens OpenReady in your browser without compiling the Rust shell.
+
+## Usage
 
 ### First analysis
 
@@ -113,6 +131,19 @@ Common flags:
 | `--no-readme` / `--no-tree`      | Skip README or file-tree fetches for speed |
 
 Token resolution order: `--token`, then `OPENREADY_GITHUB_TOKEN`, then `GITHUB_TOKEN`. Without a token GitHub limits unauthenticated requests to ~60/hour. Output respects [`NO_COLOR`](https://no-color.org/) and falls back to plain text when stdout isn't a TTY.
+
+### Environment variables
+
+OpenReady does not require environment variables for normal desktop use. The
+optional variables below are for CLI runs, CI, or development convenience. Copy
+`.env.example` to `.env` only for local experiments; never commit real tokens.
+
+| Variable                 | Used by       | Purpose                                                          |
+| ------------------------ | ------------- | ---------------------------------------------------------------- |
+| `OPENREADY_GITHUB_TOKEN` | CLI           | Preferred GitHub token for higher API rate limits.               |
+| `GITHUB_TOKEN`           | CLI / Actions | Fallback token; GitHub Actions provides this automatically.      |
+| `NO_COLOR`               | CLI           | Disables ANSI color output when set to any value.                |
+| `TAURI_DEV_HOST`         | Dev server    | Exposes Vite/Tauri dev server to another host during local work. |
 
 ### Use in CI
 

@@ -22,15 +22,10 @@ export type { TechSignal, TechSignalId } from "./tech-stack";
 export { detectTechSignals } from "./tech-stack";
 
 const RECENT_ACTIVITY_DAYS = 365;
+const DOCKER_REQUIRED_PROJECT_TYPES = new Set<ProjectType>(["backend", "full-stack"]);
 
 type ReadmeSectionId =
-  | "purpose"
-  | "setup"
-  | "usage"
-  | "screenshots-demo"
-  | "tech-stack"
-  | "testing"
-  | "roadmap";
+  "purpose" | "setup" | "usage" | "screenshots-demo" | "tech-stack" | "testing" | "roadmap";
 
 interface ReadmeSectionDefinition {
   id: ReadmeSectionId;
@@ -166,7 +161,7 @@ export function analyzeRepository(
         : undefined,
     } satisfies CheckResult,
     ...readmeChecks(readmeState),
-    ...buildabilityChecks(treeState, techSignals),
+    ...buildabilityChecks(treeState, techSignals, classification.type),
     ...ciChecks(treeState, techSignals),
     ...testsChecks(treeState, techSignals),
     ...infrastructureChecks(treeState, techSignals),
@@ -416,6 +411,7 @@ export function collectTechSignals(treeState: RepositoryTreeState | undefined): 
 function buildabilityChecks(
   treeState: RepositoryTreeState | undefined,
   techSignals: TechSignal[],
+  projectType: ProjectType,
 ): CheckResult[] {
   const treeUnknown = isTreeUnknown(treeState);
   const treeEmpty = treeState?.status === "empty";
@@ -450,17 +446,55 @@ function buildabilityChecks(
       passedEvidence: lockfileEvidence ?? undefined,
       failedEvidence: "No lockfile committed — installs may not be reproducible.",
     }),
-    deriveCheck({
-      id: "dockerfile",
-      label: "Repository ships a Dockerfile or Compose file",
-      category: "containerization",
-      treeUnknown,
-      treeEmpty,
-      passed: Boolean(dockerSignal),
-      passedEvidence: dockerSignal?.evidence.join(", "),
-      failedEvidence: "No Dockerfile or docker-compose file found.",
-    }),
+    dockerfileCheck({ dockerSignal, treeUnknown, treeEmpty, projectType }),
   ];
+}
+
+function dockerfileCheck(input: {
+  dockerSignal: TechSignal | undefined;
+  treeUnknown: boolean;
+  treeEmpty: boolean;
+  projectType: ProjectType;
+}): CheckResult {
+  const base = {
+    id: "dockerfile",
+    label: "Repository ships a Dockerfile or Compose file",
+    category: "containerization",
+  } satisfies Pick<CheckResult, "id" | "label" | "category">;
+
+  if (input.dockerSignal) {
+    return {
+      ...base,
+      status: "passed",
+      evidence: input.dockerSignal.evidence.join(", "),
+    };
+  }
+  if (input.treeUnknown) {
+    return {
+      ...base,
+      status: "unknown",
+      evidence: "Repository file tree was not available.",
+    };
+  }
+  if (input.treeEmpty) {
+    return {
+      ...base,
+      status: "not-applicable",
+      evidence: "Repository is empty.",
+    };
+  }
+  if (!DOCKER_REQUIRED_PROJECT_TYPES.has(input.projectType)) {
+    return {
+      ...base,
+      status: "not-applicable",
+      evidence: "Container packaging is not expected for this project type.",
+    };
+  }
+  return {
+    ...base,
+    status: "failed",
+    evidence: "No Dockerfile or docker-compose file found.",
+  };
 }
 
 function ciChecks(

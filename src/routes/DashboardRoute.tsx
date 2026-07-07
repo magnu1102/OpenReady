@@ -14,8 +14,8 @@ import {
   Github,
   Inbox,
   RefreshCw,
-  ShieldQuestion,
   Star,
+  Wrench,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/Card";
@@ -90,7 +90,7 @@ export function DashboardRoute() {
     {
       ...copy.dashboard.stats.needsWork,
       value: status === "success" ? needsWork.toString() : "—",
-      icon: ShieldQuestion,
+      icon: Wrench,
     },
     {
       ...copy.dashboard.stats.hiddenGems,

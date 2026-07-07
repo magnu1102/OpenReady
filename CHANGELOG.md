@@ -10,6 +10,35 @@ relevant section.
 
 _No changes yet._
 
+## [0.5.5] — 2026-07-07
+
+### Security
+
+- Hardened the release version bump script against regex backtracking on
+  malformed changelog anchors, with regression coverage for large inputs.
+
+### Added
+
+- Phase 21 product trust and polish: clearer UI copy, friendlier AI disclosure
+  language, score breakdown explanations, and project-aware recommendation
+  applicability.
+- Added `.env.example` plus README usage, tech-stack, and environment-variable
+  sections so new contributors can run the project without guessing required
+  configuration.
+- Added Windows signing workflow documentation and a local signing helper script
+  for future certificate-backed releases.
+
+### Changed
+
+- Docker/container packaging is now required only for backend and full-stack
+  profiles. Other project types still surface Docker as positive evidence when
+  present, but missing Docker files are not treated as a gap.
+- The repository detail score panel now spells out score/check counts and adds
+  keyboard-accessible explanations for category weight badges.
+- Standard keyboard and mouse history navigation now works in the desktop shell,
+  and the repository breadcrumb returns to the dashboard instead of a missing
+  route.
+
 ## [0.5.0] — 2026-07-07
 
 ### Security
@@ -255,7 +284,8 @@ CLI. Includes everything that landed in Phases 1–11.
   `OPENREADY_GITHUB_TOKEN` → `GITHUB_TOKEN`. esbuild bundle at
   `dist-cli/openready.mjs`.
 
-[Unreleased]: https://github.com/magnu1102/OpenReady/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/magnu1102/OpenReady/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/magnu1102/OpenReady/releases/tag/v0.5.5
 [0.5.0]: https://github.com/magnu1102/OpenReady/releases/tag/v0.5.0
 [0.4.0]: https://github.com/magnu1102/OpenReady/releases/tag/v0.4.0
 [0.3.0]: https://github.com/magnu1102/OpenReady/releases/tag/v0.3.0

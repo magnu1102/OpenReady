@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import {
@@ -182,5 +182,64 @@ describe("App", () => {
     await user.click(screen.getByRole("tab", { name: /documentation/i }));
     expect(screen.getByText("README exists")).toBeInTheDocument();
     expect(screen.getAllByText("No README found").length).toBeGreaterThan(0);
+  });
+
+  it("routes the Repository breadcrumb back to the dashboard", async () => {
+    const user = userEvent.setup();
+    fetchUserRepositoriesMock.mockResolvedValueOnce([{ ...repository, fork: false }]);
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.click(screen.getByRole("button", { name: /analyze/i }));
+    await user.click(await screen.findByRole("link", { name: "openready" }));
+
+    expect(await screen.findByRole("heading", { name: "openready" })).toBeInTheDocument();
+
+    const breadcrumb = screen.getByRole("navigation", { name: /breadcrumb/i });
+    await user.click(within(breadcrumb).getByRole("link", { name: copy.shell.topBar.repository }));
+
+    expect(await screen.findByRole("heading", { name: copy.dashboard.title })).toBeInTheDocument();
+    expect(screen.queryByText(copy.notFound.title)).not.toBeInTheDocument();
+  });
+
+  it("supports standard keyboard history navigation", async () => {
+    const user = userEvent.setup();
+    fetchUserRepositoriesMock.mockResolvedValueOnce([{ ...repository, fork: false }]);
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.click(screen.getByRole("button", { name: /analyze/i }));
+    await user.click(await screen.findByRole("link", { name: "openready" }));
+
+    expect(await screen.findByRole("heading", { name: "openready" })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "BrowserBack" });
+    expect(await screen.findByRole("heading", { name: copy.dashboard.title })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "BrowserForward" });
+    expect(await screen.findByRole("heading", { name: "openready" })).toBeInTheDocument();
+  });
+
+  it("supports mouse back and forward buttons", async () => {
+    const user = userEvent.setup();
+    fetchUserRepositoriesMock.mockResolvedValueOnce([{ ...repository, fork: false }]);
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.click(screen.getByRole("button", { name: /analyze/i }));
+    await user.click(await screen.findByRole("link", { name: "openready" }));
+
+    expect(await screen.findByRole("heading", { name: "openready" })).toBeInTheDocument();
+
+    fireEvent.mouseDown(window, { button: 3 });
+    fireEvent.mouseUp(window, { button: 3 });
+    expect(await screen.findByRole("heading", { name: copy.dashboard.title })).toBeInTheDocument();
+
+    fireEvent.mouseDown(window, { button: 4 });
+    fireEvent.mouseUp(window, { button: 4 });
+    expect(await screen.findByRole("heading", { name: "openready" })).toBeInTheDocument();
   });
 });

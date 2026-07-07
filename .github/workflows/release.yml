@@ -78,6 +78,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Azure Artifact Signing CLI
+        if: matrix.os == 'windows-latest' && vars.WINDOWS_SIGNING_ENABLED == 'true'
+        run: cargo install artifact-signing-cli --locked
+
       - name: Build CLI bundle
         if: matrix.os == 'ubuntu-22.04'
         run: pnpm build:cli
@@ -95,6 +99,14 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENREADY_WINDOWS_SIGNING_ENABLED: ${{ vars.WINDOWS_SIGNING_ENABLED }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_ARTIFACT_SIGNING_ENDPOINT: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          AZURE_ARTIFACT_SIGNING_ACCOUNT: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT }}
+          AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE }}
+          AZURE_ARTIFACT_SIGNING_DESCRIPTION: ${{ vars.AZURE_ARTIFACT_SIGNING_DESCRIPTION }}
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: "OpenReady ${{ github.event.inputs.tag || github.ref_name }}"

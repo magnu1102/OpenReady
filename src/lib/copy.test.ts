@@ -28,6 +28,13 @@ describe("copy", () => {
     }
   });
 
+  it("uses repository and cached analysis vocabulary in app copy", () => {
+    for (const { path, value } of strings) {
+      expect(value, path).not.toMatch(/\brepo\b/i);
+      expect(value, path).not.toMatch(/\bsnapshots?\b/i);
+    }
+  });
+
   it("renders the version badge from a raw version string", () => {
     expect(copy.app.versionBadge("0.4.0-dev")).toBe("v0.4.0-dev");
   });

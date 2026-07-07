@@ -79,4 +79,17 @@ describe("recommendation-engine", () => {
     const recs = generateRecommendations(checks);
     expect(recs).toEqual([]);
   });
+
+  it("does not recommend Docker when the Docker check is not applicable", () => {
+    const checks: CheckResult[] = [
+      {
+        id: "dockerfile",
+        label: "Repository ships a Dockerfile or Compose file",
+        category: "containerization",
+        status: "not-applicable",
+      },
+    ];
+
+    expect(generateRecommendations(checks)).toEqual([]);
+  });
 });
