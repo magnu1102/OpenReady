@@ -26,6 +26,12 @@ relevant section.
   no endpoints, no keypair, `createUpdaterArtifacts: false`. `docs/updater.md`
   is the enablement runbook; `docs/signing.md` gains the concrete macOS
   notarization checklist plus Windows signing options.
+- E2E smoke test (Phase 20, PR 3 of 3): a Playwright suite (`pnpm test:e2e`)
+  boots the app against `pnpm dev` with `api.github.com` fully route-mocked
+  (wire-format fixtures, unmatched endpoints fail loudly) and asserts the
+  Welcome → analyze → dashboard flow renders. Runs headless on the runner's
+  system Edge in a new ubuntu CI job; the shared repository fixture is lifted
+  out of `App.test.tsx` for reuse.
 
 - npm packaging (Phase 20, PR 1 of 3): the root package is now publishable as
   `openready` — `npm install -g openready` / `npx openready` register the CLI

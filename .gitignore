@@ -28,6 +28,8 @@ src-tauri/target
 
 # Tests
 coverage
+playwright-report/
+test-results/
 
 # Env / secrets
 .env

@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { readFileSync } from "node:fs";
@@ -36,5 +37,7 @@ export default defineConfig(async () => ({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    // Playwright owns e2e/**/*.spec.ts; vitest's default include would grab it.
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
 }));
