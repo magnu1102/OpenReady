@@ -75,7 +75,9 @@ useful audit evidence, but checksums are not a substitute for OS code signing.
 ## Windows signing plan
 
 For direct GitHub Release downloads, use Authenticode signing through Tauri's
-`bundle.windows.signCommand`.
+`bundle.windows.signCommand`. The release workflow injects that command only
+when Windows signing is enabled, so unsigned development and release builds do
+not accidentally invoke the signing path.
 
 Preferred route:
 
@@ -105,8 +107,9 @@ Required GitHub repository secrets:
 - `AZURE_CLIENT_SECRET`
 - `AZURE_TENANT_ID`
 
-When `WINDOWS_SIGNING_ENABLED` is not `true`, the signing hook exits without
-modifying the artifact so local and unsigned CI builds can continue.
+When `WINDOWS_SIGNING_ENABLED` is not `true`, the release workflow does not
+configure a signing command. The signing script also exits without modifying an
+artifact if it is called without that flag, which keeps local testing safe.
 
 ## Certificate choices
 

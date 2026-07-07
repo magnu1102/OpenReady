@@ -82,6 +82,25 @@ jobs:
         if: matrix.os == 'windows-latest' && vars.WINDOWS_SIGNING_ENABLED == 'true'
         run: cargo install artifact-signing-cli --locked
 
+      - name: Enable Windows signing
+        if: matrix.os == 'windows-latest' && vars.WINDOWS_SIGNING_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          $configPath = "src-tauri/tauri.conf.json"
+          $config = Get-Content $configPath -Raw | ConvertFrom-Json
+
+          if (-not $config.bundle.PSObject.Properties["windows"]) {
+            $config.bundle | Add-Member -MemberType NoteProperty -Name windows -Value ([pscustomobject]@{})
+          }
+
+          $config.bundle.windows | Add-Member `
+            -MemberType NoteProperty `
+            -Name signCommand `
+            -Value 'powershell -NoProfile -ExecutionPolicy Bypass -File "../scripts/sign-windows.ps1" "%1"' `
+            -Force
+
+          $config | ConvertTo-Json -Depth 20 | Set-Content $configPath -Encoding UTF8
+
       - name: Build CLI bundle
         if: matrix.os == 'ubuntu-22.04'
         run: pnpm build:cli
