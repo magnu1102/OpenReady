@@ -8,7 +8,24 @@ relevant section.
 
 ## [Unreleased]
 
+### Security
+
+- The loopback check that lets local AI providers run keyless now parses the
+  base URL and exact-matches the host. Previously a substring check let hosts
+  like `localhost.evil.com` masquerade as local and skip the API-key
+  requirement (Phase 20, PR 2 of 3).
+
 ### Added
+
+- Rust CI (Phase 20, PR 2 of 3): a `rust` job in `lint-and-test.yml` runs
+  `cargo fmt --check`, `cargo clippy -D warnings`, and `cargo test --locked`
+  on Ubuntu, macOS, and Windows runners; the Rust test suite grows from 5 to
+  11 (loopback URL truth table + spoofing regression, path-segment
+  validation, auth-header construction, key-masking edge case).
+- Auto-updater groundwork: `tauri-plugin-updater` is registered but inert —
+  no endpoints, no keypair, `createUpdaterArtifacts: false`. `docs/updater.md`
+  is the enablement runbook; `docs/signing.md` gains the concrete macOS
+  notarization checklist plus Windows signing options.
 
 - npm packaging (Phase 20, PR 1 of 3): the root package is now publishable as
   `openready` — `npm install -g openready` / `npx openready` register the CLI

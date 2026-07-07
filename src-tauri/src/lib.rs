@@ -1,5 +1,5 @@
 use keyring::{Entry, Error as KeyringError};
-use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
 use serde::{Deserialize, Serialize};
 
 const GITHUB_API_BASE_URL: &str = "https://api.github.com";
@@ -221,7 +221,14 @@ fn mask_ai_key(key: &str) -> String {
         .unwrap_or("");
 
     let body = &key[prefix.len()..];
-    let suffix: String = body.chars().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect();
+    let suffix: String = body
+        .chars()
+        .rev()
+        .take(4)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
     if body.chars().count() <= 4 {
         // Too short to reveal a suffix without exposing most of the secret.
         format!("{prefix}••••")
@@ -258,13 +265,14 @@ async fn ai_chat_request(
     // We send the Authorization header only when a key is stored.
 
     let url = format!("{base_url}/chat/completions");
-    let max_tokens = input.max_tokens.unwrap_or(AI_MAX_TOKENS_CAP).min(AI_MAX_TOKENS_CAP);
+    let max_tokens = input
+        .max_tokens
+        .unwrap_or(AI_MAX_TOKENS_CAP)
+        .min(AI_MAX_TOKENS_CAP);
     let messages: Vec<serde_json::Value> = input
         .messages
         .iter()
-        .map(|message| {
-            serde_json::json!({ "role": message.role, "content": message.content })
-        })
+        .map(|message| serde_json::json!({ "role": message.role, "content": message.content }))
         .collect();
     let payload = serde_json::json!({
         "model": input.model,
@@ -285,17 +293,14 @@ async fn ai_chat_request(
     match key {
         Some(key) => request = request.header(AUTHORIZATION, ai_auth_header(&key)?),
         None if !is_local_base_url(base_url) => {
-            return Err(
-                "No API key is stored. Add your key in Settings before generating.".into(),
-            );
+            return Err("No API key is stored. Add your key in Settings before generating.".into());
         }
         None => {}
     }
 
-    let response = request
-        .send()
-        .await
-        .map_err(|_| "Could not reach the AI provider. Check the base URL and your connection.".to_string())?;
+    let response = request.send().await.map_err(|_| {
+        "Could not reach the AI provider. Check the base URL and your connection.".to_string()
+    })?;
     let status = response.status().as_u16();
     let body = response
         .text()
@@ -312,6 +317,15 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .setup(|app| {
+            // Updater groundwork: registered but inert — no endpoints and no
+            // pubkey are configured, and createUpdaterArtifacts is off. See
+            // docs/updater.md for the enablement runbook.
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             ai_chat,
             delete_ai_config,
@@ -351,8 +365,14 @@ async fn github_request(
 
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
-    headers.insert(ACCEPT, HeaderValue::from_static("application/vnd.github+json"));
-    headers.insert("X-GitHub-Api-Version", HeaderValue::from_static(GITHUB_API_VERSION));
+    headers.insert(
+        ACCEPT,
+        HeaderValue::from_static("application/vnd.github+json"),
+    );
+    headers.insert(
+        "X-GitHub-Api-Version",
+        HeaderValue::from_static(GITHUB_API_VERSION),
+    );
     headers.insert(USER_AGENT, HeaderValue::from_static("OpenReady"));
     if let Some(token) = token {
         let value = HeaderValue::from_str(&format!("Bearer {token}"))
@@ -360,12 +380,10 @@ async fn github_request(
         headers.insert(AUTHORIZATION, value);
     }
 
-    let response = client
-        .get(url)
-        .headers(headers)
-        .send()
-        .await
-        .map_err(|_| "Could not reach GitHub. Check your connection and try again.".to_string())?;
+    let response =
+        client.get(url).headers(headers).send().await.map_err(|_| {
+            "Could not reach GitHub. Check your connection and try again.".to_string()
+        })?;
     let status = response.status().as_u16();
     let rate_limit_remaining = response
         .headers()
@@ -402,10 +420,14 @@ fn read_ai_key_trimmed() -> Option<String> {
 }
 
 /// True for loopback base URLs, where a keyless local model is acceptable.
+/// Parses the URL and exact-matches the host — a substring check would let
+/// hosts like `localhost.evil.com` masquerade as local and skip the key
+/// requirement.
 fn is_local_base_url(base_url: &str) -> bool {
-    base_url.contains("://localhost")
-        || base_url.contains("://127.0.0.1")
-        || base_url.contains("://[::1]")
+    let Ok(url) = reqwest::Url::parse(base_url) else {
+        return false;
+    };
+    matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"))
 }
 
 /// Builds a `Bearer` Authorization header value, surfacing a clear error if the
@@ -465,11 +487,17 @@ fn is_valid_segment(segment: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_allowed_github_request, mask_ai_key, validate_ai_chat_input};
+    use super::{
+        ai_auth_header, is_allowed_github_request, is_local_base_url, is_valid_segment,
+        mask_ai_key, validate_ai_chat_input,
+    };
 
     #[test]
     fn mask_ai_key_keeps_prefix_and_last_four() {
-        assert_eq!(mask_ai_key("sk-proj-ABCDEFGHIJKL3a9f"), "sk-proj-••••••••3a9f");
+        assert_eq!(
+            mask_ai_key("sk-proj-ABCDEFGHIJKL3a9f"),
+            "sk-proj-••••••••3a9f"
+        );
         assert_eq!(mask_ai_key("sk-1234567890abcd"), "sk-••••••••abcd");
         assert_eq!(mask_ai_key("gsk_secretvalue99"), "gsk_••••••••ue99");
         // Unknown scheme: no prefix revealed, only the last four.
@@ -502,7 +530,10 @@ mod tests {
                 ("per_page".into(), "100".into())
             ],
         ));
-        assert!(is_allowed_github_request("/repos/octocat/openready/readme", &[]));
+        assert!(is_allowed_github_request(
+            "/repos/octocat/openready/readme",
+            &[]
+        ));
         assert!(is_allowed_github_request(
             "/repos/octocat/openready/git/trees/main",
             &[("recursive".into(), "1".into())],
@@ -525,5 +556,49 @@ mod tests {
             "/users/octocat/repos",
             &[("per_page".into(), "500".into())],
         ));
+    }
+
+    #[test]
+    fn local_base_url_accepts_loopback_hosts() {
+        assert!(is_local_base_url("http://localhost:11434/v1"));
+        assert!(is_local_base_url("https://127.0.0.1:8080/v1"));
+        assert!(is_local_base_url("http://[::1]:1234/v1"));
+    }
+
+    #[test]
+    fn local_base_url_rejects_remote_hosts() {
+        assert!(!is_local_base_url("https://api.openai.com/v1"));
+        assert!(!is_local_base_url("not a url"));
+        assert!(!is_local_base_url(""));
+    }
+
+    #[test]
+    fn rejects_localhost_prefixed_public_hosts() {
+        // Regression: a substring check treated these as local and waived the
+        // API-key requirement.
+        assert!(!is_local_base_url("http://localhost.evil.com/v1"));
+        assert!(!is_local_base_url("https://127.0.0.1.evil.com/v1"));
+        assert!(!is_local_base_url("http://evil.com/?u=://localhost"));
+    }
+
+    #[test]
+    fn valid_segment_rejects_path_tricks() {
+        assert!(is_valid_segment("octocat"));
+        assert!(is_valid_segment("repo-name.js"));
+        assert!(!is_valid_segment(""));
+        assert!(!is_valid_segment("a/b"));
+        assert!(!is_valid_segment("a\\b"));
+    }
+
+    #[test]
+    fn auth_header_builds_bearer_or_reports_bad_key() {
+        let header = ai_auth_header("sk-test").expect("plain key builds a header");
+        assert_eq!(header.to_str().unwrap(), "Bearer sk-test");
+        assert!(ai_auth_header("sk-bad\nkey").is_err());
+    }
+
+    #[test]
+    fn mask_ai_key_handles_empty_input() {
+        assert_eq!(mask_ai_key(""), "••••");
     }
 }
