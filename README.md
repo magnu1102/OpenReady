@@ -17,7 +17,7 @@ OpenReady is an open-source desktop app that analyzes public GitHub repositories
 
 Every check is deterministic and runs on your machine. No account, no cloud, no AI required — an opt-in AI assist exists, but the core never depends on it.
 
-> **Status:** v0.4.0 — Phase 19, the Aurora visual and text revamp, complete: glass design language, full motion choreography, a rewritten voice, new brand identity. Next up: Phase 20, distribution hardening. See the [roadmap](docs/roadmap.md).
+> **Status:** v0.5.0 — Phase 20, distribution hardening, complete: the CLI installs from npm, Rust checks run in CI on three OSes, the auto-updater is wired (gated until releases are signed), and a Playwright smoke guards the analyze flow. Next up: Phase 21, GitHub client efficiency and organization support. See the [roadmap](docs/roadmap.md).
 
 ## Screenshots
 
