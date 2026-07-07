@@ -2774,24 +2774,20 @@ Examples:
     --require-check acme/has-changelog
   openready badge --from report.json --format svg --out badge.svg
 
-Running from a source checkout (the openready binary is registered on
-install once the package ships to npm; until then use one of):
+Install:
+  npm install -g openready         then: openready analyze octocat
+  npx openready analyze octocat    one-off, no install
+
+Running from a source checkout:
   pnpm cli -- analyze octocat
   node dist-cli/openready.mjs analyze octocat
 `;
 function readVersion() {
+  if (true) return "0.5.0-dev";
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    for (const candidate of [
-      resolve2(here, "../../package.json"),
-      resolve2(here, "../package.json")
-    ]) {
-      try {
-        const pkg = JSON.parse(readFileSync(candidate, "utf8"));
-        if (pkg.version) return pkg.version;
-      } catch {
-      }
-    }
+    const pkg = JSON.parse(readFileSync(resolve2(here, "../../package.json"), "utf8"));
+    if (typeof pkg.version === "string") return pkg.version;
   } catch {
   }
   return "0.0.0";
