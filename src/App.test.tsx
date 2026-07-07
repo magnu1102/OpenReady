@@ -10,6 +10,7 @@ import {
 } from "@/modules/github-client";
 import { clearAnalysisCache } from "@/lib/analysisCache";
 import { copy } from "@/lib/copy";
+import { repositoryFixture } from "@/test/fixtures/repository";
 import { saveExportFile } from "@/lib/exportFiles";
 import { useRepositoryStore } from "@/store/repositoryStore";
 import type { Repository } from "@/types";
@@ -33,30 +34,7 @@ const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadme);
 const fetchRepositoryTreeMock = vi.mocked(fetchRepositoryTree);
 const saveExportFileMock = vi.mocked(saveExportFile);
 
-const repository: Repository = {
-  id: "1",
-  name: "openready",
-  fullName: "octocat/openready",
-  description: "Repository health desktop app",
-  url: "https://github.com/octocat/openready",
-  homepageUrl: "https://example.com/openready",
-  language: "TypeScript",
-  topics: ["desktop", "github"],
-  license: {
-    key: "mit",
-    name: "MIT License",
-    spdxId: "MIT",
-    url: "https://api.github.com/licenses/mit",
-  },
-  defaultBranch: "main",
-  stars: 12,
-  forks: 3,
-  archived: false,
-  fork: true,
-  createdAt: "2025-05-28T10:00:00Z",
-  updatedAt: "2026-05-28T10:00:00Z",
-  pushedAt: "2026-05-28T09:00:00Z",
-};
+const repository: Repository = repositoryFixture;
 
 beforeEach(async () => {
   await clearAnalysisCache();
