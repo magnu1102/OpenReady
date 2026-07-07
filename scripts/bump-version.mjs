@@ -14,6 +14,7 @@
  * `cargo` invocation (Tauri build), so it is intentionally not rewritten here.
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -70,8 +71,14 @@ for (const edit of edits) {
   process.stdout.write(`updated ${edit.path}\n`);
 }
 
+// The committed CLI bundle embeds the version (esbuild define in
+// build-cli.mjs), so a bump without a rebuild would trip the CI drift guard.
+// Rebuild here so the invariant is mechanical, not operator memory.
+process.stdout.write(`\nRebuilding dist-cli/openready.mjs with the new version…\n`);
+execFileSync(process.execPath, [resolve(here, "build-cli.mjs")], { stdio: "inherit" });
+
 process.stdout.write(`\nNext steps:\n`);
-process.stdout.write(`  git diff           # review\n`);
+process.stdout.write(`  git diff           # review (includes dist-cli/openready.mjs)\n`);
 process.stdout.write(`  git commit -am "chore(release): v${version}"\n`);
 process.stdout.write(`  git tag v${version}\n`);
 process.stdout.write(`  git push && git push --tags\n`);

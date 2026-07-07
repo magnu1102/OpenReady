@@ -1,6 +1,5 @@
 {
   "name": "openready",
-  "private": true,
   "version": "0.5.0-dev",
   "license": "MIT",
   "description": "Analyze GitHub repositories for portfolio readiness — a deterministic, local-first desktop app and CLI.",
@@ -26,8 +25,18 @@
   ],
   "type": "module",
   "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
     "openready": "./dist-cli/openready.mjs"
+  },
+  "files": [
+    "dist-cli/",
+    "schemas/*.schema.json"
+  ],
+  "exports": {
+    "./package.json": "./package.json"
   },
   "scripts": {
     "dev": "vite",

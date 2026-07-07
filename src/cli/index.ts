@@ -54,28 +54,29 @@ Examples:
     --require-check acme/has-changelog
   openready badge --from report.json --format svg --out badge.svg
 
-Running from a source checkout (the openready binary is registered on
-install once the package ships to npm; until then use one of):
+Install:
+  npm install -g openready         then: openready analyze octocat
+  npx openready analyze octocat    one-off, no install
+
+Running from a source checkout:
   pnpm cli -- analyze octocat
   node dist-cli/openready.mjs analyze octocat
 `;
 
+// Injected by the esbuild define in scripts/build-cli.mjs; undefined when
+// running the TypeScript source directly via tsx.
+declare const __CLI_VERSION__: string | undefined;
+
 function readVersion(): string {
+  // Bundle path: esbuild constant-folds this branch and drops the fs read.
+  if (typeof __CLI_VERSION__ === "string") return __CLI_VERSION__;
   try {
+    // Dev via `tsx src/cli/index.ts` — the source layout makes this exact.
     const here = dirname(fileURLToPath(import.meta.url));
-    // Walk up to package.json — works both for `src/cli/index.ts` (dev) and
-    // the bundled `dist-cli/openready.mjs` (ship).
-    for (const candidate of [
-      resolve(here, "../../package.json"),
-      resolve(here, "../package.json"),
-    ]) {
-      try {
-        const pkg = JSON.parse(readFileSync(candidate, "utf8")) as { version?: string };
-        if (pkg.version) return pkg.version;
-      } catch {
-        // try next candidate
-      }
-    }
+    const pkg = JSON.parse(readFileSync(resolve(here, "../../package.json"), "utf8")) as {
+      version?: string;
+    };
+    if (typeof pkg.version === "string") return pkg.version;
   } catch {
     // fall through
   }
