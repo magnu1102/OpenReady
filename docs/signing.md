@@ -50,6 +50,37 @@ certutil -hashfile OpenReady_0.1.0_x64_en-US.msi SHA256     # Windows PowerShell
 
 If the hash matches the value published with the release, the binary was not tampered with after the workflow uploaded it. The GitHub Actions logs are public, so anyone can audit how an asset was built — that's the substitute for code signing while the project is unsigned.
 
+## Signing checklist (when the time comes)
+
+The concrete steps, macOS first — it has the worst unsigned UX and the most
+mechanical path.
+
+### macOS: sign + notarize
+
+1. Join the Apple Developer Program (individual is fine; ~$99/year).
+2. In the developer portal, create a **Developer ID Application** certificate; export it with its key as a `.p12`.
+3. Add GitHub Actions secrets: `APPLE_CERTIFICATE` (base64 of the .p12), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (the cert's common name), `APPLE_ID`, `APPLE_PASSWORD` (an app-specific password), `APPLE_TEAM_ID`.
+4. Pass all six as `env` to the `tauri-action` step in `release.yml` — it signs, notarizes via `notarytool`, and staples automatically.
+5. Verify a shipped artifact: `codesign --verify --deep OpenReady.app`, `spctl -a -t exec -vv OpenReady.app`, `xcrun stapler validate OpenReady.app`.
+
+### Windows
+
+Pick one:
+
+- **Azure Trusted Signing** (recommended): subscription-based, no cert file custody; wire via `bundle.windows.signCommand` in `tauri.conf.json`.
+- **OV certificate**: cheapest cert-file route, but SmartScreen reputation builds slowly per binary.
+- **EV certificate**: immediate SmartScreen trust, hardware token custody.
+
+Configure via `bundle.windows.certificateThumbprint` (cert in the runner's store) or `signCommand` (external tool like `AzureSignTool`).
+
+### Linux
+
+No OS-level signing convention. Keep publishing SHA256 checksums; consider a GPG-signed checksum file if requested.
+
+### Interlock with the updater
+
+Updater signatures ([`updater.md`](updater.md)) are a separate keypair from OS code signing — enabling auto-updates without OS signing still leaves Gatekeeper/SmartScreen friction on first install, so plan them together: signing first, updater immediately after.
+
 ## When signing will land
 
 Tracked under master plan §13 / Phase 20 (distribution hardening), which also covers the notarization checklist groundwork. Signing will be added once:
