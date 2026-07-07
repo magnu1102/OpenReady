@@ -62,7 +62,8 @@ Rules:
 
 Score tiers mirror `chooseHealthLabel` in analyzer-core: ≥85 success, ≥70
 accent, ≥50 warn, below danger. `scoreTier()` in
-[`ScoreRing.tsx`](../src/components/ui/ScoreRing.tsx) is the single source.
+[`src/lib/scoreTier.ts`](../src/lib/scoreTier.ts) is the single source
+(ScoreRing and ScoreBar both import it).
 
 ## Typography
 

@@ -2,7 +2,7 @@
 
 OpenReady is a Tauri desktop application backed by a deterministic TypeScript analyzer. The same analyzer also powers a Node CLI — both surfaces share the modules under `src/modules/`, so a change to scoring or classification immediately reaches both.
 
-## Current shape (Phase 11)
+## Current shape
 
 ```
 OpenReady

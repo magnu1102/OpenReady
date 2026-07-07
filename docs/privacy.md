@@ -2,7 +2,7 @@
 
 OpenReady is local-first. The deterministic analyzer runs on the user's machine. Only public GitHub REST API endpoints are contacted, and only on explicit user request.
 
-## What happens today (Phase 11)
+## What happens today
 
 ### Desktop app
 
@@ -17,6 +17,13 @@ OpenReady is local-first. The deterministic analyzer runs on the user's machine.
 - Stored GitHub tokens are used only for requests to `api.github.com`.
 - Exports are generated locally and written only to a file path selected by the user in the desktop save dialog.
 
+### AI assist (opt-in)
+
+- Off by default. Nothing is sent to any AI provider unless a key is configured in Settings **and** a suggestion is explicitly requested from a panel.
+- The API key is stored in the operating system credential store, never in browser `localStorage`.
+- When a suggestion is requested, the prompt contains the repository context shown in that panel (metadata, check results, README content already fetched from GitHub) and goes only to the configured OpenAI-compatible base URL.
+- Requests to non-local providers require a key; local providers (`localhost`) may run keyless.
+
 ### CLI
 
 - The CLI (`openready analyze <username>`) runs the same analyzer locally, in a Node process. No telemetry.
@@ -26,7 +33,6 @@ OpenReady is local-first. The deterministic analyzer runs on the user's machine.
 
 ## Planned later
 
-- Optional opt-in AI integrations (master plan §10 and Phase 15) — bring-your-own-key, with explicit visibility into what content would be sent before any call is made.
 - Private repository support — opt-in, with privacy implications made clear.
 
 See `openready_master_plan.md` §15.

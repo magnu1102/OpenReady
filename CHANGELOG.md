@@ -8,7 +8,27 @@ relevant section.
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+
+- npm packaging (Phase 20, PR 1 of 3): the root package is now publishable as
+  `openready` — `npm install -g openready` / `npx openready` register the CLI
+  binary. The tarball ships only the self-contained bundle (`dist-cli/`) and
+  the versioned JSON Schemas, with `engines: node >=20`. The CLI embeds its
+  version at build time (esbuild `define`), so an installed CLI never reads a
+  `package.json` from disk; `pnpm bump:version` now rebuilds the committed
+  bundle automatically so the CI drift guard stays coherent with version
+  bumps.
+
+### Changed
+
+- Docs freshness sweep: `docs/cli.md` gains a real install section (npm,
+  release asset, source) and drops pre-npm wording; `docs/releasing.md` gains
+  the missing Cargo.lock sync step, a manual npm-publish runbook, and a note
+  on the local MSI `-dev`-version build failure; `docs/privacy.md` documents
+  the shipped AI assist instead of listing it as planned; stale phase
+  references removed from `docs/architecture.md`, `docs/scoring-model.md`,
+  and `docs/design-system.md` (scoreTier's source of truth is
+  `src/lib/scoreTier.ts`).
 
 ## [0.4.0] — 2026-07-06
 

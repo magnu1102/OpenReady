@@ -28,11 +28,23 @@ Cutting a release of OpenReady is a short manual checklist that hands off the he
 
    ```bash
    pnpm bump:version 0.2.0
-   git diff   # review
+   ```
+
+   The script updates the four version locations, promotes `[Unreleased]`, and
+   **rebuilds `dist-cli/openready.mjs`** (the bundle embeds its version, and
+   CI's drift guard fails if it lags the bump).
+
+4. **Sync `Cargo.lock`.** The bump script rewrites `Cargo.toml` but Cargo only
+   refreshes the lockfile on its next invocation — commit them together or the
+   `--locked` CI checks fail:
+
+   ```bash
+   cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 > /dev/null
+   git diff   # review — includes Cargo.lock and dist-cli/openready.mjs
    git commit -am "chore(release): v0.2.0"
    ```
 
-4. **Tag and push.**
+5. **Tag and push.**
 
    ```bash
    git tag v0.2.0
@@ -46,11 +58,34 @@ Cutting a release of OpenReady is a short manual checklist that hands off the he
    - `open-ready_0.2.0_amd64.deb` + `open-ready_0.2.0_amd64.AppImage` (Linux)
    - `openready-cli-0.2.0.mjs` (CLI bundle)
 
-5. **Review the draft.** Open `/releases` on GitHub, verify the asset list, paste the relevant `CHANGELOG.md` section into the release notes if `tauri-action` didn't pick it up, and click **Publish**.
+6. **Review the draft.** Open `/releases` on GitHub, verify the asset list, paste the relevant `CHANGELOG.md` section into the release notes if `tauri-action` didn't pick it up, and click **Publish**.
 
-6. **Smoke-test the shipped artifacts.**
+7. **Smoke-test the shipped artifacts.**
    - Download the bundle matching your OS and confirm it launches (you'll see Gatekeeper / SmartScreen — see [`signing.md`](signing.md)).
    - `node openready-cli-0.2.0.mjs --version` prints `openready 0.2.0`.
+
+8. **Publish to npm (manual).** From the tagged, clean checkout:
+
+   ```bash
+   npm pack --dry-run   # review the file list: dist-cli/, schemas/*.schema.json, README, LICENSE
+   npm pack             # produces openready-<version>.tgz
+   # smoke the tarball in a scratch directory:
+   #   npm init -y && npm i ../openready-<version>.tgz && npx openready --version
+   npm login            # first time only
+   npm publish
+   npx openready@latest --version   # confirm the registry serves the new version
+   ```
+
+## Local build gotcha: MSI rejects pre-release versions
+
+Between releases the tree carries a `-dev` version (for example `0.5.0-dev`).
+A local `pnpm tauri build` **fails at the MSI bundling step** on Windows —
+WiX requires a numeric `x.y.z` ProductVersion and rejects SemVer pre-release
+suffixes. The compile itself succeeds; only the MSI bundler aborts. Options:
+
+- `pnpm tauri build --bundles nsis` (NSIS accepts pre-release suffixes), or
+- bump to a clean release version first (the normal release flow), or
+- ignore it — the exe under `src-tauri/target/release/` is already built.
 
 ## Re-running a failed build
 
@@ -75,5 +110,5 @@ git tag v0.1.1 && git push origin v0.1.1
 ## Future work
 
 - Code signing and notarisation (currently deferred — see [`signing.md`](signing.md)).
-- Auto-update channel via the Tauri updater.
-- `npm publish` of the CLI under the OpenReady scope once the project has a chosen LICENSE — the registry requires one.
+- Auto-update channel via the Tauri updater (groundwork wired but gated — see [`updater.md`](updater.md)).
+- CI-automated `npm publish` (currently a manual checklist step).

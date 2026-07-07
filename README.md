@@ -82,6 +82,17 @@ Tokens live in the operating system credential store, never in browser storage. 
 The CLI runs the same deterministic analyzer outside the desktop shell — for scripts, CI, or a quick terminal check.
 
 ```bash
+# From npm (Node 20+)
+npm install -g openready
+openready analyze octocat
+
+# Or one-off
+npx openready analyze octocat --format json --out octocat.json
+```
+
+From a source checkout:
+
+```bash
 # Dev runs via tsx
 pnpm cli -- analyze octocat --limit 5 --no-readme --no-tree
 

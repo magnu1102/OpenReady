@@ -1,10 +1,24 @@
 # CLI
 
-Phase 11 exposes the deterministic analyzer through a Node CLI. The CLI reuses the same `github-client`, `analyzer-core`, `project-classifier`, `scoring-engine`, `recommendation-engine`, and `export-engine` modules as the desktop app, so output matches what the desktop renders for the same repository.
+The Node CLI exposes the deterministic analyzer outside the desktop shell. It reuses the same `github-client`, `analyzer-core`, `project-classifier`, `scoring-engine`, `recommendation-engine`, and `export-engine` modules as the desktop app, so output matches what the desktop renders for the same repository.
 
 ## Install
 
-For now the CLI is shipped from source. Phase 12 will turn it into a release artifact.
+Three ways, most convenient first:
+
+```bash
+# From npm — registers the `openready` binary
+npm install -g openready
+openready analyze octocat
+
+# One-off, no install
+npx openready analyze octocat
+
+# From a GitHub release — the self-contained bundle attached to every release
+node openready-cli-<version>.mjs analyze octocat
+```
+
+From a source checkout:
 
 ```bash
 pnpm install           # dev deps
@@ -13,7 +27,7 @@ pnpm build:cli         # produces dist-cli/openready.mjs
 node dist-cli/openready.mjs --help
 ```
 
-`package.json#bin` points at `dist-cli/openready.mjs`, so `npm link` or a future `npm install -g .` will register the `openready` binary globally.
+The npm package ships only the bundled CLI (`dist-cli/`) and the versioned JSON Schemas; the version is embedded at build time. Node 20+ is required (`engines`).
 
 ## Usage
 

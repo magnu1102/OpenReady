@@ -92,4 +92,4 @@ A transient **Analyzing** label appears when every category's score is `null` â€
 
 ## Implementation pointer
 
-The pure scoring function lives in `src/modules/scoring-engine/index.ts`. It takes `CheckResult[]` and returns `RepositoryScore`. It has no I/O and no React dependency, so the CLI (Phase 11) can reuse it as-is.
+The pure scoring function lives in `src/modules/scoring-engine/index.ts`. It takes `CheckResult[]` and returns `RepositoryScore`. It has no I/O and no React dependency, so the CLI can reuse it as-is.
