@@ -1,6 +1,6 @@
 [package]
 name = "openready"
-version = "0.5.0-dev"
+version = "0.5.0"
 description = "OpenReady — analyze GitHub repositories for portfolio readiness"
 authors = ["Magnus Almås"]
 license = "MIT"

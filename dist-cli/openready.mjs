@@ -2783,7 +2783,7 @@ Running from a source checkout:
   node dist-cli/openready.mjs analyze octocat
 `;
 function readVersion() {
-  if (true) return "0.5.0-dev";
+  if (true) return "0.5.0";
   try {
     const here = dirname(fileURLToPath(import.meta.url));
     const pkg = JSON.parse(readFileSync(resolve2(here, "../../package.json"), "utf8"));
