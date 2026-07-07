@@ -56,3 +56,52 @@ jobs:
       # with zero install. Rebuild and diff to catch a stale artifact.
       - name: CLI bundle is up to date
         run: git diff --exit-code -- dist-cli/ || (echo "dist-cli/ is stale — run 'pnpm build:cli' and commit the result." && exit 1)
+
+  rust:
+    name: Rust checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      # tauri::generate_context! embeds ../dist at compile time; stub it so the
+      # Rust checks don't pay for a full frontend build.
+      - name: Stub frontend dist
+        run: mkdir -p dist && touch dist/index.html
+        shell: bash
+
+      - name: rustfmt
+        run: cargo fmt --check
+        working-directory: src-tauri
+
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+        working-directory: src-tauri
+
+      - name: Tests
+        run: cargo test --locked
+        working-directory: src-tauri
