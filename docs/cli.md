@@ -32,7 +32,7 @@ The npm package ships only the bundled CLI (`dist-cli/`) and the versioned JSON 
 ## Usage
 
 ```
-openready analyze <username> [options]
+openready analyze <login> [options]
 openready --help
 openready --version
 ```

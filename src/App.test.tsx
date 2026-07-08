@@ -17,11 +17,35 @@ import type { Repository } from "@/types";
 
 vi.mock("@/modules/github-client", async (importOriginal) => {
   const actual = await importOriginal();
+  const fetchUserRepositories = vi.fn();
+  const fetchRepositoryReadme = vi.fn();
+  const fetchRepositoryTree = vi.fn();
+  const metadata = (requestKey: string) => ({
+    status: 200,
+    etag: null,
+    requestKey,
+    rateLimit: { limit: null, remaining: null, used: null, reset: null },
+  });
   return {
     ...(actual as object),
-    fetchRepositoryReadme: vi.fn(),
-    fetchRepositoryTree: vi.fn(),
-    fetchUserRepositories: vi.fn(),
+    fetchRepositoryReadme,
+    fetchRepositoryTree,
+    fetchUserRepositories,
+    fetchUserRepositoriesWithMetadata: vi.fn(async (username: string) => ({
+      data: await fetchUserRepositories(username),
+      notModified: false,
+      metadata: metadata("repository-list"),
+    })),
+    fetchRepositoryReadmeWithMetadata: vi.fn(async (owner: string, repo: string) => ({
+      data: await fetchRepositoryReadme(owner, repo),
+      notModified: false,
+      metadata: metadata(`readme:${owner}/${repo}`),
+    })),
+    fetchRepositoryTreeWithMetadata: vi.fn(async (owner: string, repo: string, branch: string) => ({
+      data: await fetchRepositoryTree(owner, repo, branch),
+      notModified: false,
+      metadata: metadata(`tree:${owner}/${repo}/${branch}`),
+    })),
   };
 });
 
@@ -66,7 +90,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     expect(await screen.findByRole("heading", { name: copy.dashboard.title })).toBeInTheDocument();
@@ -82,7 +106,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     expect(
@@ -108,7 +132,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     await waitFor(() => {
@@ -130,7 +154,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     expect(await screen.findByText(copy.dashboard.empty.noReposTitle)).toBeInTheDocument();
@@ -139,12 +163,16 @@ describe("App", () => {
   it("shows an actionable dashboard error when the GitHub client fails", async () => {
     const user = userEvent.setup();
     fetchUserRepositoriesMock.mockRejectedValueOnce(
-      new GitHubClientError("not-found", "No GitHub user was found for that username.", 404),
+      new GitHubClientError(
+        "not-found",
+        "No GitHub user or organization was found for that login.",
+        404,
+      ),
     );
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "does-not-exist");
+    await user.type(screen.getByLabelText(/github user or organization/i), "does-not-exist");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     expect(await screen.findByText(copy.dashboard.errors.notFound)).toBeInTheDocument();
@@ -171,7 +199,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     expect(await screen.findByText(/No README found/i)).toBeInTheDocument();
@@ -190,7 +218,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
     await user.click(await screen.findByRole("link", { name: "openready" }));
 
@@ -209,7 +237,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
     await user.click(await screen.findByRole("link", { name: "openready" }));
 
@@ -228,7 +256,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
     await user.click(await screen.findByRole("link", { name: "openready" }));
 

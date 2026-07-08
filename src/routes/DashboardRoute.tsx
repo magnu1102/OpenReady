@@ -50,6 +50,8 @@ export function DashboardRoute() {
   const trees = useRepositoryStore((s) => s.trees);
   const status = useRepositoryStore((s) => s.status);
   const activeCache = useRepositoryStore((s) => s.activeCache);
+  const githubBudget = useRepositoryStore((s) => s.githubBudget);
+  const refreshSummary = useRepositoryStore((s) => s.refreshSummary);
   const error = useRepositoryStore((s) => s.error);
   const fetchRepositories = useRepositoryStore((s) => s.fetchRepositories);
   const [exportState, setExportState] = useState<{
@@ -76,6 +78,7 @@ export function DashboardRoute() {
     scoredTotals.length === 0
       ? null
       : Math.round(scoredTotals.reduce((sum, value) => sum + value, 0) / scoredTotals.length);
+  const githubBudgetText = formatGitHubBudget(githubBudget);
   const stats = [
     {
       ...copy.dashboard.stats.repositories,
@@ -154,6 +157,12 @@ export function DashboardRoute() {
             <p className="text-xs text-text-muted">
               {activeCache.isStale ? copy.dashboard.cacheStale : copy.dashboard.cacheFresh}{" "}
               {copy.dashboard.cacheFetched(formatDate(activeCache.fetchedAt))}
+            </p>
+          ) : null}
+          {githubBudgetText ? <p className="text-xs text-text-muted">{githubBudgetText}</p> : null}
+          {refreshSummary ? (
+            <p className="text-xs text-text-muted">
+              {copy.dashboard.refreshSummary(refreshSummary.reused, refreshSummary.refreshed)}
             </p>
           ) : null}
         </div>
@@ -660,6 +669,28 @@ function formatDate(value: string) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatGitHubBudget(
+  budget: ReturnType<typeof useRepositoryStore.getState>["githubBudget"],
+) {
+  if (!budget || (budget.remaining === null && budget.limit === null)) return null;
+  const remaining = budget.remaining ?? "?";
+  const limit = budget.limit ?? "?";
+  const reset =
+    budget.reset === null
+      ? copy.dashboard.githubBudget.unknownReset
+      : formatResetTime(budget.reset);
+  return copy.dashboard.githubBudget.summary(remaining, limit, reset);
+}
+
+function formatResetTime(value: number) {
+  const date = new Date(value * 1000);
+  if (Number.isNaN(date.getTime())) return copy.dashboard.githubBudget.unknownReset;
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function errorTitle(code: string) {

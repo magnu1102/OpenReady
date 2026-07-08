@@ -89,7 +89,7 @@ export function parseCliArgs(argv: string[]): ParsedCommand {
   if (!username) {
     return {
       kind: "error",
-      message: "analyze requires a GitHub username, e.g. `openready analyze octocat`.",
+      message: "analyze requires a GitHub user or organization, e.g. `openready analyze octocat`.",
     };
   }
   if (parsed.positionals.length > 1) {

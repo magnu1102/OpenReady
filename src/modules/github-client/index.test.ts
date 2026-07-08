@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { GitHubClientError } from "./index";
 import {
+  fetchUserRepositoriesWithMetadata,
   fetchRepositoryReadme,
+  fetchRepositoryReadmeWithMetadata,
   fetchRepositoryTree,
+  fetchRepositoryTreeWithMetadata,
   fetchUserRepositories,
+  githubRequestKey,
   isValidGitHubUsername,
 } from "./index";
 
@@ -103,6 +107,104 @@ describe("github-client", () => {
     ]);
   });
 
+  it("maps organization-owned repository payloads", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse([
+        {
+          id: 9919,
+          name: "docs",
+          full_name: "github/docs",
+          description: "GitHub docs",
+          html_url: "https://github.com/github/docs",
+          homepage: "",
+          language: "TypeScript",
+          topics: ["docs"],
+          license: null,
+          default_branch: "main",
+          stargazers_count: 1,
+          forks_count: 2,
+          archived: false,
+          fork: false,
+          created_at: "2025-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+          pushed_at: "2026-01-02T00:00:00Z",
+          owner: { login: "github", type: "Organization" },
+        },
+      ]),
+    );
+
+    await expect(fetchUserRepositories("github")).resolves.toEqual([
+      expect.objectContaining({
+        id: "9919",
+        name: "docs",
+        fullName: "github/docs",
+        homepageUrl: null,
+      }),
+    ]);
+  });
+
+  it("sends conditional request headers and extracts metadata", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse([], {
+        headers: {
+          etag: '"repos-etag"',
+          "x-ratelimit-limit": "60",
+          "x-ratelimit-remaining": "59",
+          "x-ratelimit-used": "1",
+          "x-ratelimit-reset": "1800000000",
+        },
+      }),
+    );
+
+    const result = await fetchUserRepositoriesWithMetadata("octocat", { etag: '"old-etag"' });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init).toMatchObject({
+      headers: expect.objectContaining({
+        "If-None-Match": '"old-etag"',
+      }),
+    });
+    expect(result).toMatchObject({
+      data: [],
+      notModified: false,
+      metadata: {
+        status: 200,
+        etag: '"repos-etag"',
+        requestKey: "/users/octocat/repos?direction=desc&per_page=100&sort=pushed",
+        rateLimit: {
+          limit: 60,
+          remaining: 59,
+          used: 1,
+          reset: 1800000000,
+        },
+      },
+    });
+  });
+
+  it("handles not-modified repository responses", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, {
+        status: 304,
+        headers: {
+          etag: '"repos-etag"',
+          "x-ratelimit-remaining": "58",
+        },
+      }),
+    );
+
+    await expect(
+      fetchUserRepositoriesWithMetadata("octocat", { etag: '"repos-etag"' }),
+    ).resolves.toMatchObject({
+      data: null,
+      notModified: true,
+      metadata: {
+        status: 304,
+        etag: '"repos-etag"',
+        rateLimit: expect.objectContaining({ remaining: 58 }),
+      },
+    });
+  });
+
   it("throws not-found for missing users", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ message: "Not Found" }, { status: 404 }));
 
@@ -178,6 +280,20 @@ describe("github-client", () => {
     });
   });
 
+  it("handles not-modified README responses", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, { status: 304, headers: { etag: '"readme"' } }),
+    );
+
+    await expect(
+      fetchRepositoryReadmeWithMetadata("octocat", "hello-world", { etag: '"readme"' }),
+    ).resolves.toMatchObject({
+      data: null,
+      notModified: true,
+      metadata: expect.objectContaining({ etag: '"readme"' }),
+    });
+  });
+
   it("returns null when a repository README is missing", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ message: "Not Found" }, { status: 404 }));
 
@@ -248,6 +364,20 @@ describe("github-client", () => {
     });
   });
 
+  it("handles not-modified tree responses", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, { status: 304, headers: { etag: '"tree"' } }),
+    );
+
+    await expect(
+      fetchRepositoryTreeWithMetadata("octocat", "hello-world", "main", { etag: '"tree"' }),
+    ).resolves.toMatchObject({
+      data: null,
+      notModified: true,
+      metadata: expect.objectContaining({ etag: '"tree"' }),
+    });
+  });
+
   it("flags truncated trees while still returning entries", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -310,5 +440,15 @@ describe("github-client", () => {
       code: "invalid-username",
     } satisfies Partial<GitHubClientError>);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("builds stable GitHub request keys", () => {
+    expect(
+      githubRequestKey("/users/octocat/repos", [
+        ["per_page", "100"],
+        ["sort", "pushed"],
+        ["direction", "desc"],
+      ]),
+    ).toBe("/users/octocat/repos?direction=desc&per_page=100&sort=pushed");
   });
 });

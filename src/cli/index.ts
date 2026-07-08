@@ -13,7 +13,7 @@ import { runBadge } from "./badge";
 const HELP = `openready — deterministic GitHub repository analysis
 
 Usage:
-  openready analyze <username> [options]
+  openready analyze <login> [options]
   openready badge --from <report.json> [options]
   openready --help
   openready --version

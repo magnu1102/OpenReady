@@ -46,12 +46,12 @@ export const copy = {
     subheading:
       "OpenReady turns public GitHub repositories into clear scores, practical next steps, and local exports. It checks public data only, so you can quickly see what is ready to share.",
     form: {
-      label: "GitHub username",
-      hint: "Enter a public GitHub account. OpenReady fetches public repository metadata only.",
+      label: "GitHub user or organization",
+      hint: "Enter a public GitHub user or organization. OpenReady fetches public repository metadata only.",
       placeholder: "octocat",
       submit: "Analyze",
       submitting: "Fetching",
-      validationError: "Enter a GitHub username, not a URL or repository path.",
+      validationError: "Enter a GitHub user or organization, not a URL or repository path.",
       keyboardHint: "An optional token in Settings raises the GitHub API limit.",
     },
     cache: {
@@ -98,10 +98,17 @@ export const copy = {
     title: "Dashboard",
     subtitle: (username: string) =>
       `Public repositories for ${username}. Analysis runs locally against public GitHub data.`,
-    subtitleNoUser: "Enter a GitHub username to fetch public repositories.",
+    subtitleNoUser: "Enter a GitHub user or organization to fetch public repositories.",
     cacheStale: "Cached analysis is older than 24 hours.",
     cacheFresh: "Loaded locally.",
     cacheFetched: (date: string) => `Last fetched ${date}.`,
+    githubBudget: {
+      summary: (remaining: string | number, limit: string | number, reset: string) =>
+        `GitHub budget: ${remaining}/${limit} left · resets ${reset}`,
+      unknownReset: "at an unknown time",
+    },
+    refreshSummary: (reused: number, refreshed: number) =>
+      `Reused ${reused} unchanged repositories · refreshed ${refreshed}`,
     refresh: "Refresh",
     stats: {
       repositories: {
@@ -137,20 +144,20 @@ export const copy = {
       loading: "Loading repositories",
     },
     errors: {
-      notFound: "GitHub user not found",
+      notFound: "GitHub account not found",
       rateLimit: "GitHub rate limit reached",
       network: "Network connection failed",
       generic: "Repository fetch failed",
-      changeUsername: "Change username",
+      changeUsername: "Change account",
       tryAgain: "Try again",
     },
     empty: {
       noReposTitle: "No public repositories found",
-      noReposBody: "GitHub found that user, but there are no public repositories to show.",
-      noReposAction: "Analyze another username",
+      noReposBody: "GitHub found that account, but there are no public repositories to show.",
+      noReposAction: "Analyze another account",
       idleTitle: "No analysis yet",
       idleBody:
-        "Start with a public GitHub username. OpenReady fetches repository metadata and keeps it on this machine.",
+        "Start with a public GitHub user or organization. OpenReady fetches repository metadata and keeps it on this machine.",
       idleAction: "Back to Welcome",
     },
     card: {
@@ -216,8 +223,9 @@ export const copy = {
     scoreCaption: "Overall score across the checks that apply to this project type.",
     unavailable: {
       title: "Repository details unavailable",
-      description: "Analyze a GitHub username again to reopen this repository detail view.",
-      action: "Analyze a username",
+      description:
+        "Analyze a GitHub user or organization again to reopen this repository detail view.",
+      action: "Analyze an account",
     },
     tabs: {
       overview: {
@@ -345,7 +353,7 @@ export const copy = {
     empty: {
       title: "No analysis to build a portfolio from",
       description:
-        "Analyze a GitHub username first. Portfolio mode turns those results into a role-targeted highlight reel, CV bullets, and interview prep.",
+        "Analyze a GitHub user or organization first. Portfolio mode turns those results into a role-targeted highlight reel, CV bullets, and interview prep.",
       action: "Go to dashboard",
     },
     role: {
@@ -551,8 +559,8 @@ export const copy = {
     },
     steps: [
       {
-        title: "Start with a GitHub username",
-        body: "OpenReady checks public repositories from any GitHub username. Results are cached locally.",
+        title: "Start with a GitHub account",
+        body: "OpenReady checks public repositories from any GitHub user or organization. Results are cached locally.",
       },
       {
         title: "Read the dashboard at a glance",

@@ -18,6 +18,6 @@ jobs:
       - name: Gate on the OpenReady score
         uses: magnu1102/OpenReady@v0.3.0
         with:
-          username: OWNER # ← your GitHub username
+          username: OWNER # ← your GitHub user or organization
           repo: REPO # ← this repository's name
           fail-under: 70

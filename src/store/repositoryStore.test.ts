@@ -3,10 +3,11 @@ import { waitFor } from "@testing-library/react";
 import { clearAnalysisCache, getCachedAnalysis } from "@/lib/analysisCache";
 import {
   GitHubClientError,
-  fetchRepositoryReadme,
-  fetchRepositoryTree,
-  fetchUserRepositories,
+  fetchRepositoryReadmeWithMetadata,
+  fetchRepositoryTreeWithMetadata,
+  fetchUserRepositoriesWithMetadata,
 } from "@/modules/github-client";
+import type { GitHubRequestMetadata } from "@/modules/github-client";
 import { README_FETCH_LIMIT, TREE_FETCH_LIMIT, useRepositoryStore } from "./repositoryStore";
 import { usePreferencesStore } from "./preferencesStore";
 import type { Repository } from "@/types";
@@ -15,15 +16,15 @@ vi.mock("@/modules/github-client", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as object),
-    fetchRepositoryReadme: vi.fn(),
-    fetchRepositoryTree: vi.fn(),
-    fetchUserRepositories: vi.fn(),
+    fetchRepositoryReadmeWithMetadata: vi.fn(),
+    fetchRepositoryTreeWithMetadata: vi.fn(),
+    fetchUserRepositoriesWithMetadata: vi.fn(),
   };
 });
 
-const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositories);
-const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadme);
-const fetchRepositoryTreeMock = vi.mocked(fetchRepositoryTree);
+const fetchUserRepositoriesMock = vi.mocked(fetchUserRepositoriesWithMetadata);
+const fetchRepositoryReadmeMock = vi.mocked(fetchRepositoryReadmeWithMetadata);
+const fetchRepositoryTreeMock = vi.mocked(fetchRepositoryTreeWithMetadata);
 
 const repository: Repository = {
   id: "1",
@@ -50,24 +51,71 @@ const repository: Repository = {
   pushedAt: "2026-05-28T09:00:00Z",
 };
 
+const OCTOCAT_REPOSITORY_LIST_KEY = "/users/octocat/repos?direction=desc&per_page=100&sort=pushed";
+
+function metadata(requestKey = "test", etag: string | null = null): GitHubRequestMetadata {
+  return {
+    status: 200,
+    etag,
+    requestKey,
+    rateLimit: {
+      limit: null,
+      remaining: null,
+      used: null,
+      reset: null,
+    },
+  };
+}
+
+function repositoryResult(
+  repositories: Repository[],
+  etag: string | null = null,
+  requestKey = "repository-list",
+) {
+  return {
+    data: repositories,
+    notModified: false,
+    metadata: metadata(requestKey, etag),
+  };
+}
+
+function readmeResult(
+  readme: Awaited<ReturnType<typeof fetchRepositoryReadmeWithMetadata>>["data"],
+) {
+  return {
+    data: readme,
+    notModified: false,
+    metadata: metadata("readme"),
+  };
+}
+
+function treeResult(tree: Awaited<ReturnType<typeof fetchRepositoryTreeWithMetadata>>["data"]) {
+  return {
+    data: tree,
+    notModified: false,
+    metadata: metadata("tree"),
+  };
+}
+
 beforeEach(async () => {
   await clearAnalysisCache();
   useRepositoryStore.getState().reset();
   usePreferencesStore.getState().resetWeights();
   fetchUserRepositoriesMock.mockReset();
+  fetchUserRepositoriesMock.mockResolvedValue(repositoryResult([repository]));
   fetchRepositoryReadmeMock.mockReset();
-  fetchRepositoryReadmeMock.mockResolvedValue(null);
+  fetchRepositoryReadmeMock.mockResolvedValue(readmeResult(null));
   fetchRepositoryTreeMock.mockReset();
-  fetchRepositoryTreeMock.mockResolvedValue(null);
+  fetchRepositoryTreeMock.mockResolvedValue(treeResult(null));
 });
 
 describe("repositoryStore", () => {
   it("stores fetched repositories in memory", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
 
     await useRepositoryStore.getState().fetchRepositories(" octocat ");
 
-    expect(fetchUserRepositoriesMock).toHaveBeenCalledWith("octocat");
+    expect(fetchUserRepositoriesMock).toHaveBeenCalledWith("octocat", { etag: null });
     expect(useRepositoryStore.getState()).toMatchObject({
       username: "octocat",
       repositories: [repository],
@@ -89,8 +137,8 @@ describe("repositoryStore", () => {
       name: `repo-${index + 1}`,
       fullName: `octocat/repo-${index + 1}`,
     }));
-    fetchUserRepositoriesMock.mockResolvedValueOnce(repositories);
-    fetchRepositoryReadmeMock.mockResolvedValue(null);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult(repositories));
+    fetchRepositoryReadmeMock.mockResolvedValue(readmeResult(null));
 
     await useRepositoryStore.getState().fetchRepositories("octocat");
 
@@ -98,12 +146,14 @@ describe("repositoryStore", () => {
       expect(useRepositoryStore.getState().readmeStatus).toBe("complete");
     });
     expect(fetchRepositoryReadmeMock).toHaveBeenCalledTimes(README_FETCH_LIMIT);
-    expect(fetchRepositoryReadmeMock).toHaveBeenCalledWith("octocat", "repo-1");
-    expect(fetchRepositoryReadmeMock).not.toHaveBeenCalledWith("octocat", "repo-31");
+    expect(fetchRepositoryReadmeMock).toHaveBeenCalledWith("octocat", "repo-1", { etag: null });
+    expect(fetchRepositoryReadmeMock).not.toHaveBeenCalledWith("octocat", "repo-31", {
+      etag: null,
+    });
   });
 
   it("marks README failures unknown without failing repository fetch", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
     fetchRepositoryReadmeMock.mockRejectedValueOnce(
       new GitHubClientError("rate-limit", "GitHub rate limit reached.", 403),
     );
@@ -148,16 +198,20 @@ describe("repositoryStore", () => {
       name: `repo-${index + 1}`,
       fullName: `octocat/repo-${index + 1}`,
     }));
-    fetchUserRepositoriesMock.mockResolvedValueOnce(repositories);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult(repositories));
     fetchRepositoryTreeMock.mockResolvedValue({
-      repositoryFullName: "octocat/repo-1",
-      truncated: false,
-      entries: [
-        { path: "package.json", type: "blob" },
-        { path: "pnpm-lock.yaml", type: "blob" },
-        { path: "Dockerfile", type: "blob" },
-        { path: ".github/workflows/ci.yml", type: "blob" },
-      ],
+      data: {
+        repositoryFullName: "octocat/repo-1",
+        truncated: false,
+        entries: [
+          { path: "package.json", type: "blob" },
+          { path: "pnpm-lock.yaml", type: "blob" },
+          { path: "Dockerfile", type: "blob" },
+          { path: ".github/workflows/ci.yml", type: "blob" },
+        ],
+      },
+      notModified: false,
+      metadata: metadata("tree"),
     });
 
     await useRepositoryStore.getState().fetchRepositories("octocat");
@@ -166,7 +220,9 @@ describe("repositoryStore", () => {
       expect(useRepositoryStore.getState().treeStatus).toBe("complete");
     });
     expect(fetchRepositoryTreeMock).toHaveBeenCalledTimes(TREE_FETCH_LIMIT);
-    expect(fetchRepositoryTreeMock).toHaveBeenCalledWith("octocat", "repo-1", "main");
+    expect(fetchRepositoryTreeMock).toHaveBeenCalledWith("octocat", "repo-1", "main", {
+      etag: null,
+    });
 
     const analysis = useRepositoryStore.getState().analyses[0];
     expect(analysis.checks.find((check) => check.id === "dockerfile")?.status).toBe("passed");
@@ -174,7 +230,7 @@ describe("repositoryStore", () => {
   });
 
   it("caches completed analysis snapshots after README and tree checks finish", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
 
     await useRepositoryStore.getState().fetchRepositories("octocat");
 
@@ -190,8 +246,113 @@ describe("repositoryStore", () => {
     });
   });
 
+  it("stores GitHub request budget and ETags from repository fetches", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce({
+      data: [repository],
+      notModified: false,
+      metadata: {
+        status: 200,
+        etag: '"repo-list"',
+        requestKey: OCTOCAT_REPOSITORY_LIST_KEY,
+        rateLimit: {
+          limit: 60,
+          remaining: 59,
+          used: 1,
+          reset: 1_800_000_000,
+        },
+      },
+    });
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+
+    expect(useRepositoryStore.getState().githubBudget).toEqual({
+      limit: 60,
+      remaining: 59,
+      used: 1,
+      reset: 1_800_000_000,
+    });
+    expect(useRepositoryStore.getState().githubEtags[OCTOCAT_REPOSITORY_LIST_KEY]).toBe(
+      '"repo-list"',
+    );
+  });
+
+  it("reuses the cached snapshot when the repository list is not modified", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce(
+      repositoryResult([repository], '"repo-list"', OCTOCAT_REPOSITORY_LIST_KEY),
+    );
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().activeCache).not.toBeNull();
+    });
+
+    fetchRepositoryReadmeMock.mockClear();
+    fetchRepositoryTreeMock.mockClear();
+    fetchUserRepositoriesMock.mockResolvedValueOnce({
+      data: null,
+      notModified: true,
+      metadata: metadata(OCTOCAT_REPOSITORY_LIST_KEY, '"repo-list"'),
+    });
+
+    await useRepositoryStore.getState().fetchRepositories("octocat", { forceRefresh: true });
+
+    expect(fetchUserRepositoriesMock).toHaveBeenLastCalledWith("octocat", {
+      etag: '"repo-list"',
+    });
+    expect(fetchRepositoryReadmeMock).not.toHaveBeenCalled();
+    expect(fetchRepositoryTreeMock).not.toHaveBeenCalled();
+    expect(useRepositoryStore.getState().refreshSummary).toEqual({ reused: 1, refreshed: 0 });
+  });
+
+  it("reuses cached details for unchanged repositories during refresh", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().activeCache).not.toBeNull();
+    });
+
+    fetchRepositoryReadmeMock.mockClear();
+    fetchRepositoryTreeMock.mockClear();
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
+
+    await useRepositoryStore.getState().fetchRepositories("octocat", { forceRefresh: true });
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().refreshSummary).toEqual({ reused: 1, refreshed: 0 });
+    });
+    expect(fetchRepositoryReadmeMock).not.toHaveBeenCalled();
+    expect(fetchRepositoryTreeMock).not.toHaveBeenCalled();
+  });
+
+  it("refetches details when a repository changed since the cached snapshot", async () => {
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
+
+    await useRepositoryStore.getState().fetchRepositories("octocat");
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().activeCache).not.toBeNull();
+    });
+
+    const changed = { ...repository, pushedAt: "2026-05-29T09:00:00Z" };
+    fetchRepositoryReadmeMock.mockClear();
+    fetchRepositoryTreeMock.mockClear();
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([changed]));
+
+    await useRepositoryStore.getState().fetchRepositories("octocat", { forceRefresh: true });
+
+    await waitFor(() => {
+      expect(useRepositoryStore.getState().refreshSummary).toEqual({ reused: 0, refreshed: 1 });
+    });
+    expect(fetchRepositoryReadmeMock).toHaveBeenCalledWith("octocat", "openready", {
+      etag: null,
+    });
+    expect(fetchRepositoryTreeMock).toHaveBeenCalledWith("octocat", "openready", "main", {
+      etag: null,
+    });
+  });
+
   it("loads and restores cached analyses without calling GitHub", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
     await useRepositoryStore.getState().fetchRepositories("octocat");
     await waitFor(() => {
       expect(useRepositoryStore.getState().activeCache).not.toBeNull();
@@ -215,7 +376,7 @@ describe("repositoryStore", () => {
   });
 
   it("clears local analysis cache", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
     await useRepositoryStore.getState().fetchRepositories("octocat");
     await waitFor(() => {
       expect(useRepositoryStore.getState().cachedAnalyses).toHaveLength(1);
@@ -228,7 +389,7 @@ describe("repositoryStore", () => {
   });
 
   it("marks tree failures unknown without failing repository fetch", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
     fetchRepositoryTreeMock.mockRejectedValueOnce(
       new GitHubClientError("rate-limit", "GitHub rate limit reached.", 403),
     );
@@ -245,7 +406,7 @@ describe("repositoryStore", () => {
   });
 
   it("recomputeAnalyses applies custom weights and re-scores in place", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
     await useRepositoryStore.getState().fetchRepositories("octocat");
     await waitFor(() => {
       expect(useRepositoryStore.getState().treeStatus).toBe("complete");
@@ -262,7 +423,7 @@ describe("repositoryStore", () => {
   });
 
   it("recomputeAnalyses preserves per-repo classification overrides", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
     await useRepositoryStore.getState().fetchRepositories("octocat");
     await waitFor(() => {
       expect(useRepositoryStore.getState().treeStatus).toBe("complete");
@@ -281,7 +442,7 @@ describe("repositoryStore", () => {
   });
 
   it("resets repository state", async () => {
-    fetchUserRepositoriesMock.mockResolvedValueOnce([repository]);
+    fetchUserRepositoriesMock.mockResolvedValueOnce(repositoryResult([repository]));
     await useRepositoryStore.getState().fetchRepositories("octocat");
 
     useRepositoryStore.getState().reset();

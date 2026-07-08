@@ -32,6 +32,21 @@ export const rawRepositories = [
   },
 ];
 
+export const rawOrganizationRepositories = [
+  {
+    ...rawRepositories[0],
+    id: 2,
+    name: "openready-org",
+    full_name: "github/openready-org",
+    html_url: "https://github.com/github/openready-org",
+    owner: {
+      login: "github",
+      id: 9919,
+      type: "Organization",
+    },
+  },
+];
+
 const readmeMarkdown = `# openready
 
 A repository health desktop app.

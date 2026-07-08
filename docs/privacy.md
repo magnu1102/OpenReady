@@ -7,7 +7,7 @@ OpenReady is local-first. The deterministic analyzer runs on the user's machine.
 ### Desktop app
 
 - Stores the theme preference, the four-step tour "seen" flag, and recent public analysis cache metadata locally.
-- Sends the user-entered GitHub username to `api.github.com`.
+- Sends the user-entered GitHub user or organization login to `api.github.com`.
 - GitHub returns public repository metadata for that user.
 - Fetches README content for the first 30 fetched repositories.
 - Fetches repository file-tree paths for the first 30 fetched repositories.
@@ -26,7 +26,7 @@ OpenReady is local-first. The deterministic analyzer runs on the user's machine.
 
 ### CLI
 
-- The CLI (`openready analyze <username>`) runs the same analyzer locally, in a Node process. No telemetry.
+- The CLI (`openready analyze <login>`) runs the same analyzer locally, in a Node process. No telemetry.
 - Tokens come from `--token`, then `OPENREADY_GITHUB_TOKEN`, then `GITHUB_TOKEN`. The CLI does **not** read the OS credential store — tokens are passed via flag or environment so script and CI usage stay explicit.
 - `--out` writes to a path the caller provides; without `--out`, output goes to stdout.
 - The CLI never persists analysis snapshots to disk on its own. Reusing the same desktop cache is intentionally out of scope.

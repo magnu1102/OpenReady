@@ -49,7 +49,7 @@ function parseCliArgs(argv) {
   if (!username) {
     return {
       kind: "error",
-      message: "analyze requires a GitHub username, e.g. `openready analyze octocat`."
+      message: "analyze requires a GitHub user or organization, e.g. `openready analyze octocat`."
     };
   }
   if (parsed.positionals.length > 1) {
@@ -183,22 +183,39 @@ function isValidGitHubUsername(username) {
   return USERNAME_PATTERN.test(normalizeGitHubUsername(username));
 }
 async function fetchUserRepositories(username) {
+  const result = await fetchUserRepositoriesWithMetadata(username);
+  if (result.notModified || !result.data) {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned a not-modified response without cached repository data."
+    );
+  }
+  return result.data;
+}
+async function fetchUserRepositoriesWithMetadata(username, options = {}) {
   const normalized = normalizeGitHubUsername(username);
   if (!isValidGitHubUsername(normalized)) {
     throw new GitHubClientError(
       "invalid-username",
-      "Enter a valid GitHub username using letters, numbers, or single hyphens."
+      "Enter a valid GitHub user or organization using letters, numbers, or single hyphens."
     );
   }
+  const path = `/users/${encodeURIComponent(normalized)}/repos`;
+  const query = [
+    ["sort", "pushed"],
+    ["direction", "desc"],
+    ["per_page", "100"]
+  ];
   const response = await githubGet(
-    `/users/${encodeURIComponent(normalized)}/repos`,
-    [
-      ["sort", "pushed"],
-      ["direction", "desc"],
-      ["per_page", "100"]
-    ],
-    "Could not reach GitHub. Check your connection and try again."
+    path,
+    query,
+    "Could not reach GitHub. Check your connection and try again.",
+    options
   );
+  const metadata = responseMetadata(response, path, query);
+  if (response.status === 304) {
+    return { data: null, notModified: true, metadata };
+  }
   if (!response.ok) {
     throw await toGitHubClientError(response);
   }
@@ -209,9 +226,19 @@ async function fetchUserRepositories(username) {
       "GitHub returned an unexpected response. Try again later."
     );
   }
-  return data.map(mapRepository);
+  return { data: data.map(mapRepository), notModified: false, metadata };
 }
 async function fetchRepositoryReadme(owner, repo) {
+  const result = await fetchRepositoryReadmeWithMetadata(owner, repo);
+  if (result.notModified) {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned a not-modified response without cached README data."
+    );
+  }
+  return result.data;
+}
+async function fetchRepositoryReadmeWithMetadata(owner, repo, options = {}) {
   const normalizedOwner = owner.trim();
   const normalizedRepo = repo.trim();
   if (!normalizedOwner || !normalizedRepo || normalizedOwner.includes("/") || normalizedRepo.includes("/")) {
@@ -220,9 +247,19 @@ async function fetchRepositoryReadme(owner, repo) {
   const path = `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
     normalizedRepo
   )}/readme`;
-  const response = await githubGet(path, [], "Could not reach GitHub while checking the README.");
+  const query = [];
+  const response = await githubGet(
+    path,
+    query,
+    "Could not reach GitHub while checking the README.",
+    options
+  );
+  const metadata = responseMetadata(response, path, query);
+  if (response.status === 304) {
+    return { data: null, notModified: true, metadata };
+  }
   if (response.status === 404) {
-    return null;
+    return { data: null, notModified: false, metadata };
   }
   if (!response.ok) {
     throw await toGitHubClientError(response);
@@ -235,13 +272,27 @@ async function fetchRepositoryReadme(owner, repo) {
     );
   }
   return {
-    repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
-    path: data.path,
-    htmlUrl: data.html_url,
-    content: decodeBase64(data.content)
+    data: {
+      repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
+      path: data.path,
+      htmlUrl: data.html_url,
+      content: decodeBase64(data.content)
+    },
+    notModified: false,
+    metadata
   };
 }
 async function fetchRepositoryTree(owner, repo, branch) {
+  const result = await fetchRepositoryTreeWithMetadata(owner, repo, branch);
+  if (result.notModified) {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned a not-modified response without cached repository tree data."
+    );
+  }
+  return result.data;
+}
+async function fetchRepositoryTreeWithMetadata(owner, repo, branch, options = {}) {
   const normalizedOwner = owner.trim();
   const normalizedRepo = repo.trim();
   const normalizedBranch = branch.trim();
@@ -254,13 +305,19 @@ async function fetchRepositoryTree(owner, repo, branch) {
   const path = `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
     normalizedRepo
   )}/git/trees/${encodeURIComponent(normalizedBranch)}`;
+  const query = [["recursive", "1"]];
   const response = await githubGet(
     path,
-    [["recursive", "1"]],
-    "Could not reach GitHub while checking the repository file tree."
+    query,
+    "Could not reach GitHub while checking the repository file tree.",
+    options
   );
+  const metadata = responseMetadata(response, path, query);
+  if (response.status === 304) {
+    return { data: null, notModified: true, metadata };
+  }
   if (response.status === 404 || response.status === 409) {
-    return null;
+    return { data: null, notModified: false, metadata };
   }
   if (!response.ok) {
     throw await toGitHubClientError(response);
@@ -279,17 +336,22 @@ async function fetchRepositoryTree(owner, repo, branch) {
     }
   }
   return {
-    repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
-    entries,
-    truncated: data.truncated
+    data: {
+      repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
+      entries,
+      truncated: data.truncated
+    },
+    notModified: false,
+    metadata
   };
 }
-async function githubGet(path, query, networkMessage) {
+async function githubGet(path, query, networkMessage, options = {}) {
+  const etag = options.etag?.trim() || null;
   if (isTauriRuntime()) {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const response = await invoke("github_get", {
-        input: { path, query }
+        input: { path, query, etag }
       });
       return toProxyHttpResponse(response);
     } catch (error) {
@@ -307,6 +369,9 @@ async function githubGet(path, query, networkMessage) {
   if (cliAuthToken) {
     headers.Authorization = `Bearer ${cliAuthToken}`;
   }
+  if (etag) {
+    headers["If-None-Match"] = etag;
+  }
   try {
     return await fetch(url, { headers });
   } catch {
@@ -318,21 +383,54 @@ function setGitHubAuthToken(token) {
   cliAuthToken = token && token.trim().length > 0 ? token.trim() : null;
 }
 function toProxyHttpResponse(response) {
+  const headers = /* @__PURE__ */ new Map([
+    ["x-ratelimit-limit", response.rate_limit_limit],
+    ["x-ratelimit-remaining", response.rate_limit_remaining],
+    ["x-ratelimit-used", response.rate_limit_used],
+    ["x-ratelimit-reset", response.rate_limit_reset],
+    ["etag", response.etag]
+  ]);
   return {
     ok: response.status >= 200 && response.status < 300,
     status: response.status,
     headers: {
-      get: (name) => name.toLowerCase() === "x-ratelimit-remaining" ? response.rate_limit_remaining : null
+      get: (name) => headers.get(name.toLowerCase()) ?? null
     },
     json: async () => JSON.parse(response.body)
   };
+}
+function responseMetadata(response, path, query) {
+  return {
+    status: response.status,
+    etag: response.headers.get("etag"),
+    rateLimit: {
+      limit: parseIntegerHeader(response.headers.get("x-ratelimit-limit")),
+      remaining: parseIntegerHeader(response.headers.get("x-ratelimit-remaining")),
+      used: parseIntegerHeader(response.headers.get("x-ratelimit-used")),
+      reset: parseIntegerHeader(response.headers.get("x-ratelimit-reset"))
+    },
+    requestKey: githubRequestKey(path, query)
+  };
+}
+function githubRequestKey(path, query = []) {
+  const sortedQuery = [...query].sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+    const keyOrder = leftKey.localeCompare(rightKey);
+    return keyOrder === 0 ? leftValue.localeCompare(rightValue) : keyOrder;
+  });
+  const search = new URLSearchParams(sortedQuery).toString();
+  return search ? `${path}?${search}` : path;
+}
+function parseIntegerHeader(value) {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 async function toGitHubClientError(response) {
   const message = await readGitHubErrorMessage(response);
   if (response.status === 404) {
     return new GitHubClientError(
       "not-found",
-      "No GitHub user was found for that username.",
+      "No GitHub user or organization was found for that login.",
       response.status
     );
   }
@@ -2765,7 +2863,7 @@ async function emit2(content, out) {
 var HELP = `openready \u2014 deterministic GitHub repository analysis
 
 Usage:
-  openready analyze <username> [options]
+  openready analyze <login> [options]
   openready badge --from <report.json> [options]
   openready --help
   openready --version
@@ -2815,7 +2913,7 @@ Running from a source checkout:
   node dist-cli/openready.mjs analyze octocat
 `;
 function readVersion() {
-  if (true) return "0.5.5";
+  if (true) return "0.6.0-dev";
   try {
     const here = dirname(fileURLToPath(import.meta.url));
     const pkg = JSON.parse(readFileSync(resolve2(here, "../../package.json"), "utf8"));

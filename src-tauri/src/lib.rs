@@ -1,5 +1,7 @@
 use keyring::{Entry, Error as KeyringError};
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
+use reqwest::header::{
+    HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, ETAG, IF_NONE_MATCH, USER_AGENT,
+};
 use serde::{Deserialize, Serialize};
 
 const GITHUB_API_BASE_URL: &str = "https://api.github.com";
@@ -51,12 +53,18 @@ struct GitHubProxyResponse {
     status: u16,
     body: String,
     rate_limit_remaining: Option<String>,
+    rate_limit_limit: Option<String>,
+    rate_limit_used: Option<String>,
+    rate_limit_reset: Option<String>,
+    etag: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct GitHubGetQuery {
     path: String,
     query: Vec<(String, String)>,
+    #[serde(default)]
+    etag: Option<String>,
 }
 
 #[tauri::command]
@@ -96,7 +104,13 @@ async fn github_get(input: GitHubGetQuery) -> Result<GitHubProxyResponse, String
         return Err("Blocked unsupported GitHub API request.".into());
     }
 
-    github_request(&input.path, &input.query, read_github_token().ok()).await
+    github_request(
+        &input.path,
+        &input.query,
+        read_github_token().ok(),
+        input.etag.as_deref(),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -342,7 +356,7 @@ pub fn run() {
 }
 
 async fn validate_token_with_github(token: &str) -> Result<(), String> {
-    let response = github_request("/rate_limit", &[], Some(token.to_string())).await?;
+    let response = github_request("/rate_limit", &[], Some(token.to_string()), None).await?;
     if (200..300).contains(&response.status) {
         Ok(())
     } else if response.status == 401 || response.status == 403 {
@@ -356,6 +370,7 @@ async fn github_request(
     path: &str,
     query: &[(String, String)],
     token: Option<String>,
+    if_none_match: Option<&str>,
 ) -> Result<GitHubProxyResponse, String> {
     let mut url = reqwest::Url::parse(&format!("{GITHUB_API_BASE_URL}{path}"))
         .map_err(|_| "OpenReady could not build the GitHub request.".to_string())?;
@@ -379,6 +394,9 @@ async fn github_request(
             .map_err(|_| "Stored GitHub token is not valid for an HTTP header.".to_string())?;
         headers.insert(AUTHORIZATION, value);
     }
+    if let Some(value) = if_none_match_header(if_none_match)? {
+        headers.insert(IF_NONE_MATCH, value);
+    }
 
     let response =
         client.get(url).headers(headers).send().await.map_err(|_| {
@@ -390,6 +408,26 @@ async fn github_request(
         .get("x-ratelimit-remaining")
         .and_then(|value| value.to_str().ok())
         .map(ToOwned::to_owned);
+    let rate_limit_limit = response
+        .headers()
+        .get("x-ratelimit-limit")
+        .and_then(|value| value.to_str().ok())
+        .map(ToOwned::to_owned);
+    let rate_limit_used = response
+        .headers()
+        .get("x-ratelimit-used")
+        .and_then(|value| value.to_str().ok())
+        .map(ToOwned::to_owned);
+    let rate_limit_reset = response
+        .headers()
+        .get("x-ratelimit-reset")
+        .and_then(|value| value.to_str().ok())
+        .map(ToOwned::to_owned);
+    let etag = response
+        .headers()
+        .get(ETAG)
+        .and_then(|value| value.to_str().ok())
+        .map(ToOwned::to_owned);
     let body = response
         .text()
         .await
@@ -399,6 +437,10 @@ async fn github_request(
         status,
         body,
         rate_limit_remaining,
+        rate_limit_limit,
+        rate_limit_used,
+        rate_limit_reset,
+        etag,
     })
 }
 
@@ -428,6 +470,15 @@ fn is_local_base_url(base_url: &str) -> bool {
         return false;
     };
     matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"))
+}
+
+fn if_none_match_header(value: Option<&str>) -> Result<Option<HeaderValue>, String> {
+    let Some(etag) = value.map(str::trim).filter(|etag| !etag.is_empty()) else {
+        return Ok(None);
+    };
+    HeaderValue::from_str(etag)
+        .map(Some)
+        .map_err(|_| "Cached GitHub ETag is not valid for an HTTP header.".to_string())
 }
 
 /// Builds a `Bearer` Authorization header value, surfacing a clear error if the
@@ -488,8 +539,8 @@ fn is_valid_segment(segment: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        ai_auth_header, is_allowed_github_request, is_local_base_url, is_valid_segment,
-        mask_ai_key, validate_ai_chat_input,
+        ai_auth_header, if_none_match_header, is_allowed_github_request, is_local_base_url,
+        is_valid_segment, mask_ai_key, validate_ai_chat_input,
     };
 
     #[test]
@@ -539,6 +590,21 @@ mod tests {
             &[("recursive".into(), "1".into())],
         ));
         assert!(is_allowed_github_request("/rate_limit", &[]));
+    }
+
+    #[test]
+    fn accepts_valid_if_none_match_values() {
+        assert!(if_none_match_header(Some("\"abc123\"")).unwrap().is_some());
+        assert!(if_none_match_header(Some("  W/\"abc123\"  "))
+            .unwrap()
+            .is_some());
+        assert!(if_none_match_header(None).unwrap().is_none());
+        assert!(if_none_match_header(Some(" ")).unwrap().is_none());
+    }
+
+    #[test]
+    fn rejects_invalid_if_none_match_values() {
+        assert!(if_none_match_header(Some("\"abc\"\nAuthorization: Bearer bad")).is_err());
     }
 
     #[test]

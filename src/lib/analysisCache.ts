@@ -4,10 +4,13 @@ import type {
   RepositoryReadmeState,
   RepositoryTreeState,
 } from "@/types";
+import type { GitHubRateLimitBudget } from "@/modules/github-client";
 
-// Bumped to 3 in Phase 13: AnalysisResult gained the required `hiddenGem`
-// field, so v2 snapshots are dropped on first read and repopulated on refresh.
-export const ANALYSIS_CACHE_SCHEMA_VERSION = 3;
+// Bumped to 4 in Phase 22: snapshots gained GitHub request metadata (ETags,
+// request budget, refresh summary). v3 snapshots migrate forward with empty
+// metadata so existing cached analyses remain available.
+export const ANALYSIS_CACHE_SCHEMA_VERSION = 4;
+const LEGACY_ANALYSIS_CACHE_SCHEMA_VERSION = 3;
 export const ANALYSIS_CACHE_RETENTION_LIMIT = 5;
 export const ANALYSIS_CACHE_STALE_MS = 24 * 60 * 60 * 1000;
 
@@ -22,8 +25,20 @@ export interface AnalysisCacheSnapshot {
   readmes: Record<string, RepositoryReadmeState>;
   trees: Record<string, RepositoryTreeState>;
   analyses: AnalysisResult[];
+  github: AnalysisCacheGitHubMetadata;
   fetchedAt: string;
   savedAt: string;
+}
+
+export interface AnalysisRefreshSummary {
+  reused: number;
+  refreshed: number;
+}
+
+export interface AnalysisCacheGitHubMetadata {
+  etags: Record<string, string>;
+  rateLimit: GitHubRateLimitBudget | null;
+  refreshSummary: AnalysisRefreshSummary | null;
 }
 
 export interface AnalysisCacheMetadata {
@@ -58,6 +73,7 @@ interface CreateSnapshotInput {
   readmes: Record<string, RepositoryReadmeState>;
   trees: Record<string, RepositoryTreeState>;
   analyses: AnalysisResult[];
+  github?: Partial<AnalysisCacheGitHubMetadata>;
   fetchedAt?: string;
   savedAt?: string;
 }
@@ -76,6 +92,7 @@ export function createAnalysisCacheSnapshot(input: CreateSnapshotInput): Analysi
     readmes: input.readmes,
     trees: input.trees,
     analyses: input.analyses,
+    github: normalizeGitHubMetadata(input.github),
     fetchedAt: input.fetchedAt ?? now,
     savedAt: input.savedAt ?? now,
   };
@@ -89,6 +106,7 @@ export async function saveAnalysisSnapshot(snapshot: AnalysisCacheSnapshot): Pro
     ...snapshot,
     username: normalizedUsername,
     schemaVersion: ANALYSIS_CACHE_SCHEMA_VERSION,
+    github: normalizeGitHubMetadata(snapshot.github),
     savedAt: snapshot.savedAt || new Date().toISOString(),
   };
   const nextSnapshots = [
@@ -215,12 +233,23 @@ function createLocalStorage(): CacheStorage {
 
 function normalizeCacheFile(value: unknown): AnalysisCacheFile {
   if (!isObject(value)) return emptyCache;
-  if (value.schemaVersion !== ANALYSIS_CACHE_SCHEMA_VERSION) return emptyCache;
   if (!Array.isArray(value.snapshots)) return emptyCache;
+
+  if (value.schemaVersion === LEGACY_ANALYSIS_CACHE_SCHEMA_VERSION) {
+    return {
+      schemaVersion: ANALYSIS_CACHE_SCHEMA_VERSION,
+      snapshots: value.snapshots.filter(isLegacyAnalysisCacheSnapshot).map(migrateLegacySnapshot),
+    };
+  }
+
+  if (value.schemaVersion !== ANALYSIS_CACHE_SCHEMA_VERSION) return emptyCache;
 
   return {
     schemaVersion: ANALYSIS_CACHE_SCHEMA_VERSION,
-    snapshots: value.snapshots.filter(isAnalysisCacheSnapshot),
+    snapshots: value.snapshots.filter(isAnalysisCacheSnapshot).map((snapshot) => ({
+      ...snapshot,
+      github: normalizeGitHubMetadata(snapshot.github),
+    })),
   };
 }
 
@@ -233,9 +262,85 @@ function isAnalysisCacheSnapshot(value: unknown): value is AnalysisCacheSnapshot
     isObject(value.readmes) &&
     isObject(value.trees) &&
     Array.isArray(value.analyses) &&
+    isObject(value.github) &&
     typeof value.fetchedAt === "string" &&
     typeof value.savedAt === "string"
   );
+}
+
+function isLegacyAnalysisCacheSnapshot(
+  value: unknown,
+): value is Omit<AnalysisCacheSnapshot, "schemaVersion" | "github"> & { schemaVersion: 3 } {
+  if (!isObject(value)) return false;
+  return (
+    value.schemaVersion === LEGACY_ANALYSIS_CACHE_SCHEMA_VERSION &&
+    typeof value.username === "string" &&
+    Array.isArray(value.repositories) &&
+    isObject(value.readmes) &&
+    isObject(value.trees) &&
+    Array.isArray(value.analyses) &&
+    typeof value.fetchedAt === "string" &&
+    typeof value.savedAt === "string"
+  );
+}
+
+function migrateLegacySnapshot(
+  snapshot: Omit<AnalysisCacheSnapshot, "schemaVersion" | "github"> & { schemaVersion: 3 },
+): AnalysisCacheSnapshot {
+  return {
+    ...snapshot,
+    schemaVersion: ANALYSIS_CACHE_SCHEMA_VERSION,
+    github: emptyGitHubMetadata(),
+  };
+}
+
+export function emptyGitHubMetadata(): AnalysisCacheGitHubMetadata {
+  return {
+    etags: {},
+    rateLimit: null,
+    refreshSummary: null,
+  };
+}
+
+function normalizeGitHubMetadata(value: unknown): AnalysisCacheGitHubMetadata {
+  if (!isObject(value)) return emptyGitHubMetadata();
+
+  const etags: Record<string, string> = {};
+  if (isObject(value.etags)) {
+    for (const [key, etag] of Object.entries(value.etags)) {
+      if (typeof etag === "string" && etag.trim()) {
+        etags[key] = etag;
+      }
+    }
+  }
+
+  return {
+    etags,
+    rateLimit: normalizeRateLimit(value.rateLimit),
+    refreshSummary: normalizeRefreshSummary(value.refreshSummary),
+  };
+}
+
+function normalizeRateLimit(value: unknown): GitHubRateLimitBudget | null {
+  if (!isObject(value)) return null;
+  return {
+    limit: nullableNumber(value.limit),
+    remaining: nullableNumber(value.remaining),
+    used: nullableNumber(value.used),
+    reset: nullableNumber(value.reset),
+  };
+}
+
+function normalizeRefreshSummary(value: unknown): AnalysisRefreshSummary | null {
+  if (!isObject(value)) return null;
+  const reused = nullableNumber(value.reused);
+  const refreshed = nullableNumber(value.refreshed);
+  if (reused === null || refreshed === null) return null;
+  return { reused, refreshed };
+}
+
+function nullableNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

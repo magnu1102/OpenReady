@@ -27,7 +27,7 @@ jobs:
       - name: Analyze and generate badges
         uses: magnu1102/OpenReady@v0.3.0
         with:
-          username: OWNER # ← your GitHub username
+          username: OWNER # ← your GitHub user or organization
           repo: REPO # ← this repository's name
           badge: "true"
           badge-path: .github/badges/openready

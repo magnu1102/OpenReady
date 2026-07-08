@@ -3,13 +3,32 @@ import type { Repository, RepositoryReadme, RepositoryTree, RepositoryTreeEntry 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const USERNAME_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
 
+export interface GitHubRateLimitBudget {
+  limit: number | null;
+  remaining: number | null;
+  used: number | null;
+  reset: number | null;
+}
+
+export interface GitHubRequestMetadata {
+  status: number;
+  etag: string | null;
+  rateLimit: GitHubRateLimitBudget;
+  requestKey: string;
+}
+
+export interface GitHubFetchResult<T> {
+  data: T | null;
+  notModified: boolean;
+  metadata: GitHubRequestMetadata;
+}
+
+export interface GitHubFetchOptions {
+  etag?: string | null;
+}
+
 export type GitHubClientErrorCode =
-  | "invalid-username"
-  | "not-found"
-  | "rate-limit"
-  | "network"
-  | "invalid-response"
-  | "api-error";
+  "invalid-username" | "not-found" | "rate-limit" | "network" | "invalid-response" | "api-error";
 
 export class GitHubClientError extends Error {
   constructor(
@@ -72,6 +91,10 @@ interface GitHubProxyResponse {
   status: number;
   body: string;
   rate_limit_remaining: string | null;
+  rate_limit_limit: string | null;
+  rate_limit_used: string | null;
+  rate_limit_reset: string | null;
+  etag: string | null;
 }
 
 export function normalizeGitHubUsername(username: string): string {
@@ -83,23 +106,45 @@ export function isValidGitHubUsername(username: string): boolean {
 }
 
 export async function fetchUserRepositories(username: string): Promise<Repository[]> {
+  const result = await fetchUserRepositoriesWithMetadata(username);
+  if (result.notModified || !result.data) {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned a not-modified response without cached repository data.",
+    );
+  }
+  return result.data;
+}
+
+export async function fetchUserRepositoriesWithMetadata(
+  username: string,
+  options: GitHubFetchOptions = {},
+): Promise<GitHubFetchResult<Repository[]>> {
   const normalized = normalizeGitHubUsername(username);
   if (!isValidGitHubUsername(normalized)) {
     throw new GitHubClientError(
       "invalid-username",
-      "Enter a valid GitHub username using letters, numbers, or single hyphens.",
+      "Enter a valid GitHub user or organization using letters, numbers, or single hyphens.",
     );
   }
 
+  const path = `/users/${encodeURIComponent(normalized)}/repos`;
+  const query: Array<[string, string]> = [
+    ["sort", "pushed"],
+    ["direction", "desc"],
+    ["per_page", "100"],
+  ];
   const response = await githubGet(
-    `/users/${encodeURIComponent(normalized)}/repos`,
-    [
-      ["sort", "pushed"],
-      ["direction", "desc"],
-      ["per_page", "100"],
-    ],
+    path,
+    query,
     "Could not reach GitHub. Check your connection and try again.",
+    options,
   );
+  const metadata = responseMetadata(response, path, query);
+
+  if (response.status === 304) {
+    return { data: null, notModified: true, metadata };
+  }
 
   if (!response.ok) {
     throw await toGitHubClientError(response);
@@ -113,13 +158,28 @@ export async function fetchUserRepositories(username: string): Promise<Repositor
     );
   }
 
-  return data.map(mapRepository);
+  return { data: data.map(mapRepository), notModified: false, metadata };
 }
 
 export async function fetchRepositoryReadme(
   owner: string,
   repo: string,
 ): Promise<RepositoryReadme | null> {
+  const result = await fetchRepositoryReadmeWithMetadata(owner, repo);
+  if (result.notModified) {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned a not-modified response without cached README data.",
+    );
+  }
+  return result.data;
+}
+
+export async function fetchRepositoryReadmeWithMetadata(
+  owner: string,
+  repo: string,
+  options: GitHubFetchOptions = {},
+): Promise<GitHubFetchResult<RepositoryReadme | null>> {
   const normalizedOwner = owner.trim();
   const normalizedRepo = repo.trim();
   if (
@@ -134,11 +194,22 @@ export async function fetchRepositoryReadme(
   const path = `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
     normalizedRepo,
   )}/readme`;
+  const query: Array<[string, string]> = [];
 
-  const response = await githubGet(path, [], "Could not reach GitHub while checking the README.");
+  const response = await githubGet(
+    path,
+    query,
+    "Could not reach GitHub while checking the README.",
+    options,
+  );
+  const metadata = responseMetadata(response, path, query);
+
+  if (response.status === 304) {
+    return { data: null, notModified: true, metadata };
+  }
 
   if (response.status === 404) {
-    return null;
+    return { data: null, notModified: false, metadata };
   }
 
   if (!response.ok) {
@@ -154,10 +225,14 @@ export async function fetchRepositoryReadme(
   }
 
   return {
-    repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
-    path: data.path,
-    htmlUrl: data.html_url,
-    content: decodeBase64(data.content),
+    data: {
+      repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
+      path: data.path,
+      htmlUrl: data.html_url,
+      content: decodeBase64(data.content),
+    },
+    notModified: false,
+    metadata,
   };
 }
 
@@ -166,6 +241,22 @@ export async function fetchRepositoryTree(
   repo: string,
   branch: string,
 ): Promise<RepositoryTree | null> {
+  const result = await fetchRepositoryTreeWithMetadata(owner, repo, branch);
+  if (result.notModified) {
+    throw new GitHubClientError(
+      "invalid-response",
+      "GitHub returned a not-modified response without cached repository tree data.",
+    );
+  }
+  return result.data;
+}
+
+export async function fetchRepositoryTreeWithMetadata(
+  owner: string,
+  repo: string,
+  branch: string,
+  options: GitHubFetchOptions = {},
+): Promise<GitHubFetchResult<RepositoryTree | null>> {
   const normalizedOwner = owner.trim();
   const normalizedRepo = repo.trim();
   const normalizedBranch = branch.trim();
@@ -185,15 +276,22 @@ export async function fetchRepositoryTree(
   const path = `/repos/${encodeURIComponent(normalizedOwner)}/${encodeURIComponent(
     normalizedRepo,
   )}/git/trees/${encodeURIComponent(normalizedBranch)}`;
+  const query: Array<[string, string]> = [["recursive", "1"]];
 
   const response = await githubGet(
     path,
-    [["recursive", "1"]],
+    query,
     "Could not reach GitHub while checking the repository file tree.",
+    options,
   );
+  const metadata = responseMetadata(response, path, query);
+
+  if (response.status === 304) {
+    return { data: null, notModified: true, metadata };
+  }
 
   if (response.status === 404 || response.status === 409) {
-    return null;
+    return { data: null, notModified: false, metadata };
   }
 
   if (!response.ok) {
@@ -216,9 +314,13 @@ export async function fetchRepositoryTree(
   }
 
   return {
-    repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
-    entries,
-    truncated: data.truncated,
+    data: {
+      repositoryFullName: `${normalizedOwner}/${normalizedRepo}`,
+      entries,
+      truncated: data.truncated,
+    },
+    notModified: false,
+    metadata,
   };
 }
 
@@ -226,12 +328,14 @@ async function githubGet(
   path: string,
   query: Array<[string, string]>,
   networkMessage: string,
+  options: GitHubFetchOptions = {},
 ): Promise<GitHubHttpResponse> {
+  const etag = options.etag?.trim() || null;
   if (isTauriRuntime()) {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const response = await invoke<GitHubProxyResponse>("github_get", {
-        input: { path, query },
+        input: { path, query, etag },
       });
       return toProxyHttpResponse(response);
     } catch (error) {
@@ -250,6 +354,9 @@ async function githubGet(
   };
   if (cliAuthToken) {
     headers.Authorization = `Bearer ${cliAuthToken}`;
+  }
+  if (etag) {
+    headers["If-None-Match"] = etag;
   }
 
   try {
@@ -271,15 +378,55 @@ export function setGitHubAuthToken(token: string | null): void {
 }
 
 function toProxyHttpResponse(response: GitHubProxyResponse): GitHubHttpResponse {
+  const headers = new Map<string, string | null>([
+    ["x-ratelimit-limit", response.rate_limit_limit],
+    ["x-ratelimit-remaining", response.rate_limit_remaining],
+    ["x-ratelimit-used", response.rate_limit_used],
+    ["x-ratelimit-reset", response.rate_limit_reset],
+    ["etag", response.etag],
+  ]);
+
   return {
     ok: response.status >= 200 && response.status < 300,
     status: response.status,
     headers: {
-      get: (name) =>
-        name.toLowerCase() === "x-ratelimit-remaining" ? response.rate_limit_remaining : null,
+      get: (name) => headers.get(name.toLowerCase()) ?? null,
     },
     json: async () => JSON.parse(response.body) as unknown,
   };
+}
+
+function responseMetadata(
+  response: GitHubHttpResponse,
+  path: string,
+  query: Array<[string, string]>,
+): GitHubRequestMetadata {
+  return {
+    status: response.status,
+    etag: response.headers.get("etag"),
+    rateLimit: {
+      limit: parseIntegerHeader(response.headers.get("x-ratelimit-limit")),
+      remaining: parseIntegerHeader(response.headers.get("x-ratelimit-remaining")),
+      used: parseIntegerHeader(response.headers.get("x-ratelimit-used")),
+      reset: parseIntegerHeader(response.headers.get("x-ratelimit-reset")),
+    },
+    requestKey: githubRequestKey(path, query),
+  };
+}
+
+export function githubRequestKey(path: string, query: Array<[string, string]> = []): string {
+  const sortedQuery = [...query].sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+    const keyOrder = leftKey.localeCompare(rightKey);
+    return keyOrder === 0 ? leftValue.localeCompare(rightValue) : keyOrder;
+  });
+  const search = new URLSearchParams(sortedQuery).toString();
+  return search ? `${path}?${search}` : path;
+}
+
+function parseIntegerHeader(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 async function toGitHubClientError(response: GitHubHttpResponse): Promise<GitHubClientError> {
@@ -287,7 +434,7 @@ async function toGitHubClientError(response: GitHubHttpResponse): Promise<GitHub
   if (response.status === 404) {
     return new GitHubClientError(
       "not-found",
-      "No GitHub user was found for that username.",
+      "No GitHub user or organization was found for that login.",
       response.status,
     );
   }

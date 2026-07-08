@@ -31,4 +31,28 @@ test("analyzes a mocked profile and renders the dashboard", async ({ page }) => 
 
   // A score eventually resolves from the mocked README + tree.
   await expect(page.getByText(/Score \d+/).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/GitHub budget: 59\/60 left/)).toBeVisible();
+});
+
+test("analyzes a mocked organization account", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel(copy.welcome.form.label).fill("github");
+  await page.getByRole("button", { name: copy.welcome.form.submit }).click();
+
+  await expect(page.getByRole("heading", { name: copy.dashboard.title })).toBeVisible();
+  await expect(page.getByText("github/openready-org")).toBeVisible();
+});
+
+test("reuses cached repositories after a conditional refresh", async ({ page }) => {
+  await page.unroute("https://api.github.com/**");
+  await mockGitHub(page, { notModifiedOnConditional: true });
+
+  await page.goto("/");
+  await page.getByLabel(copy.welcome.form.label).fill("octocat");
+  await page.getByRole("button", { name: copy.welcome.form.submit }).click();
+  await expect(page.getByText(/Score \d+/).first()).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole("button", { name: copy.dashboard.refresh }).click();
+
+  await expect(page.getByText(copy.dashboard.refreshSummary(1, 0))).toBeVisible();
 });

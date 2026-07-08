@@ -22,12 +22,12 @@ describe("WelcomeRoute", () => {
     expect(screen.getByRole("heading", { name: copy.welcome.heading })).toBeInTheDocument();
   });
 
-  it("renders the GitHub username input", () => {
+  it("renders the GitHub account input", () => {
     renderWelcome();
-    expect(screen.getByLabelText(/github username/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/github user or organization/i)).toBeInTheDocument();
   });
 
-  it("enables repository fetch from the username form", () => {
+  it("enables repository fetch from the account form", () => {
     renderWelcome();
     expect(screen.getByRole("button", { name: /analyze/i })).toBeEnabled();
   });
@@ -36,7 +36,7 @@ describe("WelcomeRoute", () => {
     const user = userEvent.setup();
     renderWelcome();
 
-    await user.type(screen.getByLabelText(/github username/i), "octocat/hello-world");
+    await user.type(screen.getByLabelText(/github user or organization/i), "octocat/hello-world");
     await user.click(screen.getByRole("button", { name: /analyze/i }));
 
     expect(screen.getByText(/not a url or repository path/i)).toBeInTheDocument();

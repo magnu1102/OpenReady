@@ -8,7 +8,7 @@ A four-step walkthrough that auto-starts the first time a user lands on the Dash
 
 | Step | Anchor                 | Route        | What it teaches                               |
 | ---- | ---------------------- | ------------ | --------------------------------------------- |
-| 1    | `welcome-cta`          | `/`          | Start with a GitHub username                  |
+| 1    | `welcome-cta`          | `/`          | Start with a GitHub account                   |
 | 2    | `dashboard-first-card` | `/dashboard` | Health label, type chip, score on each card   |
 | 3    | `export-panel`         | `/dashboard` | Local Markdown / JSON / homepage-card exports |
 | 4    | `settings-replay`      | `/settings`  | Replay the tour, GitHub token, cache controls |
@@ -38,7 +38,7 @@ A central command registry powers both surfaces. Each command has `id`, `label`,
 | ⌘/ / Ctrl+/           | Show keyboard shortcut sheet                                         |
 | ⌘B / Ctrl+B           | Toggle the sidebar                                                   |
 | ⌘, / Ctrl+,           | Open Settings                                                        |
-| `/`                   | Focus the username field on Welcome (no modifier)                    |
+| `/`                   | Focus the account field on Welcome (no modifier)                     |
 | `↑` / `↓` / `←` / `→` | Move focus between dashboard cards (Home / End jump to first / last) |
 | `Esc`                 | Close palette, shortcut sheet, or tour                               |
 

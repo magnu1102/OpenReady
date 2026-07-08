@@ -31,7 +31,7 @@ Full copy-pasteable workflows live in [`docs/examples/`](./examples/):
 
 | Input            | Default                 | Notes                                                                                |
 | ---------------- | ----------------------- | ------------------------------------------------------------------------------------ |
-| `username`       | (required)              | GitHub username whose public repositories are analyzed.                              |
+| `username`       | (required)              | GitHub user or organization whose public repositories are analyzed.                  |
 | `repo`           | —                       | Focus a single repository (case-insensitive name or `owner/name`).                   |
 | `token`          | `${{ github.token }}`   | GitHub token for API requests. Passed to the CLI via env, never on the command line. |
 | `fail-under`     | —                       | Fail the action if any analyzed repository scores below this (0–100).                |

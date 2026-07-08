@@ -13,11 +13,11 @@
 
 </div>
 
-OpenReady is an open-source desktop app that analyzes public GitHub repositories and turns documentation, licensing, CI, build and presentation signals into transparent scores and prioritized next steps. Enter a username; get a clear answer to one question: _which of these projects are ready to show someone, and what should each one fix first?_
+OpenReady is an open-source desktop app that analyzes public GitHub repositories and turns documentation, licensing, CI, build and presentation signals into transparent scores and prioritized next steps. Enter a GitHub user or organization; get a clear answer to one question: _which of these projects are ready to show someone, and what should each one fix first?_
 
 Every check is deterministic and runs on your machine. No account, no cloud, no AI required — an opt-in AI assist exists, but the core never depends on it.
 
-> **Status:** v0.5.0 — Phase 20, distribution hardening, complete: the CLI installs from npm, Rust checks run in CI on three OSes, the auto-updater is wired (gated until releases are signed), and a Playwright smoke guards the analyze flow. Next up: Phase 21, product trust and polish. See the [roadmap](docs/roadmap.md).
+> **Status:** v0.5.5 — Phase 21, product trust and polish, complete. Current development target: Phase 22, GitHub client efficiency and account support. See the [roadmap](docs/roadmap.md).
 
 ## Screenshots
 
@@ -87,7 +87,7 @@ This opens OpenReady in your browser without compiling the Rust shell.
 
 ### First analysis
 
-1. Enter a public GitHub username on the Welcome screen.
+1. Enter a public GitHub user or organization on the Welcome screen.
 2. OpenReady fetches public repository metadata — optionally with a locally stored token for higher rate limits.
 3. The Dashboard shows health labels, scores and the key missing signal per repository.
 4. Open a repository for score breakdowns, detected stack, per-category checks and prioritized recommendations.

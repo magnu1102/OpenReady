@@ -2,21 +2,30 @@ import { create } from "zustand";
 import {
   clearAnalysisCache,
   createAnalysisCacheSnapshot,
+  emptyGitHubMetadata,
   getCachedAnalysis,
   listCachedAnalyses,
   saveAnalysisSnapshot,
   snapshotToMetadata,
+  type AnalysisCacheGitHubMetadata,
   type AnalysisCacheMetadata,
+  type AnalysisCacheSnapshot,
+  type AnalysisRefreshSummary,
 } from "@/lib/analysisCache";
 import { analyzeRepositories, analyzeRepository } from "@/modules/analyzer-core";
 import { usePreferencesStore } from "@/store/preferencesStore";
 import {
-  fetchRepositoryReadme,
-  fetchRepositoryTree,
-  fetchUserRepositories,
+  fetchRepositoryReadmeWithMetadata,
+  fetchRepositoryTreeWithMetadata,
+  fetchUserRepositoriesWithMetadata,
   GitHubClientError,
+  githubRequestKey,
 } from "@/modules/github-client";
-import type { GitHubClientErrorCode } from "@/modules/github-client";
+import type {
+  GitHubClientErrorCode,
+  GitHubRateLimitBudget,
+  GitHubRequestMetadata,
+} from "@/modules/github-client";
 import type {
   AnalysisResult,
   ProjectType,
@@ -49,6 +58,9 @@ interface RepositoryState {
   cacheStatus: CacheStatus;
   cachedAnalyses: AnalysisCacheMetadata[];
   activeCache: AnalysisCacheMetadata | null;
+  githubBudget: GitHubRateLimitBudget | null;
+  githubEtags: Record<string, string>;
+  refreshSummary: AnalysisRefreshSummary | null;
   error: RepositoryFetchError | null;
   fetchRepositories: (username: string, options?: { forceRefresh?: boolean }) => Promise<void>;
   loadCachedAnalyses: () => Promise<void>;
@@ -87,13 +99,23 @@ const initialState = {
   cacheStatus: "idle" as const,
   cachedAnalyses: [],
   activeCache: null,
+  githubBudget: null,
+  githubEtags: {},
+  refreshSummary: null,
   error: null,
 };
 
 export const useRepositoryStore = create<RepositoryState>((set, get) => ({
   ...initialState,
-  fetchRepositories: async (username, _options) => {
+  fetchRepositories: async (username, options) => {
     const normalized = username.trim();
+    const previousSnapshot = options?.forceRefresh ? await getCachedAnalysis(normalized) : null;
+    const startingGithub = previousSnapshot?.github ?? emptyGitHubMetadata();
+    const repositoryListEtag =
+      previousSnapshot && previousSnapshot.repositories.length > 0
+        ? startingGithub.etags[repositoryListRequestKey(normalized)]
+        : null;
+
     set({
       username: normalized,
       repositories: [],
@@ -104,22 +126,88 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       readmeStatus: "idle",
       treeStatus: "idle",
       activeCache: null,
+      githubBudget: null,
+      githubEtags: startingGithub.etags,
+      refreshSummary: null,
       error: null,
     });
 
     try {
-      const repositories = await fetchUserRepositories(normalized);
       const fetchedAt = new Date().toISOString();
+      const repositoryResult = await fetchUserRepositoriesWithMetadata(normalized, {
+        etag: repositoryListEtag,
+      });
+      let github = mergeGitHubMetadata(startingGithub, repositoryResult.metadata);
+
+      if (repositoryResult.notModified) {
+        if (!previousSnapshot) {
+          throw new GitHubClientError(
+            "invalid-response",
+            "GitHub returned a not-modified response without cached repository data.",
+          );
+        }
+
+        const repositories = previousSnapshot.repositories;
+        const analyses = analyzeRepositories(
+          repositories,
+          previousSnapshot.readmes,
+          previousSnapshot.trees,
+          new Date(),
+          overridesFromAnalyses(previousSnapshot.analyses),
+          currentWeights(),
+        );
+        const refreshSummary = {
+          reused: Math.min(repositories.length, Math.max(README_FETCH_LIMIT, TREE_FETCH_LIMIT)),
+          refreshed: 0,
+        };
+        github = { ...github, refreshSummary };
+
+        set({
+          repositories,
+          readmes: previousSnapshot.readmes,
+          trees: previousSnapshot.trees,
+          analyses,
+          status: "success",
+          readmeStatus: "complete",
+          treeStatus: "complete",
+          githubBudget: github.rateLimit,
+          githubEtags: github.etags,
+          refreshSummary,
+          error: null,
+        });
+        await saveCurrentSnapshot(normalized, fetchedAt, github, set, get);
+        return;
+      }
+
+      if (!repositoryResult.data) {
+        throw new GitHubClientError(
+          "invalid-response",
+          "GitHub returned an unexpected repository response.",
+        );
+      }
+
+      const repositories = repositoryResult.data;
       set({
         repositories,
         analyses: analyzeRepositories(repositories, {}, {}, new Date(), {}, currentWeights()),
         status: "success",
         readmeStatus: repositories.length > 0 ? "loading" : "complete",
         treeStatus: repositories.length > 0 ? "loading" : "complete",
+        githubBudget: github.rateLimit,
+        githubEtags: github.etags,
+        refreshSummary: null,
         error: null,
       });
 
-      void fetchRepositoryDetailsAndCache(repositories, normalized, fetchedAt, set, get);
+      void fetchRepositoryDetailsAndCache(
+        repositories,
+        normalized,
+        fetchedAt,
+        previousSnapshot,
+        github,
+        set,
+        get,
+      );
     } catch (error) {
       const repositoryError = toRepositoryFetchError(error);
       set({
@@ -131,6 +219,8 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
         readmeStatus: "idle",
         treeStatus: "idle",
         activeCache: null,
+        githubBudget: null,
+        refreshSummary: null,
         error: repositoryError,
       });
       throw error;
@@ -159,13 +249,23 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       readmeStatus: "complete",
       treeStatus: "complete",
       activeCache: snapshotToMetadata(snapshot),
+      githubBudget: snapshot.github.rateLimit,
+      githubEtags: snapshot.github.etags,
+      refreshSummary: snapshot.github.refreshSummary,
       error: null,
     });
     return true;
   },
   clearRepositoryCache: async () => {
     await clearAnalysisCache();
-    set({ cachedAnalyses: [], activeCache: null, cacheStatus: "ready" });
+    set({
+      cachedAnalyses: [],
+      activeCache: null,
+      cacheStatus: "ready",
+      githubBudget: null,
+      githubEtags: {},
+      refreshSummary: null,
+    });
   },
   overrideClassification: async (repositoryId, type) => {
     const state = get();
@@ -194,6 +294,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       readmes: state.readmes,
       trees: state.trees,
       analyses,
+      github: githubMetadataFromState(state),
       fetchedAt,
     });
     try {
@@ -225,6 +326,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       readmes: state.readmes,
       trees: state.trees,
       analyses,
+      github: githubMetadataFromState(state),
       fetchedAt,
     });
     try {
@@ -255,79 +357,125 @@ async function fetchRepositoryDetailsAndCache(
   repositories: Repository[],
   username: string,
   fetchedAt: string,
+  previousSnapshot: AnalysisCacheSnapshot | null,
+  github: AnalysisCacheGitHubMetadata,
   set: (
     partial: Partial<RepositoryState> | ((state: RepositoryState) => Partial<RepositoryState>),
   ) => void,
   get: () => RepositoryState,
 ): Promise<void> {
-  await Promise.all([
-    fetchReadmesForRepositories(repositories, username, set, get),
-    fetchTreesForRepositories(repositories, username, set, get),
+  const tracker = createRefreshTracker(Boolean(previousSnapshot));
+  const [readmeResult, treeResult] = await Promise.all([
+    fetchReadmesForRepositories(repositories, previousSnapshot, github, tracker),
+    fetchTreesForRepositories(repositories, previousSnapshot, github, tracker),
   ]);
 
   if (get().username !== username) return;
-  await saveCurrentSnapshot(username, fetchedAt, set, get);
+
+  const refreshSummary = tracker.enabled ? refreshSummaryFromTracker(tracker) : null;
+  const nextGithub = {
+    ...combineGitHubMetadata(github, readmeResult.github, treeResult.github),
+    refreshSummary,
+  };
+  const analyses = analyzeRepositories(
+    repositories,
+    readmeResult.readmes,
+    treeResult.trees,
+    new Date(),
+    overridesFromAnalyses(get().analyses),
+    currentWeights(),
+  );
+
+  set({
+    readmes: readmeResult.readmes,
+    trees: treeResult.trees,
+    analyses,
+    readmeStatus: "complete",
+    treeStatus: "complete",
+    githubBudget: nextGithub.rateLimit,
+    githubEtags: nextGithub.etags,
+    refreshSummary,
+  });
+
+  await saveCurrentSnapshot(username, fetchedAt, nextGithub, set, get);
 }
 
 async function fetchReadmesForRepositories(
   repositories: Repository[],
-  username: string,
-  set: (
-    partial: Partial<RepositoryState> | ((state: RepositoryState) => Partial<RepositoryState>),
-  ) => void,
-  get: () => RepositoryState,
-): Promise<void> {
+  previousSnapshot: AnalysisCacheSnapshot | null,
+  github: AnalysisCacheGitHubMetadata,
+  tracker: RefreshTracker,
+): Promise<{
+  readmes: Record<string, RepositoryReadmeState>;
+  github: AnalysisCacheGitHubMetadata;
+}> {
   const repositoriesToCheck = repositories.slice(0, README_FETCH_LIMIT);
 
   if (repositoriesToCheck.length === 0) {
-    set({ readmeStatus: "complete" });
-    return;
+    return { readmes: {}, github };
   }
 
   const entries = await Promise.all(
     repositoriesToCheck.map(async (repository) => {
       const [owner, repo] = repository.fullName.split("/");
+      const cached = reusableReadmeState(repository, previousSnapshot);
+      if (cached) {
+        markReused(tracker, repository.id);
+        return {
+          repositoryId: repository.id,
+          state: cached,
+          metadata: null,
+        };
+      }
+
+      markRefreshed(tracker, repository.id);
       try {
-        const readme = await fetchRepositoryReadme(owner, repo);
+        const requestKey = readmeRequestKey(owner, repo);
+        const staleCached = cachedDetailState(previousSnapshot?.readmes[repository.id]);
+        const readme = await fetchRepositoryReadmeWithMetadata(owner, repo, {
+          etag: staleCached ? (github.etags[requestKey] ?? null) : null,
+        });
+        if (readme.notModified && staleCached) {
+          return {
+            repositoryId: repository.id,
+            state: staleCached,
+            metadata: readme.metadata,
+          };
+        }
         // The 'satisfies' operator ensures the object matches the RepositoryReadmeState type without type casting.
-        return [
-          repository.id,
-          readme
-            ? ({ status: "found", readme } satisfies RepositoryReadmeState)
-            : { status: "missing" },
-        ] as const;
+        return {
+          repositoryId: repository.id,
+          state: readme.data
+            ? ({ status: "found", readme: readme.data } satisfies RepositoryReadmeState)
+            : ({ status: "missing" } satisfies RepositoryReadmeState),
+          metadata: readme.metadata,
+        };
       } catch (error) {
-        return [
-          repository.id,
-          {
+        return {
+          repositoryId: repository.id,
+          state: {
             status: "unknown",
             message: toReadmeUnknownMessage(error),
           } satisfies RepositoryReadmeState,
-        ] as const;
+          metadata: null,
+        };
       }
     }),
   );
 
-  if (get().username !== username) return;
-
-  set((state) => {
-    const readmes = {
-      ...state.readmes,
-      ...Object.fromEntries(entries),
-    };
-    return {
-      readmes,
-      analyses: analyzeRepositories(
-        state.repositories,
-        readmes,
-        state.trees,
-        new Date(),
-        overridesFromAnalyses(state.analyses),
-        currentWeights(),
-      ),
-      readmeStatus: "complete",
-    };
-  });
+  return entries.reduce(
+    (result, entry) => {
+      result.readmes[entry.repositoryId] = entry.state;
+      if (entry.metadata) {
+        result.github = mergeGitHubMetadata(result.github, entry.metadata);
+      }
+      return result;
+    },
+    { readmes: {}, github } as {
+      readmes: Record<string, RepositoryReadmeState>;
+      github: AnalysisCacheGitHubMetadata;
+    },
+  );
 }
 
 function toReadmeUnknownMessage(error: unknown): string {
@@ -337,63 +485,87 @@ function toReadmeUnknownMessage(error: unknown): string {
 
 async function fetchTreesForRepositories(
   repositories: Repository[],
-  username: string,
-  set: (
-    partial: Partial<RepositoryState> | ((state: RepositoryState) => Partial<RepositoryState>),
-  ) => void,
-  get: () => RepositoryState,
-): Promise<void> {
+  previousSnapshot: AnalysisCacheSnapshot | null,
+  github: AnalysisCacheGitHubMetadata,
+  tracker: RefreshTracker,
+): Promise<{
+  trees: Record<string, RepositoryTreeState>;
+  github: AnalysisCacheGitHubMetadata;
+}> {
   const repositoriesToCheck = repositories.slice(0, TREE_FETCH_LIMIT);
 
   if (repositoriesToCheck.length === 0) {
-    set({ treeStatus: "complete" });
-    return;
+    return { trees: {}, github };
   }
 
   const entries = await Promise.all(
     repositoriesToCheck.map(async (repository) => {
       const [owner, repo] = repository.fullName.split("/");
+      const cached = reusableTreeState(repository, previousSnapshot);
+      if (cached) {
+        markReused(tracker, repository.id);
+        return {
+          repositoryId: repository.id,
+          state: cached,
+          metadata: null,
+        };
+      }
+
+      markRefreshed(tracker, repository.id);
       try {
-        const tree = await fetchRepositoryTree(owner, repo, repository.defaultBranch);
-        if (!tree) {
-          return [repository.id, { status: "empty" } satisfies RepositoryTreeState] as const;
+        const requestKey = treeRequestKey(owner, repo, repository.defaultBranch);
+        const staleCached = cachedDetailState(previousSnapshot?.trees[repository.id]);
+        const tree = await fetchRepositoryTreeWithMetadata(owner, repo, repository.defaultBranch, {
+          etag: staleCached ? (github.etags[requestKey] ?? null) : null,
+        });
+        if (tree.notModified && staleCached) {
+          return {
+            repositoryId: repository.id,
+            state: staleCached,
+            metadata: tree.metadata,
+          };
         }
-        const state: RepositoryTreeState = tree.truncated
-          ? { status: "truncated", tree }
-          : { status: "found", tree };
-        return [repository.id, state] as const;
+        if (!tree.data) {
+          return {
+            repositoryId: repository.id,
+            state: { status: "empty" } satisfies RepositoryTreeState,
+            metadata: tree.metadata,
+          };
+        }
+        const state: RepositoryTreeState = tree.data.truncated
+          ? { status: "truncated", tree: tree.data }
+          : { status: "found", tree: tree.data };
+        return {
+          repositoryId: repository.id,
+          state,
+          metadata: tree.metadata,
+        };
       } catch (error) {
-        return [
-          repository.id,
-          {
+        return {
+          repositoryId: repository.id,
+          state: {
             status: "unknown",
             message: toTreeUnknownMessage(error),
           } satisfies RepositoryTreeState,
-        ] as const;
+          metadata: null,
+        };
       }
     }),
   );
 
-  if (get().username !== username) return;
-
-  set((state) => {
-    const trees = {
-      ...state.trees,
-      ...Object.fromEntries(entries),
-    };
-    return {
-      trees,
-      analyses: analyzeRepositories(
-        state.repositories,
-        state.readmes,
-        trees,
-        new Date(),
-        overridesFromAnalyses(state.analyses),
-        currentWeights(),
-      ),
-      treeStatus: "complete",
-    };
-  });
+  return entries.reduce(
+    (result, entry) => {
+      result.trees[entry.repositoryId] = entry.state;
+      if (entry.metadata) {
+        result.github = mergeGitHubMetadata(result.github, entry.metadata);
+      }
+      return result;
+    },
+    { trees: {}, github } as {
+      trees: Record<string, RepositoryTreeState>;
+      github: AnalysisCacheGitHubMetadata;
+    },
+  );
 }
 
 function toTreeUnknownMessage(error: unknown): string {
@@ -401,9 +573,157 @@ function toTreeUnknownMessage(error: unknown): string {
   return "Repository file tree could not be checked.";
 }
 
+interface RefreshTracker {
+  enabled: boolean;
+  reusedRepoIds: Set<string>;
+  refreshedRepoIds: Set<string>;
+}
+
+function createRefreshTracker(enabled: boolean): RefreshTracker {
+  return {
+    enabled,
+    reusedRepoIds: new Set(),
+    refreshedRepoIds: new Set(),
+  };
+}
+
+function markReused(tracker: RefreshTracker, repositoryId: string): void {
+  if (tracker.enabled) tracker.reusedRepoIds.add(repositoryId);
+}
+
+function markRefreshed(tracker: RefreshTracker, repositoryId: string): void {
+  if (tracker.enabled) tracker.refreshedRepoIds.add(repositoryId);
+}
+
+function refreshSummaryFromTracker(tracker: RefreshTracker): AnalysisRefreshSummary {
+  let reused = 0;
+  for (const repositoryId of tracker.reusedRepoIds) {
+    if (!tracker.refreshedRepoIds.has(repositoryId)) reused += 1;
+  }
+  return {
+    reused,
+    refreshed: tracker.refreshedRepoIds.size,
+  };
+}
+
+function reusableReadmeState(
+  repository: Repository,
+  previousSnapshot: AnalysisCacheSnapshot | null,
+): RepositoryReadmeState | null {
+  if (!previousSnapshot || !isUnchangedRepository(repository, previousSnapshot)) return null;
+  return cachedDetailState(previousSnapshot.readmes[repository.id]);
+}
+
+function reusableTreeState(
+  repository: Repository,
+  previousSnapshot: AnalysisCacheSnapshot | null,
+): RepositoryTreeState | null {
+  if (!previousSnapshot || !isUnchangedRepository(repository, previousSnapshot)) return null;
+  return cachedDetailState(previousSnapshot.trees[repository.id]);
+}
+
+function cachedDetailState<T extends { status: string }>(state: T | undefined): T | null {
+  if (!state || state.status === "unknown") return null;
+  return state;
+}
+
+function isUnchangedRepository(
+  repository: Repository,
+  previousSnapshot: AnalysisCacheSnapshot,
+): boolean {
+  const previous = previousSnapshot.repositories.find(
+    (candidate) => candidate.id === repository.id,
+  );
+  return (
+    previous?.fullName === repository.fullName &&
+    previous.defaultBranch === repository.defaultBranch &&
+    previous.pushedAt === repository.pushedAt
+  );
+}
+
+function mergeGitHubMetadata(
+  current: AnalysisCacheGitHubMetadata,
+  metadata: GitHubRequestMetadata,
+): AnalysisCacheGitHubMetadata {
+  const etags = { ...current.etags };
+  if (metadata.etag) {
+    etags[metadata.requestKey] = metadata.etag;
+  }
+  return {
+    ...current,
+    etags,
+    rateLimit: hasRateLimitValue(metadata.rateLimit) ? metadata.rateLimit : current.rateLimit,
+  };
+}
+
+function combineGitHubMetadata(
+  ...items: AnalysisCacheGitHubMetadata[]
+): AnalysisCacheGitHubMetadata {
+  return items.reduce(
+    (combined, item) => ({
+      etags: { ...combined.etags, ...item.etags },
+      rateLimit: chooseLatestBudget(combined.rateLimit, item.rateLimit),
+      refreshSummary: item.refreshSummary ?? combined.refreshSummary,
+    }),
+    emptyGitHubMetadata(),
+  );
+}
+
+function chooseLatestBudget(
+  current: GitHubRateLimitBudget | null,
+  next: GitHubRateLimitBudget | null,
+): GitHubRateLimitBudget | null {
+  if (!next) return current;
+  if (!current) return next;
+  if (current.remaining === null) return next;
+  if (next.remaining === null) return current;
+  return next.remaining <= current.remaining ? next : current;
+}
+
+function hasRateLimitValue(rateLimit: GitHubRateLimitBudget): boolean {
+  return (
+    rateLimit.limit !== null ||
+    rateLimit.remaining !== null ||
+    rateLimit.used !== null ||
+    rateLimit.reset !== null
+  );
+}
+
+function githubMetadataFromState(state: RepositoryState): AnalysisCacheGitHubMetadata {
+  return {
+    etags: state.githubEtags,
+    rateLimit: state.githubBudget,
+    refreshSummary: state.refreshSummary,
+  };
+}
+
+const USER_REPOSITORY_QUERY: Array<[string, string]> = [
+  ["sort", "pushed"],
+  ["direction", "desc"],
+  ["per_page", "100"],
+];
+
+function repositoryListRequestKey(username: string): string {
+  return githubRequestKey(`/users/${encodeURIComponent(username)}/repos`, USER_REPOSITORY_QUERY);
+}
+
+function readmeRequestKey(owner: string, repo: string): string {
+  return githubRequestKey(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/readme`);
+}
+
+function treeRequestKey(owner: string, repo: string, branch: string): string {
+  return githubRequestKey(
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(
+      branch,
+    )}`,
+    [["recursive", "1"]],
+  );
+}
+
 async function saveCurrentSnapshot(
   username: string,
   fetchedAt: string,
+  github: AnalysisCacheGitHubMetadata,
   set: (
     partial: Partial<RepositoryState> | ((state: RepositoryState) => Partial<RepositoryState>),
   ) => void,
@@ -417,6 +737,7 @@ async function saveCurrentSnapshot(
     readmes: state.readmes,
     trees: state.trees,
     analyses: state.analyses,
+    github,
     fetchedAt,
     savedAt,
   });

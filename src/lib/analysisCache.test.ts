@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  ANALYSIS_CACHE_SCHEMA_VERSION,
   ANALYSIS_CACHE_RETENTION_LIMIT,
   ANALYSIS_CACHE_STALE_MS,
   clearAnalysisCache,
@@ -118,6 +119,31 @@ describe("analysisCache", () => {
     expect(cached[0]).toMatchObject({
       username: "octocat",
       savedAt: "2026-05-28T11:00:00.000Z",
+    });
+  });
+
+  it("migrates v3 snapshots with empty GitHub metadata", async () => {
+    const legacySnapshot = {
+      ...snapshot("octocat", "2026-05-28T10:00:00.000Z"),
+      schemaVersion: 3,
+    } as Record<string, unknown>;
+    delete legacySnapshot.github;
+    window.localStorage.setItem(
+      "openready-analysis-cache",
+      JSON.stringify({
+        schemaVersion: 3,
+        snapshots: [legacySnapshot],
+      }),
+    );
+
+    await expect(getCachedAnalysis("octocat")).resolves.toMatchObject({
+      schemaVersion: ANALYSIS_CACHE_SCHEMA_VERSION,
+      username: "octocat",
+      github: {
+        etags: {},
+        rateLimit: null,
+        refreshSummary: null,
+      },
     });
   });
 

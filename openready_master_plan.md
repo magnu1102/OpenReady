@@ -64,7 +64,7 @@ A new user should be able to get value quickly.
 The ideal first experience:
 
 1. Download or run OpenReady.
-2. Enter a GitHub username.
+2. Enter a GitHub user or organization.
 3. Analyze public repositories.
 4. See clear repository health and readiness insights.
 5. Export a useful report.
@@ -335,7 +335,7 @@ A first-time user should experience something like this:
 
 1. Launch OpenReady.
 2. See a short explanation of what the app does.
-3. Enter a GitHub username.
+3. Enter a GitHub user or organization.
 4. Optionally add a GitHub token for higher rate limits.
 5. Click “Analyze repositories”.
 6. See progress while repositories are fetched and checked.
@@ -350,7 +350,7 @@ A first-time user should experience something like this:
 Purpose:
 
 - explain the product simply
-- ask for GitHub username
+- ask for GitHub user or organization
 - explain optional token support
 - show privacy/local-first note
 
@@ -1159,7 +1159,7 @@ Goal: Make OpenReady useful in developer workflows.
 
 Possible outputs:
 
-- `openready analyze <username>`
+- `openready analyze <login>`
 - terminal summary
 - JSON/Markdown output
 - reusable analyzer core extraction if needed
@@ -1353,6 +1353,8 @@ Post-push steps:
 
 ### Phase 21: Product trust and polish
 
+Status: shipped as `v0.5.5`.
+
 Goal: Make OpenReady's own guidance feel trustworthy, human and easier to
 understand before adding broader GitHub fetch capabilities.
 
@@ -1367,19 +1369,23 @@ Possible outputs:
 - targeted visual cleanup that preserves the Aurora design language while
   removing generic decorative effects
 
-### Phase 22: GitHub client efficiency and organization support
+### Phase 22: GitHub client efficiency and account support
+
+Status: current development target for `v0.6.0`.
 
 Goal: Reduce rate-limit pressure (60 req/h unauthenticated) and widen the
 audience beyond personal profiles.
 
 Possible outputs:
 
-- conditional requests with ETags so refreshes of unchanged repos cost no
-  rate-limit budget
+- conditional requests with ETags so refreshes of unchanged repositories avoid
+  avoidable payload downloads and surface request-budget metadata
 - visible request-budget indicator during analysis
-- optional GraphQL path that batches repo metadata + README + tree info
-- analyze organizations, not just users (near-identical API shape)
-- smarter refresh: re-analyze only repos whose `pushed_at` changed
+- analyze GitHub users and organizations through public account logins
+- smarter refresh: reuse cached README/tree details when repository `pushed_at`,
+  default branch and full name have not changed
+- signing, notarization, updater activation, private repositories and GraphQL
+  remain out of scope for this phase
 
 ### Phase 23: History and trends
 
@@ -1480,7 +1486,7 @@ Still avoid:
 
 ### 15.1 Public mode
 
-Default mode analyzes public repositories by GitHub username.
+Default mode analyzes public repositories by GitHub user or organization.
 
 No authentication required, but rate limits may be lower.
 
@@ -1650,7 +1656,7 @@ This backlog intentionally includes more than the first version should build.
 
 ### Core analysis
 
-- public repo fetch by username
+- public repository fetch by GitHub account login
 - repo metadata analysis
 - README detection
 - README section detection
